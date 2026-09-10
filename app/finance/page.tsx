@@ -459,7 +459,7 @@ export default function FinancePage() {
         </div>
       )}
 
-      <BottomNav />
+    
     </main>
   );
 }
