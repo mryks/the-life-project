@@ -113,3 +113,13 @@ Keep changes minimal and reviewable.
 - After modifying files, summarize the exact files changed and why.
 - Never hide or revert unrelated user changes.
 - Do not commit or push changes unless explicitly requested.
+
+## Financial Data Architecture
+
+- FinancialEvent is the single source of truth for financial data.
+- Only FinancialEvent data is persisted as financial state.
+- Ledger entries, account balances, totals, reports, charts, card views, and ledger views are derived data.
+- Do not persist derived financial data as a separate source of truth.
+- Any financial change, including edit, delete, refund, cashback, or related-event changes, must be reflected through FinancialEvent data.
+- Derived data must be recalculated deterministically from FinancialEvent.
+- FinancialEvent data must remain sufficient to reconstruct all financial views and calculations.

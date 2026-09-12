@@ -1,9 +1,24 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import BottomNav from "@/components/BottomNav";
-import { Transaction, AccountId, ExpenseCategory } from "@/lib/types";
-import { accounts, getAccountById } from "@/lib/accounts";
+import { useMemo, useState, useSyncExternalStore } from "react";
+import type { AccountId, ExpenseCategory, FinancialEvent, IncomeCategory } from "@/lib/types";
+import { getAccountById } from "@/lib/accounts";
+import {
+  calculateFinanceStats,
+  calculateNetExpenseForDate,
+  compareEventsNewestFirst,
+  createEventId,
+  deleteFinancialEvent,
+  deriveLedgerEntries,
+  expenseCategories,
+  getAccountBalances,
+  isPositiveInteger,
+  readFinancialEvents,
+  replaceFinancialEvent,
+  subscribeToFinancialEvents,
+  todayDate,
+  writeFinancialEvents,
+} from "@/lib/finance";
 import { 
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip, 
   LineChart, Line, XAxis, YAxis, CartesianGrid 
@@ -11,8 +26,8 @@ import {
 
 // Konfigurasi
 const accountOrder: AccountId[] = ['c', 'b', 'g', 's', 'jy', 'e', 'sea', 'q', 'j', 'k', 'h', 'sb', 'poe', 'kb', 'i', 'cla', 'p'];
-const expenseCategories: ExpenseCategory[] = ['Home & Family', 'Food & Drinks', 'Transportation', 'Shopping', 'Utilities', 'Medical', 'Investments', '𝓡', 'Other'];
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#8dd1e1', '#a4de6c'];
+const emptyEvents: FinancialEvent[] = [];
 
 export default function FinancePage() {
   // Navigation State
@@ -21,7 +36,7 @@ export default function FinancePage() {
   const [filterAccountId, setFilterAccountId] = useState<AccountId | null>(null);
 
   // Data State
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const events = useSyncExternalStore(subscribeToFinancialEvents, readFinancialEvents, () => emptyEvents);
   const [showMenu, setShowMenu] = useState(false);
   
   // Form State
@@ -29,78 +44,23 @@ export default function FinancePage() {
   const [formType, setFormType] = useState<'income' | 'expense' | 'transfer'>('expense');
   const [amount, setAmount] = useState("");
   const [desc, setDesc] = useState("");
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(todayDate());
   const [selectedAccount, setSelectedAccount] = useState<AccountId>('g');
   const [destinationAccount, setDestinationAccount] = useState<AccountId>('s');
   const [hasCashback, setHasCashback] = useState(false);
   const [cashbackAmount, setCashbackAmount] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<ExpenseCategory>('Food & Drinks');
+  const [selectedCategory, setSelectedCategory] = useState<IncomeCategory>('Food & Drinks');
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
   
   // Action Menu State
   const [actionMenuOpen, setActionMenuOpen] = useState(false);
   const [activeTransactionId, setActiveTransactionId] = useState<string | null>(null);
+  const [pendingDeleteEventId, setPendingDeleteEventId] = useState<string | null>(null);
 
-  // 1. Load Data
-  useEffect(() => {
-    const saved = localStorage.getItem("thelife-finance");
-    if (saved) setTransactions(JSON.parse(saved));
-    else setTransactions([
-      { id: '1', date: new Date().toISOString().split('T')[0], description: 'initial balance', accountId: 'g', type: 'income', amount: 18565800, category: 'Other' },
-    ]);
-  }, []);
-
-  // 2. Save Data
-  useEffect(() => {
-    if (transactions.length > 0) localStorage.setItem("thelife-finance", JSON.stringify(transactions));
-  }, [transactions]);
-
-  // 3. Calculations for Dashboard
-  const stats = useMemo(() => {
-    const currentMonth = new Date().getMonth();
-    const currentYear = new Date().getFullYear();
-    let totalBalance = 0;
-    let monthlyIncome = 0;
-    let monthlyExpense = 0;
-    const categoryTotals: Record<string, number> = {};
-
-    transactions.forEach(t => {
-      const tDate = new Date(t.date);
-      const isCurrentMonth = tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear;
-
-      if (t.type === 'income') {
-        totalBalance += t.amount;
-        if (isCurrentMonth) monthlyIncome += t.amount;
-      } else if (t.type === 'expense') {
-        totalBalance -= t.amount;
-        if (isCurrentMonth) {
-          monthlyExpense += t.amount;
-          const cat = t.category || 'Other';
-          categoryTotals[cat] = (categoryTotals[cat] || 0) + t.amount;
-        }
-      } else if (t.type === 'transfer') {
-        // Transfer doesn't change total balance in this simple logic
-      }
-    });
-
-    const pieData = Object.keys(categoryTotals).map(key => ({ name: key, value: categoryTotals[key] }));
-    return { totalBalance, monthlyIncome, monthlyExpense, pieData };
-  }, [transactions]);
-
-  // 4. Calculations for Account Balances
-  const accountBalances = useMemo(() => {
-    const balances: Record<string, number> = {};
-    accounts.forEach(acc => balances[acc.id] = 0);
-    transactions.forEach(t => {
-      if (t.type === 'income') balances[t.accountId] = (balances[t.accountId] || 0) + t.amount;
-      else if (t.type === 'expense') balances[t.accountId] = (balances[t.accountId] || 0) - t.amount;
-      else if (t.type === 'transfer') {
-        balances[t.accountId] = (balances[t.accountId] || 0) - t.amount;
-        const destId = (t as any).destinationId;
-        if (destId) balances[destId] = (balances[destId] || 0) + t.amount;
-      }
-    });
-    return balances;
-  }, [transactions]);
+  // All reports and account balances are deterministic derivations of persisted events.
+  const stats = useMemo(() => calculateFinanceStats(events, todayDate()), [events]);
+  const accountBalances = useMemo(() => getAccountBalances(events), [events]);
 
   // 5. Line Chart Data
   const lineChartData = useMemo(() => {
@@ -108,82 +68,143 @@ export default function FinancePage() {
     for (let i = 6; i >= 0; i--) {
       const d = new Date();
       d.setDate(d.getDate() - i);
-      const dateStr = d.toISOString().split('T')[0];
-      const dayExpense = transactions.filter(t => t.date === dateStr && t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const dayExpense = calculateNetExpenseForDate(events, dateStr);
       last7Days.push({ name: d.toLocaleDateString('en-US', { weekday: 'short' }), expense: dayExpense });
     }
     return last7Days;
-  }, [transactions]);
+  }, [events]);
 
   // 6. Grouped Transactions (For Card View)
   const groupedTransactions = useMemo(() => {
-    let filtered = transactions;
-    if (filterAccountId) filtered = transactions.filter(t => t.accountId === filterAccountId || (t.type === 'transfer' && (t as any).destinationId === filterAccountId));
+    let filtered = events;
+    if (filterAccountId) filtered = events.filter((event) =>
+      event.type === 'transfer'
+        ? event.sourceAccountId === filterAccountId || event.destinationAccountId === filterAccountId
+        : event.accountId === filterAccountId
+    );
     
-    const sorted = [...filtered].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    const groups: Record<string, Transaction[]> = {};
-    sorted.forEach(t => {
-      if (!groups[t.date]) groups[t.date] = [];
-      groups[t.date].push(t);
+    const sorted = [...filtered].sort(compareEventsNewestFirst);
+    const groups: Record<string, FinancialEvent[]> = {};
+    sorted.forEach((event) => {
+      if (!groups[event.date]) groups[event.date] = [];
+      groups[event.date].push(event);
     });
     return groups;
-  }, [transactions, filterAccountId]);
+  }, [events, filterAccountId]);
 
-  // Handlers
-  const handleAdd = () => {
-    if (!amount) return;
-    const newTrans: Transaction = {
-      id: Date.now().toString(),
-      date,
-      description: formType === 'transfer' ? `transfer to ${destinationAccount.toUpperCase()}` : desc,
-      accountId: selectedAccount,
-      type: formType,
-      amount: parseFloat(amount),
-      category: formType === 'expense' ? selectedCategory : undefined
-    };
-    if (formType === 'transfer') (newTrans as any).destinationId = destinationAccount;
+  const ledgerEntries = useMemo(() => {
+    const entries = deriveLedgerEntries(events);
+    return filterAccountId ? entries.filter((entry) => entry.accountId === filterAccountId) : entries;
+  }, [events, filterAccountId]);
+  const activeEvent = events.find((event) => event.id === activeTransactionId) ?? null;
+  const pendingDeleteEvent = events.find((event) => event.id === pendingDeleteEventId) ?? null;
+  const pendingDeleteRelatedCount = pendingDeleteEvent?.type === 'expense'
+    ? events.filter((event) => 'relatedEventId' in event && event.relatedEventId === pendingDeleteEvent.id).length
+    : 0;
 
-    const newTransactions = [newTrans, ...transactions];
+  const resetForm = () => {
+    setEditingEventId(null);
+    setAmount("");
+    setDesc("");
+    setHasCashback(false);
+    setCashbackAmount("");
+    setFormError(null);
+  };
 
-    if (formType === 'expense' && hasCashback && cashbackAmount) {
-      const cashbackTrans: Transaction = {
-        id: (Date.now() + 1).toString(),
-        date,
-        description: `cashback ${selectedAccount}`,
-        accountId: selectedAccount,
-        type: 'income',
-        amount: parseFloat(cashbackAmount)
-      };
-      // Insert right after the main expense
-      newTransactions.splice(1, 0, cashbackTrans);
+  const handleSave = () => {
+    const parsedAmount = Number(amount);
+    const trimmedDescription = (formType === 'transfer' ? `transfer to ${destinationAccount.toUpperCase()}` : desc).trim();
+    if (!isPositiveInteger(parsedAmount)) return setFormError('Amount must be a positive whole number.');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !trimmedDescription) return setFormError('Date and description are required.');
+    if (formType === 'transfer' && selectedAccount === destinationAccount) return setFormError('Transfer accounts must be different.');
+
+    const eventId = editingEventId ?? createEventId();
+    const event: FinancialEvent = formType === 'transfer'
+      ? { id: eventId, date, description: trimmedDescription, amount: parsedAmount, type: 'transfer', sourceAccountId: selectedAccount, destinationAccountId: destinationAccount }
+      : formType === 'expense'
+        ? { id: eventId, date, description: trimmedDescription, amount: parsedAmount, type: 'expense', accountId: selectedAccount, category: selectedCategory as ExpenseCategory }
+        : { id: eventId, date, description: trimmedDescription, amount: parsedAmount, type: 'income', accountId: selectedAccount, category: selectedCategory };
+
+    let nextEvents: FinancialEvent[] | null = editingEventId
+      ? replaceFinancialEvent(events, event)
+      : [...events, event];
+    if (!nextEvents) return setFormError('This change would violate a related financial event rule.');
+
+    if (formType === 'expense') {
+      const existingCashback = events.find((candidate) => candidate.type === 'income' && candidate.category === 'Cashback' && candidate.relatedEventId === eventId);
+      if (hasCashback) {
+        const parsedCashback = Number(cashbackAmount);
+        if (!isPositiveInteger(parsedCashback)) return setFormError('Cashback must be a positive whole number.');
+        const cashback: FinancialEvent = {
+          id: existingCashback?.id ?? createEventId(),
+          date,
+          description: `cashback ${selectedAccount}`,
+          amount: parsedCashback,
+          type: 'income',
+          accountId: selectedAccount,
+          category: 'Cashback',
+          relatedEventId: eventId,
+        };
+        nextEvents = existingCashback
+          ? nextEvents.map((candidate) => candidate.id === existingCashback.id ? cashback : candidate)
+          : [...nextEvents, cashback];
+      } else if (existingCashback) {
+        nextEvents = deleteFinancialEvent(nextEvents, existingCashback.id);
+      }
     }
 
-    setTransactions(newTransactions);
+    try {
+      writeFinancialEvents(nextEvents);
+    } catch {
+      setFormError('Unable to save a valid financial event.');
+      return;
+    }
     setShowForm(false);
-    setAmount(""); setDesc(""); setHasCashback(false); setCashbackAmount("");
+    resetForm();
   };
 
   const handleActionOpen = (id: string) => { setActiveTransactionId(id); setActionMenuOpen(true); };
   
   const handleDelete = () => {
     if (!activeTransactionId) return;
-    setTransactions(transactions.filter(t => t.id !== activeTransactionId));
+    setPendingDeleteEventId(activeTransactionId);
     setActionMenuOpen(false); setActiveTransactionId(null);
   };
 
+  const confirmDelete = () => {
+    if (!pendingDeleteEventId) return;
+    writeFinancialEvents(deleteFinancialEvent(events, pendingDeleteEventId));
+    setPendingDeleteEventId(null);
+  };
+
   const handleEdit = () => {
-    const t = transactions.find(x => x.id === activeTransactionId);
-    if (!t) return;
-    setFormType(t.type); setDesc(t.description); setAmount(t.amount.toString());
-    setDate(t.date); setSelectedAccount(t.accountId);
-    if (t.category) setSelectedCategory(t.category);
+    const event = events.find((candidate) => candidate.id === activeTransactionId);
+    if (!event || event.type === 'refund' || (event.type === 'income' && event.category === 'Cashback')) return;
+    setFormType(event.type);
+    setDesc(event.description);
+    setAmount(event.amount.toString());
+    setDate(event.date);
+    setSelectedAccount(event.type === 'transfer' ? event.sourceAccountId : event.accountId);
+    if (event.type === 'transfer') setDestinationAccount(event.destinationAccountId);
+    if (event.type !== 'transfer') setSelectedCategory(event.category);
+    if (event.type === 'expense') {
+      const cashback = events.find((candidate) => candidate.type === 'income' && candidate.category === 'Cashback' && candidate.relatedEventId === event.id);
+      setHasCashback(Boolean(cashback));
+      setCashbackAmount(cashback?.amount.toString() ?? '');
+    } else {
+      setHasCashback(false);
+      setCashbackAmount('');
+    }
+    setEditingEventId(event.id);
+    setFormError(null);
     setShowForm(true); setActionMenuOpen(false); setActiveTransactionId(null);
   };
 
   // Helpers
   const formatRupiah = (num: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(num);
-  const formatDateCard = (dateStr: string) => new Date(dateStr).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
-  const formatDateLedger = (dateStr: string) => new Date(dateStr).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase().replace('.', '');
+  const formatDateCard = (dateStr: string) => new Date(`${dateStr}T00:00:00`).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+  const formatDateLedger = (dateStr: string) => new Date(`${dateStr}T00:00:00`).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase().replace('.', '');
 
   return (
     <main className="min-h-screen bg-gray-50 pb-24 relative">
@@ -219,21 +240,21 @@ export default function FinancePage() {
                   <Pie data={stats.pieData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
                     {stats.pieData.map((entry, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}
                   </Pie>
-                  <Tooltip formatter={(value: any) => formatRupiah(Number(value))} />
+                  <Tooltip formatter={(value) => formatRupiah(Number(value))} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
           </div>
 
           <div className="bg-white p-5 rounded-2xl shadow-sm">
-            <h3 className="font-bold text-gray-800 mb-4 lowercase">expense trend (last 7 days)</h3>
+            <h3 className="font-bold text-gray-800 mb-4 lowercase">net expense trend (last 7 days)</h3>
             <div className="h-64 overflow-x-auto">
               <ResponsiveContainer width="100%" height="100%" minWidth={300}>
                 <LineChart data={lineChartData}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
                   <XAxis dataKey="name" tick={{fontSize: 12}} />
-                  <YAxis tick={{fontSize: 12}} domain={[0, 'auto']} />
-                  <Tooltip formatter={(value: any) => formatRupiah(Number(value))} />
+                  <YAxis tick={{fontSize: 12}} domain={['auto', 'auto']} />
+                  <Tooltip formatter={(value) => formatRupiah(Number(value))} />
                   <Line type="monotone" dataKey="expense" stroke="#ef4444" strokeWidth={2} dot={{r: 4}} />
                 </LineChart>
               </ResponsiveContainer>
@@ -282,13 +303,24 @@ export default function FinancePage() {
                 <div key={date}>
                   <h3 className="text-sm font-bold text-gray-400 mb-3 sticky top-0 bg-gray-50 py-2 z-10 lowercase">{formatDateCard(date)}</h3>
                   <div className="space-y-3">
-                    {groupedTransactions[date].map((t) => {
-                      const acc = getAccountById(t.accountId);
+                    {groupedTransactions[date].map((event) => {
+                      const displayAccountId = event.type === 'transfer'
+                        ? (filterAccountId === event.destinationAccountId ? event.destinationAccountId : event.sourceAccountId)
+                        : event.accountId;
+                      const acc = getAccountById(displayAccountId);
+                      const sourceAccount = event.type === 'transfer' ? getAccountById(event.sourceAccountId) : null;
+                      const destinationAccount = event.type === 'transfer' ? getAccountById(event.destinationAccountId) : null;
+                      const transferDirection = event.type === 'transfer'
+                        ? filterAccountId === event.destinationAccountId ? 'in' : filterAccountId === event.sourceAccountId ? 'out' : 'neutral'
+                        : event.type === 'expense' ? 'out' : 'in';
+                      const cardDescription = event.type === 'transfer' && !filterAccountId
+                        ? `${sourceAccount?.name ?? event.sourceAccountId} → ${destinationAccount?.name ?? event.destinationAccountId}`
+                        : event.description;
                       return (
-                        <div key={t.id} onContextMenu={(e) => { e.preventDefault(); handleActionOpen(t.id); }} className="bg-white p-4 rounded-2xl shadow-sm flex justify-between items-center active:bg-gray-50 transition cursor-pointer">
+                        <div key={event.id} onContextMenu={(e) => { e.preventDefault(); handleActionOpen(event.id); }} className="bg-white p-4 rounded-2xl shadow-sm flex justify-between items-center active:bg-gray-50 transition cursor-pointer">
                           <div className={`w-10 h-10 rounded-full ${acc?.colorClass} flex items-center justify-center text-white font-bold text-xs flex-shrink-0`}>{acc?.name}</div>
-                          <div className="flex-1 mx-4 min-w-0"><p className="font-bold text-gray-800 text-sm lowercase truncate">{t.description}</p></div>
-                          <p className={`font-bold text-sm ${t.type === 'income' ? 'text-green-600' : 'text-red-500'}`}>{t.type === 'income' ? '+' : '-'}{formatRupiah(t.amount)}</p>
+                          <div className="flex-1 mx-4 min-w-0"><p className="font-bold text-gray-800 text-sm lowercase truncate">{cardDescription}</p></div>
+                          <p className={`font-bold text-sm ${transferDirection === 'out' ? 'text-red-500' : transferDirection === 'in' ? 'text-green-600' : 'text-blue-600'}`}>{transferDirection === 'neutral' ? '' : transferDirection === 'out' ? '-' : '+'}{formatRupiah(event.amount)}</p>
                         </div>
                       );
                     })}
@@ -310,16 +342,16 @@ export default function FinancePage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {Object.values(groupedTransactions).flat().sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime()).map((t) => {
-                    const acc = getAccountById(t.accountId);
+                  {ledgerEntries.map((entry) => {
+                    const acc = getAccountById(entry.accountId);
                     return (
-                      <tr key={t.id} onContextMenu={(e) => { e.preventDefault(); handleActionOpen(t.id); }} className="hover:bg-gray-50 cursor-pointer">
-                        <td className="px-4 py-3 text-gray-600 whitespace-nowrap text-xs">{formatDateLedger(t.date)}</td>
-                        <td className="px-4 py-3 font-medium text-gray-800 lowercase max-w-[150px] truncate">{t.description}</td>
+                      <tr key={`${entry.eventId}-${entry.accountId}-${entry.direction}`} onContextMenu={(e) => { e.preventDefault(); handleActionOpen(entry.eventId); }} className="hover:bg-gray-50 cursor-pointer">
+                        <td className="px-4 py-3 text-gray-600 whitespace-nowrap text-xs">{formatDateLedger(entry.date)}</td>
+                        <td className="px-4 py-3 font-medium text-gray-800 lowercase max-w-[150px] truncate">{entry.description}</td>
                         <td className="px-4 py-3"><span className={`px-2 py-1 rounded text-xs text-white font-bold ${acc?.colorClass}`}>{acc?.name}</span></td>
-                        <td className="px-4 py-3 text-right text-green-600 font-medium">{t.type === 'income' ? formatRupiah(t.amount) : '-'}</td>
-                        <td className="px-4 py-3 text-right text-red-500 font-medium">{t.type === 'expense' ? formatRupiah(t.amount) : '-'}</td>
-                        <td className="px-4 py-3 text-right text-gray-500 text-xs lowercase">{t.category || '-'}</td>
+                        <td className="px-4 py-3 text-right text-green-600 font-medium">{entry.direction === 'in' ? formatRupiah(entry.amount) : '-'}</td>
+                        <td className="px-4 py-3 text-right text-red-500 font-medium">{entry.direction === 'out' ? formatRupiah(entry.amount) : '-'}</td>
+                        <td className="px-4 py-3 text-right text-gray-500 text-xs lowercase">{entry.category || '-'}</td>
                       </tr>
                     );
                   })}
@@ -350,9 +382,9 @@ export default function FinancePage() {
       <div className="fixed bottom-24 right-6 z-40 flex flex-col items-end gap-3">
         {showMenu && !showForm && (
           <div className="flex flex-col gap-2 mb-2">
-            <button onClick={() => { setFormType('income'); setShowForm(true); setShowMenu(false); }} className="bg-white/80 backdrop-blur-md border border-white/20 shadow-lg px-4 py-2 rounded-full text-green-600 font-bold text-sm lowercase">income</button>
-            <button onClick={() => { setFormType('expense'); setShowForm(true); setShowMenu(false); }} className="bg-white/80 backdrop-blur-md border border-white/20 shadow-lg px-4 py-2 rounded-full text-red-600 font-bold text-sm lowercase">expense</button>
-            <button onClick={() => { setFormType('transfer'); setShowForm(true); setShowMenu(false); }} className="bg-white/80 backdrop-blur-md border border-white/20 shadow-lg px-4 py-2 rounded-full text-blue-600 font-bold text-sm lowercase">transfer</button>
+            <button onClick={() => { resetForm(); setFormType('income'); setSelectedCategory('Other'); setShowForm(true); setShowMenu(false); }} className="bg-white/80 backdrop-blur-md border border-white/20 shadow-lg px-4 py-2 rounded-full text-green-600 font-bold text-sm lowercase">income</button>
+            <button onClick={() => { resetForm(); setFormType('expense'); setSelectedCategory('Food & Drinks'); setShowForm(true); setShowMenu(false); }} className="bg-white/80 backdrop-blur-md border border-white/20 shadow-lg px-4 py-2 rounded-full text-red-600 font-bold text-sm lowercase">expense</button>
+            <button onClick={() => { resetForm(); setFormType('transfer'); setShowForm(true); setShowMenu(false); }} className="bg-white/80 backdrop-blur-md border border-white/20 shadow-lg px-4 py-2 rounded-full text-blue-600 font-bold text-sm lowercase">transfer</button>
           </div>
         )}
         <button onClick={() => setShowMenu(!showMenu)} className="w-14 h-14 rounded-full bg-white/30 backdrop-blur-lg border border-white/40 shadow-xl flex items-center justify-center text-3xl text-gray-800 hover:scale-105 transition active:scale-95">
@@ -362,12 +394,12 @@ export default function FinancePage() {
 
       {/* ================= MODAL FORM ================= */}
       {showForm && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center backdrop-blur-sm p-4" onClick={() => setShowForm(false)}>
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center backdrop-blur-sm p-4" onClick={() => { setShowForm(false); resetForm(); }}>
           <div className="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <button onClick={() => setShowForm(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-800 transition bg-gray-100 hover:bg-gray-200 rounded-full p-1.5 z-10">
+            <button onClick={() => { setShowForm(false); resetForm(); }} className="absolute top-4 right-4 text-gray-400 hover:text-gray-800 transition bg-gray-100 hover:bg-gray-200 rounded-full p-1.5 z-10">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
-            <h3 className="font-bold text-xl text-gray-800 mb-5 lowercase pr-8">add {formType}</h3>
+            <h3 className="font-bold text-xl text-gray-800 mb-5 lowercase pr-8">{editingEventId ? 'edit' : 'add'} {formType}</h3>
             
             <div className="space-y-4">
               <div>
@@ -384,10 +416,10 @@ export default function FinancePage() {
                 <label className="text-xs font-bold text-gray-500 uppercase mb-1 block lowercase">amount</label>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-lg">Rp</span>
-                  <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" className={`w-full bg-white border border-gray-200 rounded-xl pl-12 pr-4 py-3 outline-none focus:border-blue-500 text-lg font-bold transition ${amount ? 'text-gray-900' : 'text-gray-400'}`} />
+                  <input type="number" min="1" step="1" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" className={`w-full bg-white border border-gray-200 rounded-xl pl-12 pr-4 py-3 outline-none focus:border-blue-500 text-lg font-bold transition ${amount ? 'text-gray-900' : 'text-gray-400'}`} />
                 </div>
               </div>
-              {formType === 'expense' && (
+              {formType !== 'transfer' && (
                 <div>
                   <label className="text-xs font-bold text-gray-500 uppercase mb-1 block lowercase">category</label>
                   <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value as ExpenseCategory)} className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-blue-500 text-gray-900 font-medium transition">
@@ -429,16 +461,34 @@ export default function FinancePage() {
                       </div>
                       <div className="relative">
                         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold">Rp</span>
-                        <input type="number" value={cashbackAmount} onChange={(e) => setCashbackAmount(e.target.value)} placeholder="0" className={`w-full bg-white border border-gray-200 rounded-xl pl-10 pr-4 py-2 outline-none focus:border-blue-500 font-bold transition ${cashbackAmount ? 'text-gray-900' : 'text-gray-400'}`} />
+                        <input type="number" min="1" step="1" value={cashbackAmount} onChange={(e) => setCashbackAmount(e.target.value)} placeholder="0" className={`w-full bg-white border border-gray-200 rounded-xl pl-10 pr-4 py-2 outline-none focus:border-blue-500 font-bold transition ${cashbackAmount ? 'text-gray-900' : 'text-gray-400'}`} />
                       </div>
                     </div>
                   )}
                 </div>
               )}
               <div className="flex gap-3 mt-6 pt-2">
-                <button onClick={() => setShowForm(false)} className="flex-1 bg-gray-100 text-gray-700 py-3.5 rounded-xl font-bold hover:bg-gray-200 transition lowercase">cancel</button>
-                <button onClick={handleAdd} className="flex-[2] bg-gray-900 text-white py-3.5 rounded-xl font-bold hover:bg-black transition shadow-lg lowercase">save transaction</button>
+                <button onClick={() => { setShowForm(false); resetForm(); }} className="flex-1 bg-gray-100 text-gray-700 py-3.5 rounded-xl font-bold hover:bg-gray-200 transition lowercase">cancel</button>
+                <button onClick={handleSave} className="flex-[2] bg-gray-900 text-white py-3.5 rounded-xl font-bold hover:bg-black transition shadow-lg lowercase">save transaction</button>
               </div>
+              {formError && <p className="text-sm font-medium text-red-600">{formError}</p>}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {pendingDeleteEvent && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" role="alertdialog" aria-modal="true" aria-labelledby="delete-confirmation-title">
+          <div className="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl">
+            <h3 id="delete-confirmation-title" className="font-bold text-xl text-gray-800 lowercase">delete this {pendingDeleteEvent.type}?</h3>
+            <p className="mt-3 text-sm text-gray-600">
+              {pendingDeleteEvent.type === 'expense' && pendingDeleteRelatedCount > 0
+                ? `This will also delete ${pendingDeleteRelatedCount} related cashback or refund event${pendingDeleteRelatedCount === 1 ? '' : 's'}.`
+                : 'This action cannot be undone.'}
+            </p>
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => setPendingDeleteEventId(null)} className="flex-1 bg-gray-100 text-gray-700 py-3.5 rounded-xl font-bold hover:bg-gray-200 transition lowercase">cancel</button>
+              <button onClick={confirmDelete} className="flex-[2] bg-red-600 text-white py-3.5 rounded-xl font-bold hover:bg-red-700 transition shadow-lg lowercase">delete event</button>
             </div>
           </div>
         </div>
@@ -451,7 +501,7 @@ export default function FinancePage() {
             <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-6"></div>
             <h3 className="font-bold text-lg text-gray-800 mb-4 lowercase">pilih aksi</h3>
             <div className="space-y-3">
-              <button onClick={handleEdit} className="w-full py-3.5 rounded-xl bg-gray-100 text-gray-800 font-bold hover:bg-gray-200 transition lowercase">edit transaksi</button>
+              <button onClick={handleEdit} disabled={activeEvent?.type === 'refund' || (activeEvent?.type === 'income' && activeEvent.category === 'Cashback')} className="w-full py-3.5 rounded-xl bg-gray-100 text-gray-800 font-bold hover:bg-gray-200 transition lowercase disabled:cursor-not-allowed disabled:opacity-50">edit transaksi</button>
               <button onClick={handleDelete} className="w-full py-3.5 rounded-xl bg-red-50 text-red-600 font-bold hover:bg-red-100 transition lowercase">hapus transaksi</button>
               <button onClick={() => setActionMenuOpen(false)} className="w-full py-3.5 rounded-xl text-gray-500 font-bold hover:bg-gray-50 transition lowercase">batal</button>
             </div>
