@@ -2,21 +2,28 @@
 
 import { useMemo, useState, useSyncExternalStore } from "react";
 import type { AccountId, ExpenseCategory, FinancialEvent, IncomeCategory } from "@/lib/types";
+import { GO_LIVE_DATE } from "@/lib/types";
 import { getAccountById } from "@/lib/accounts";
 import {
   calculateFinanceStats,
   calculateNetExpenseForDate,
+
   compareEventsNewestFirst,
   createEventId,
   deleteFinancialEvent,
   deriveLedgerEntries,
   expenseCategories,
   getAccountBalances,
+  getOpeningBalances,
+  hasNormalTransactionsForAccount,
+  hasOpeningBalanceEvents,
   isPositiveInteger,
   readFinancialEvents,
   replaceFinancialEvent,
+  setOpeningBalance,
   subscribeToFinancialEvents,
   todayDate,
+  validateNormalTransactionDate,
   writeFinancialEvents,
 } from "@/lib/finance";
 import { 
@@ -57,10 +64,17 @@ export default function FinancePage() {
   const [actionMenuOpen, setActionMenuOpen] = useState(false);
   const [activeTransactionId, setActiveTransactionId] = useState<string | null>(null);
   const [pendingDeleteEventId, setPendingDeleteEventId] = useState<string | null>(null);
+  const [showOpeningModal, setShowOpeningModal] = useState(false);
+  const [editingOpeningAccount, setEditingOpeningAccount] = useState<AccountId | null>(null);
+  const [openingAmount, setOpeningAmount] = useState("");
+  const [openingError, setOpeningError] = useState<string | null>(null);
+  const [confirmingOpeningEdit, setConfirmingOpeningEdit] = useState(false);
 
   // All reports and account balances are deterministic derivations of persisted events.
   const stats = useMemo(() => calculateFinanceStats(events, todayDate()), [events]);
   const accountBalances = useMemo(() => getAccountBalances(events), [events]);
+  const openingBalances = useMemo(() => getOpeningBalances(events), [events]);
+  const hasOpening = useMemo(() => hasOpeningBalanceEvents(events), [events]);
 
   // 5. Line Chart Data
   const lineChartData = useMemo(() => {
@@ -77,8 +91,8 @@ export default function FinancePage() {
 
   // 6. Grouped Transactions (For Card View)
   const groupedTransactions = useMemo(() => {
-    let filtered = events;
-    if (filterAccountId) filtered = events.filter((event) =>
+    let filtered = events.filter((event) => event.type !== 'opening-balance');
+    if (filterAccountId) filtered = filtered.filter((event) =>
       event.type === 'transfer'
         ? event.sourceAccountId === filterAccountId || event.destinationAccountId === filterAccountId
         : event.accountId === filterAccountId
@@ -107,6 +121,7 @@ export default function FinancePage() {
     setEditingEventId(null);
     setAmount("");
     setDesc("");
+    setDate(hasOpening && todayDate() < GO_LIVE_DATE ? GO_LIVE_DATE : todayDate());
     setHasCashback(false);
     setCashbackAmount("");
     setFormError(null);
@@ -117,6 +132,9 @@ export default function FinancePage() {
     const trimmedDescription = (formType === 'transfer' ? `transfer to ${destinationAccount.toUpperCase()}` : desc).trim();
     if (!isPositiveInteger(parsedAmount)) return setFormError('Amount must be a positive whole number.');
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !trimmedDescription) return setFormError('Date and description are required.');
+    if (hasOpening && !validateNormalTransactionDate(date, true)) {
+      return setFormError('Transaction date cannot be before 2026-10-01 when Opening Balance is active.');
+    }
     if (formType === 'transfer' && selectedAccount === destinationAccount) return setFormError('Transfer accounts must be different.');
 
     const eventId = editingEventId ?? createEventId();
@@ -180,7 +198,7 @@ export default function FinancePage() {
 
   const handleEdit = () => {
     const event = events.find((candidate) => candidate.id === activeTransactionId);
-    if (!event || event.type === 'refund' || (event.type === 'income' && event.category === 'Cashback')) return;
+    if (!event || event.type === 'refund' || event.type === 'opening-balance' || (event.type === 'income' && event.category === 'Cashback')) return;
     setFormType(event.type);
     setDesc(event.description);
     setAmount(event.amount.toString());
@@ -266,9 +284,22 @@ export default function FinancePage() {
       {/* ================= ACCOUNTS VIEW ================= */}
       {view === 'accounts' && (
         <div className="p-6">
-          <div className="flex items-center gap-4 mb-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-4">
             <button onClick={() => { setView('dashboard'); setFilterAccountId(null); }} className="text-sm text-blue-600 font-bold">← back</button>
             <h2 className="text-2xl font-bold text-gray-800 lowercase">accounts</h2>
+            </div>
+            <button
+              onClick={() => {
+                setEditingOpeningAccount(null);
+                setOpeningError(null);
+                setConfirmingOpeningEdit(false);
+                setShowOpeningModal(true);
+              }}
+              className="text-xs font-bold text-gray-700 bg-white border border-gray-200 px-3 py-1.5 rounded-xl shadow-sm hover:bg-gray-50 transition lowercase"
+            >
+              manage opening balances
+            </button>
           </div>
 
           {/* Account List */}
@@ -344,14 +375,60 @@ export default function FinancePage() {
                 <tbody className="divide-y divide-gray-100">
                   {ledgerEntries.map((entry) => {
                     const acc = getAccountById(entry.accountId);
+                    const isOpening = entry.eventType === 'opening-balance';
+                    const openingEv = isOpening ? openingBalances[entry.accountId] : undefined;
+                    const rawOpeningAmount = openingEv ? openingEv.amount : (entry.direction === 'in' ? entry.amount : -entry.amount);
                     return (
-                      <tr key={`${entry.eventId}-${entry.accountId}-${entry.direction}`} onContextMenu={(e) => { e.preventDefault(); handleActionOpen(entry.eventId); }} className="hover:bg-gray-50 cursor-pointer">
+                      <tr
+                        key={`${entry.eventId}-${entry.accountId}-${entry.direction}`}
+                        onContextMenu={(e) => {
+                          e.preventDefault();
+                          if (isOpening) {
+                            setEditingOpeningAccount(entry.accountId);
+                            setOpeningAmount(String(rawOpeningAmount));
+                            setOpeningError(null);
+                            setConfirmingOpeningEdit(false);
+                            setShowOpeningModal(true);
+                          } else {
+                            handleActionOpen(entry.eventId);
+                          }
+                        }}
+                        onClick={() => {
+                          if (isOpening) {
+                            setEditingOpeningAccount(entry.accountId);
+                            setOpeningAmount(String(rawOpeningAmount));
+                            setOpeningError(null);
+                            setConfirmingOpeningEdit(false);
+                            setShowOpeningModal(true);
+                          }
+                        }}
+                        className={`hover:bg-gray-50 cursor-pointer ${isOpening ? 'bg-blue-50/30' : ''}`}
+                      >
                         <td className="px-4 py-3 text-gray-600 whitespace-nowrap text-xs">{formatDateLedger(entry.date)}</td>
-                        <td className="px-4 py-3 font-medium text-gray-800 lowercase max-w-[150px] truncate">{entry.description}</td>
+                        <td className="px-4 py-3 font-medium text-gray-800 lowercase max-w-[150px] truncate">
+                          {isOpening ? (
+                            <span className="inline-flex items-center gap-1.5">
+                              <span className="text-[10px] uppercase px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-bold tracking-tight">starting balance</span>
+                              <span className="truncate">{entry.description}</span>
+                            </span>
+                          ) : (
+                            entry.description
+                          )}
+                        </td>
                         <td className="px-4 py-3"><span className={`px-2 py-1 rounded text-xs text-white font-bold ${acc?.colorClass}`}>{acc?.name}</span></td>
-                        <td className="px-4 py-3 text-right text-green-600 font-medium">{entry.direction === 'in' ? formatRupiah(entry.amount) : '-'}</td>
-                        <td className="px-4 py-3 text-right text-red-500 font-medium">{entry.direction === 'out' ? formatRupiah(entry.amount) : '-'}</td>
-                        <td className="px-4 py-3 text-right text-gray-500 text-xs lowercase">{entry.category || '-'}</td>
+                        <td className="px-4 py-3 text-right font-medium">
+                          {isOpening ? <span className="text-gray-400">-</span> : (entry.direction === 'in' ? <span className="text-green-600">{formatRupiah(entry.amount)}</span> : '-')}
+                        </td>
+                        <td className="px-4 py-3 text-right font-medium">
+                          {isOpening ? <span className="text-gray-400">-</span> : (entry.direction === 'out' ? <span className="text-red-500">{formatRupiah(entry.amount)}</span> : '-')}
+                        </td>
+                        <td className="px-4 py-3 text-right text-xs lowercase">
+                          {isOpening ? (
+                            <span className="font-bold text-gray-900">{formatRupiah(rawOpeningAmount)}</span>
+                          ) : (
+                            <span className="text-gray-500">{entry.category || '-'}</span>
+                          )}
+                        </td>
                       </tr>
                     );
                   })}
@@ -501,8 +578,8 @@ export default function FinancePage() {
             <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-6"></div>
             <h3 className="font-bold text-lg text-gray-800 mb-4 lowercase">pilih aksi</h3>
             <div className="space-y-3">
-              <button onClick={handleEdit} disabled={activeEvent?.type === 'refund' || (activeEvent?.type === 'income' && activeEvent.category === 'Cashback')} className="w-full py-3.5 rounded-xl bg-gray-100 text-gray-800 font-bold hover:bg-gray-200 transition lowercase disabled:cursor-not-allowed disabled:opacity-50">edit transaksi</button>
-              <button onClick={handleDelete} className="w-full py-3.5 rounded-xl bg-red-50 text-red-600 font-bold hover:bg-red-100 transition lowercase">hapus transaksi</button>
+              <button onClick={handleEdit} disabled={activeEvent?.type === 'refund' || activeEvent?.type === 'opening-balance' || (activeEvent?.type === 'income' && activeEvent.category === 'Cashback')} className="w-full py-3.5 rounded-xl bg-gray-100 text-gray-800 font-bold hover:bg-gray-200 transition lowercase disabled:cursor-not-allowed disabled:opacity-50">edit transaksi</button>
+              <button onClick={handleDelete} disabled={activeEvent?.type === 'opening-balance'} className="w-full py-3.5 rounded-xl bg-red-50 text-red-600 font-bold hover:bg-red-100 transition lowercase disabled:cursor-not-allowed disabled:opacity-50">hapus transaksi</button>
               <button onClick={() => setActionMenuOpen(false)} className="w-full py-3.5 rounded-xl text-gray-500 font-bold hover:bg-gray-50 transition lowercase">batal</button>
             </div>
           </div>
@@ -510,6 +587,173 @@ export default function FinancePage() {
       )}
 
     
+      {/* ================= OPENING BALANCES MODAL ================= */}
+      {showOpeningModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center backdrop-blur-sm p-4" onClick={() => setShowOpeningModal(false)}>
+          <div className="bg-white w-full max-w-lg rounded-3xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => setShowOpeningModal(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-800 transition bg-gray-100 hover:bg-gray-200 rounded-full p-1.5 z-10">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+
+            <div className="mb-5 pr-8">
+              <h3 className="font-bold text-xl text-gray-800 lowercase">manage opening balances</h3>
+              <p className="text-xs text-gray-500 mt-1">fixed position as of <span className="font-semibold text-gray-700">30 Sep 2026</span> (go-live: 1 Oct 2026)</p>
+            </div>
+
+            {editingOpeningAccount ? (
+              <div className="space-y-4">
+                {(() => {
+                  const acc = getAccountById(editingOpeningAccount);
+                  const currentBal = accountBalances[editingOpeningAccount] || 0;
+                  const hasTx = hasNormalTransactionsForAccount(events, editingOpeningAccount);
+
+                  const handleSaveOpening = () => {
+                    const parsed = Number(openingAmount);
+                    if (!Number.isSafeInteger(parsed)) {
+                      return setOpeningError('Please enter a valid integer amount.');
+                    }
+                    if (hasTx && !confirmingOpeningEdit) {
+                      setConfirmingOpeningEdit(true);
+                      return;
+                    }
+                    try {
+                      const nextEvents = setOpeningBalance(events, editingOpeningAccount, parsed);
+                      writeFinancialEvents(nextEvents);
+                      setEditingOpeningAccount(null);
+                      setConfirmingOpeningEdit(false);
+                      setOpeningError(null);
+                    } catch (err: unknown) {
+                      setOpeningError(err instanceof Error ? err.message : 'Unable to save opening balance.');
+                    }
+                  };
+
+                  const handleResetZero = () => {
+                    setOpeningAmount("0");
+                  };
+
+                  return (
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-2xl">
+                        <div className={`w-10 h-10 rounded-full ${acc?.colorClass} flex items-center justify-center text-white font-bold text-xs flex-shrink-0`}>{acc?.name}</div>
+                        <div>
+                          <p className="font-bold text-gray-800 text-sm">{acc?.name} Account</p>
+                          <p className="text-xs text-gray-500">Current balance: <span className="font-medium text-gray-700">{formatRupiah(currentBal)}</span></p>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-bold text-gray-500 uppercase mb-1 block lowercase">opening balance amount (IDR)</label>
+                        <p className="text-[11px] text-gray-400 mb-2">Can be positive, zero, or negative (e.g. for credit card / overdraft).</p>
+                        <div className="relative">
+                          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-lg">Rp</span>
+                          <input
+                            type="number"
+                            step="1"
+                            value={openingAmount}
+                            onChange={(e) => {
+                              setOpeningAmount(e.target.value);
+                              setOpeningError(null);
+                            }}
+                            placeholder="0"
+                            className="w-full bg-white border border-gray-200 rounded-xl pl-12 pr-4 py-3 outline-none focus:border-blue-500 text-lg font-bold text-gray-900 transition"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end">
+                        <button
+                          type="button"
+                          onClick={handleResetZero}
+                          className="text-xs font-bold text-gray-600 hover:text-gray-900 underline lowercase"
+                        >
+                          set to Rp0
+                        </button>
+                      </div>
+
+                      {hasTx && (
+                        <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs space-y-1">
+                          <p className="font-bold lowercase">⚠️ transactions already exist for this account</p>
+                          <p>Editing this opening balance will immediately adjust the calculated account balance and total balance.</p>
+                        </div>
+                      )}
+
+                      {confirmingOpeningEdit && (
+                        <div className="p-3.5 bg-blue-50 border border-blue-200 rounded-xl text-blue-900 text-xs">
+                          <p className="font-bold lowercase">confirm balance adjustment</p>
+                          <p className="mt-1">Are you sure you want to change the opening balance for {acc?.name} to {formatRupiah(Number(openingAmount) || 0)}?</p>
+                        </div>
+                      )}
+
+                      {openingError && <p className="text-xs font-bold text-red-600">{openingError}</p>}
+
+                      <div className="flex gap-3 pt-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingOpeningAccount(null);
+                            setConfirmingOpeningEdit(false);
+                            setOpeningError(null);
+                          }}
+                          className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-200 transition lowercase"
+                        >
+                          cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleSaveOpening}
+                          className="flex-[2] bg-gray-900 text-white py-3 rounded-xl font-bold hover:bg-black transition shadow-lg lowercase"
+                        >
+                          {confirmingOpeningEdit ? 'confirm & save' : 'save opening balance'}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="divide-y divide-gray-100 max-h-[60vh] overflow-y-auto pr-1">
+                  {accountOrder.map((accId) => {
+                    const acc = getAccountById(accId);
+                    if (!acc) return null;
+                    const op = openingBalances[acc.id];
+                    const curBal = accountBalances[acc.id] || 0;
+                    return (
+                      <div key={acc.id} className="py-3 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-9 h-9 rounded-full ${acc.colorClass} flex items-center justify-center text-white font-bold text-xs flex-shrink-0`}>{acc.name}</div>
+                          <div>
+                            <p className="font-bold text-gray-800 text-sm">{acc.name}</p>
+                            <p className="text-xs text-gray-400">Current: {formatRupiah(curBal)}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="text-right">
+                            <p className="text-xs font-bold text-gray-800">{op !== undefined ? formatRupiah(op.amount) : 'Rp0'}</p>
+                            <p className="text-[10px] text-gray-400">{op !== undefined ? 'configured' : 'not set'}</p>
+                          </div>
+                          <button
+                            onClick={() => {
+                              setEditingOpeningAccount(acc.id);
+                              setOpeningAmount(op ? String(op.amount) : "0");
+                              setOpeningError(null);
+                              setConfirmingOpeningEdit(false);
+                            }}
+                            className="px-3 py-1.5 rounded-lg text-xs font-bold bg-gray-100 hover:bg-gray-200 text-gray-700 transition lowercase"
+                          >
+                            edit
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
     </main>
   );
 }

@@ -37,7 +37,16 @@ export interface RefundEvent extends FinancialEventBase {
   relatedEventId: string;
 }
 
-export type FinancialEvent = IncomeEvent | ExpenseEvent | TransferEvent | RefundEvent;
+export const OPENING_BALANCE_DATE = '2026-09-30';
+export const GO_LIVE_DATE = '2026-10-01';
+
+export interface OpeningBalanceEvent extends FinancialEventBase {
+  type: 'opening-balance';
+  accountId: AccountId;
+  date: typeof OPENING_BALANCE_DATE;
+}
+
+export type FinancialEvent = IncomeEvent | ExpenseEvent | TransferEvent | RefundEvent | OpeningBalanceEvent;
 
 export interface LedgerEntry {
   eventId: string;
