@@ -89,7 +89,7 @@ console.log('--- RUNNING OPENING BALANCE VERIFICATION SUITE ---');
 {
   const events: FinancialEvent[] = [
     { id: 'op-g', date: OPENING_BALANCE_DATE, description: 'Opening g', amount: 1000000, type: 'opening-balance', accountId: 'g' },
-    { id: 'tx-inc', date: '2026-10-02', description: 'Salary', amount: 500000, type: 'income', accountId: 'g', category: 'Other' },
+    { id: 'tx-inc', date: '2026-10-02', description: 'Salary', amount: 500000, type: 'income', accountId: 'g', category: 'Salary' },
     { id: 'tx-exp', date: '2026-10-03', description: 'Groceries', amount: 200000, type: 'expense', accountId: 'g', category: 'Food & Drinks' },
   ];
   const balances = getAccountBalances(events);
@@ -215,7 +215,7 @@ console.log('--- RUNNING OPENING BALANCE VERIFICATION SUITE ---');
     amount: 18565800,
     type: 'income',
     accountId: 'g',
-    category: 'Other',
+    category: 'Others',
   };
   assert.equal(isPrototypeSeedEvent(legacySeed), true, 'Scenario 15 failed: prototype seed not detected');
 
@@ -302,7 +302,7 @@ console.log('--- RUNNING OPENING BALANCE VERIFICATION SUITE ---');
   const events: FinancialEvent[] = [
     { id: 'op-g', date: OPENING_BALANCE_DATE, description: 'Opening g', amount: 5000000, type: 'opening-balance', accountId: 'g' },
     { id: 'op-b', date: OPENING_BALANCE_DATE, description: 'Opening b', amount: -500000, type: 'opening-balance', accountId: 'b' },
-    { id: 'inc-1', date: '2026-10-05', description: 'Freelance', amount: 2000000, type: 'income', accountId: 'g', category: 'Other' },
+    { id: 'inc-1', date: '2026-10-05', description: 'Freelance', amount: 2000000, type: 'income', accountId: 'g', category: 'Others' },
     { id: 'exp-1', date: '2026-10-06', description: 'Groceries', amount: 300000, type: 'expense', accountId: 'b', category: 'Food & Drinks' },
   ];
   const balances = getAccountBalances(events);

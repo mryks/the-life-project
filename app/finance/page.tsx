@@ -17,6 +17,7 @@ import {
   getOpeningBalances,
   hasNormalTransactionsForAccount,
   hasOpeningBalanceEvents,
+  incomeCategories,
   isPositiveInteger,
   readFinancialEvents,
   replaceFinancialEvent,
@@ -56,7 +57,7 @@ export default function FinancePage() {
   const [destinationAccount, setDestinationAccount] = useState<AccountId>('s');
   const [hasCashback, setHasCashback] = useState(false);
   const [cashbackAmount, setCashbackAmount] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<IncomeCategory>('Food & Drinks');
+  const [selectedCategory, setSelectedCategory] = useState<ExpenseCategory | IncomeCategory>('Food & Drinks');
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   
@@ -142,7 +143,7 @@ export default function FinancePage() {
       ? { id: eventId, date, description: trimmedDescription, amount: parsedAmount, type: 'transfer', sourceAccountId: selectedAccount, destinationAccountId: destinationAccount }
       : formType === 'expense'
         ? { id: eventId, date, description: trimmedDescription, amount: parsedAmount, type: 'expense', accountId: selectedAccount, category: selectedCategory as ExpenseCategory }
-        : { id: eventId, date, description: trimmedDescription, amount: parsedAmount, type: 'income', accountId: selectedAccount, category: selectedCategory };
+        : { id: eventId, date, description: trimmedDescription, amount: parsedAmount, type: 'income', accountId: selectedAccount, category: selectedCategory as IncomeCategory };
 
     let nextEvents: FinancialEvent[] | null = editingEventId
       ? replaceFinancialEvent(events, event)
@@ -459,7 +460,7 @@ export default function FinancePage() {
       <div className="fixed bottom-24 right-6 z-40 flex flex-col items-end gap-3">
         {showMenu && !showForm && (
           <div className="flex flex-col gap-2 mb-2">
-            <button onClick={() => { resetForm(); setFormType('income'); setSelectedCategory('Other'); setShowForm(true); setShowMenu(false); }} className="bg-white/80 backdrop-blur-md border border-white/20 shadow-lg px-4 py-2 rounded-full text-green-600 font-bold text-sm lowercase">income</button>
+            <button onClick={() => { resetForm(); setFormType('income'); setSelectedCategory('Others'); setShowForm(true); setShowMenu(false); }} className="bg-white/80 backdrop-blur-md border border-white/20 shadow-lg px-4 py-2 rounded-full text-green-600 font-bold text-sm lowercase">income</button>
             <button onClick={() => { resetForm(); setFormType('expense'); setSelectedCategory('Food & Drinks'); setShowForm(true); setShowMenu(false); }} className="bg-white/80 backdrop-blur-md border border-white/20 shadow-lg px-4 py-2 rounded-full text-red-600 font-bold text-sm lowercase">expense</button>
             <button onClick={() => { resetForm(); setFormType('transfer'); setShowForm(true); setShowMenu(false); }} className="bg-white/80 backdrop-blur-md border border-white/20 shadow-lg px-4 py-2 rounded-full text-blue-600 font-bold text-sm lowercase">transfer</button>
           </div>
@@ -499,8 +500,8 @@ export default function FinancePage() {
               {formType !== 'transfer' && (
                 <div>
                   <label className="text-xs font-bold text-gray-500 uppercase mb-1 block lowercase">category</label>
-                  <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value as ExpenseCategory)} className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-blue-500 text-gray-900 font-medium transition">
-                    {expenseCategories.map(c => <option key={c} value={c} className="text-gray-900">{c}</option>)}
+                  <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value as ExpenseCategory | IncomeCategory)} className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-blue-500 text-gray-900 font-medium transition">
+                    {(formType === 'income' ? incomeCategories : expenseCategories).map(c => <option key={c} value={c} className="text-gray-900">{c}</option>)}
                   </select>
                 </div>
               )}

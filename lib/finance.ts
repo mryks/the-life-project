@@ -3,19 +3,26 @@ import type {
   AccountId,
   ExpenseCategory,
   FinancialEvent,
+  IncomeCategory,
+  IncomeEvent,
   LedgerEntry,
   OpeningBalanceEvent,
 } from './types';
-import { GO_LIVE_DATE, OPENING_BALANCE_DATE } from './types';
+import { GO_LIVE_DATE, OPENING_BALANCE_DATE, incomeCategories } from './types';
 
 export const FINANCE_STORAGE_KEY = 'thelife-finance';
-const FINANCE_STORAGE_VERSION = 2;
+export const FINANCE_STORAGE_VERSION = 2;
 const FINANCE_CHANGE_EVENT = 'thelife-finance-change';
 
 export const expenseCategories: ExpenseCategory[] = [
   'Home & Family', 'Food & Drinks', 'Transportation', 'Shopping', 'Utilities',
   'Medical', 'Investments', '𝓡', 'Other',
 ];
+
+export { incomeCategories };
+
+export const isIncomeCategory = (value: unknown): value is IncomeCategory =>
+  typeof value === 'string' && (incomeCategories as readonly string[]).includes(value);
 
 export interface FinanceStats {
   totalBalance: number;
@@ -25,7 +32,7 @@ export interface FinanceStats {
   pieData: Array<{ name: ExpenseCategory; value: number }>;
 }
 
-interface ParsedStorage {
+export interface ParsedStorage {
   events: FinancialEvent[];
   shouldPersist: boolean;
 }
@@ -66,7 +73,7 @@ export const isPrototypeSeedEvent = (event: FinancialEvent): boolean =>
   event.description === 'initial balance' &&
   (event.id === 'prototype-initial-balance' || event.id === '1');
 
-const parseEvent = (value: unknown): FinancialEvent | null => {
+export const parseEvent = (value: unknown): FinancialEvent | null => {
   if (!isRecord(value) || !isEventBase(value) || typeof value.type !== 'string') return null;
 
   if (value.type === 'opening-balance') {
@@ -86,9 +93,21 @@ const parseEvent = (value: unknown): FinancialEvent | null => {
   if (value.amount <= 0) return null;
 
   if (value.type === 'income') {
-    if (!isAccountId(value.accountId) || (value.category !== 'Cashback' && !isExpenseCategory(value.category))) return null;
-    if (value.relatedEventId !== undefined && (typeof value.relatedEventId !== 'string' || value.relatedEventId.length === 0)) return null;
-    return { id: value.id, date: value.date, description: value.description, amount: value.amount, type: 'income', accountId: value.accountId, category: value.category, ...(value.relatedEventId ? { relatedEventId: value.relatedEventId } : {}) };
+    if (!isAccountId(value.accountId) || !isIncomeCategory(value.category)) return null;
+    const isCashback = value.category === 'Cashback';
+    if (isCashback && (typeof value.relatedEventId !== 'string' || value.relatedEventId.length === 0)) return null;
+    if (!isCashback && value.relatedEventId !== undefined) return null;
+    const event: IncomeEvent = {
+      id: value.id,
+      date: value.date,
+      description: value.description,
+      amount: value.amount,
+      type: 'income',
+      accountId: value.accountId,
+      category: value.category,
+      ...(isCashback ? { relatedEventId: value.relatedEventId as string } : {}),
+    };
+    return event;
   }
   if (value.type === 'expense') {
     if (!isAccountId(value.accountId) || !isExpenseCategory(value.category)) return null;
@@ -177,7 +196,12 @@ const migrateLegacyEvents = (value: unknown[]): FinancialEvent[] | null => {
           accountId: 'g',
         });
       } else {
-        events.push({ id: item.id, date: item.date, description: item.description, amount: item.amount, type: 'income', accountId: item.accountId, category: isExpenseCategory(item.category) ? item.category : 'Other' });
+        const category: IncomeCategory = item.category === 'Other'
+          ? 'Others'
+          : isIncomeCategory(item.category)
+            ? item.category
+            : 'Others';
+        events.push({ id: item.id, date: item.date, description: item.description, amount: item.amount, type: 'income', accountId: item.accountId, category });
       }
     } else if (item.type === 'expense' && isAccountId(item.accountId)) {
       events.push({ id: item.id, date: item.date, description: item.description, amount: item.amount, type: 'expense', accountId: item.accountId, category: isExpenseCategory(item.category) ? item.category : 'Other' });
@@ -188,7 +212,7 @@ const migrateLegacyEvents = (value: unknown[]): FinancialEvent[] | null => {
   return validateFinancialEvents(events) ? events : null;
 };
 
-const parseStoredEvents = (value: string | null): ParsedStorage => {
+export const parseStoredEvents = (value: string | null): ParsedStorage => {
   if (value === null) {
     return {
       events: [{
@@ -211,7 +235,12 @@ const parseStoredEvents = (value: string | null): ParsedStorage => {
     if (!isRecord(parsed) || !Array.isArray(parsed.events)) return { events: [], shouldPersist: false };
 
     if (parsed.version === 1) {
-      const rawEvents = parsed.events.map(parseEvent);
+      const rawEvents = parsed.events.map((event: unknown) => {
+        if (isRecord(event) && event.type === 'income' && event.category === 'Other') {
+          return parseEvent({ ...event, category: 'Others' });
+        }
+        return parseEvent(event);
+      });
       if (rawEvents.some((event): event is null => event === null)) return { events: [], shouldPersist: false };
       const migratedEvents = (rawEvents as FinancialEvent[]).map((event): FinancialEvent => {
         if (isPrototypeSeedEvent(event)) {
@@ -244,7 +273,7 @@ const parseStoredEvents = (value: string | null): ParsedStorage => {
   }
 };
 
-const serializeEvents = (events: FinancialEvent[]) => JSON.stringify({ version: FINANCE_STORAGE_VERSION, events });
+export const serializeEvents = (events: FinancialEvent[]) => JSON.stringify({ version: FINANCE_STORAGE_VERSION, events });
 
 export const readFinancialEvents = (): FinancialEvent[] => {
   if (typeof window === 'undefined') return cachedEvents;
@@ -363,10 +392,16 @@ const hasRelatedEvents = (events: FinancialEvent[], expenseId: string): boolean 
 export const replaceFinancialEvent = (events: FinancialEvent[], replacement: FinancialEvent): FinancialEvent[] | null => {
   const previous = events.find((event) => event.id === replacement.id);
   if (!previous) return null;
-  if (previous.type !== replacement.type) return null;
-  if (previous.type === 'expense' && hasRelatedEvents(events, previous.id)) {
-    // Expense remains expense
+  if (previous.type === 'transfer' || replacement.type === 'transfer') {
+    if (previous.type !== 'transfer' || replacement.type !== 'transfer') return null;
   }
+  if (previous.type === 'opening-balance' || replacement.type === 'opening-balance') {
+    if (previous.type !== 'opening-balance' || replacement.type !== 'opening-balance') return null;
+  }
+  if (previous.type === 'refund' || replacement.type === 'refund') {
+    if (previous.type !== 'refund' || replacement.type !== 'refund') return null;
+  }
+  if (previous.type === 'expense' && replacement.type !== 'expense' && hasRelatedEvents(events, previous.id)) return null;
   if (previous.type === 'income' && previous.relatedEventId) return null;
   const next = events.map((event) => event.id === replacement.id ? replacement : event);
   return validateFinancialEvents(next) ? next : null;
