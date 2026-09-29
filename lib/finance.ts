@@ -7,6 +7,9 @@ import type {
   IncomeEvent,
   LedgerEntry,
   OpeningBalanceEvent,
+  BackupParseResult,
+  BackupSummary,
+  FinancialBackupEnvelope,
 } from './types';
 import { GO_LIVE_DATE, OPENING_BALANCE_DATE, incomeCategories } from './types';
 
@@ -479,4 +482,162 @@ export const hasNormalTransactionsForAccount = (
     }
     return event.accountId === accountId;
   });
+};
+
+export const createBackupEnvelope = (events: FinancialEvent[]): FinancialBackupEnvelope => ({
+  version: FINANCE_STORAGE_VERSION,
+  exportedAt: new Date().toISOString(),
+  events,
+});
+
+export const serializeBackup = (events: FinancialEvent[]): string =>
+  JSON.stringify(createBackupEnvelope(events), null, 2);
+
+export const getBackupFilename = (date: string = todayDate()): string =>
+  `the-life-project-backup-${date}.json`;
+
+export const summarizeEvents = (events: FinancialEvent[]): BackupSummary => {
+  const openingBalanceAccounts = new Set<AccountId>();
+  let incomeCount = 0;
+  let expenseCount = 0;
+  let transferCount = 0;
+  let refundCount = 0;
+
+  for (const event of events) {
+    if (event.type === 'opening-balance') {
+      openingBalanceAccounts.add(event.accountId);
+    } else if (event.type === 'income') {
+      incomeCount += 1;
+    } else if (event.type === 'expense') {
+      expenseCount += 1;
+    } else if (event.type === 'transfer') {
+      transferCount += 1;
+    } else if (event.type === 'refund') {
+      refundCount += 1;
+    }
+  }
+
+  return {
+    totalEvents: events.length,
+    openingBalanceAccounts: openingBalanceAccounts.size,
+    incomeCount,
+    expenseCount,
+    transferCount,
+    refundCount,
+  };
+};
+
+export const parseAndValidateBackup = (rawText: string): BackupParseResult => {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(rawText);
+  } catch {
+    return { success: false, error: 'Malformed JSON: Unable to parse file.' };
+  }
+
+  if (Array.isArray(parsed)) {
+    const migrated = migrateLegacyEvents(parsed);
+    if (!migrated) {
+      return { success: false, error: 'Legacy backup contains invalid financial events.' };
+    }
+    return {
+      success: true,
+      version: 1,
+      events: migrated,
+      summary: summarizeEvents(migrated),
+    };
+  }
+
+  if (!isRecord(parsed)) {
+    return { success: false, error: 'Invalid backup format: root must be a JSON object or array.' };
+  }
+
+  if (parsed.version === 1) {
+    if (!Array.isArray(parsed.events)) {
+      return { success: false, error: 'Invalid v1 backup: "events" must be an array.' };
+    }
+    const rawEvents = parsed.events.map((event: unknown) => {
+      if (isRecord(event) && event.type === 'income' && event.category === 'Other') {
+        return parseEvent({ ...event, category: 'Others' });
+      }
+      return parseEvent(event);
+    });
+    if (rawEvents.some((event): event is null => event === null)) {
+      return { success: false, error: 'V1 backup contains malformed events.' };
+    }
+    const migratedEvents = (rawEvents as FinancialEvent[]).map((event): FinancialEvent => {
+      if (isPrototypeSeedEvent(event)) {
+        return {
+          id: event.id,
+          date: OPENING_BALANCE_DATE,
+          description: 'Opening balance',
+          amount: event.amount,
+          type: 'opening-balance',
+          accountId: 'g',
+        };
+      }
+      return event;
+    });
+    if (!validateFinancialEvents(migratedEvents)) {
+      return { success: false, error: 'V1 backup violates financial domain invariants.' };
+    }
+    return {
+      success: true,
+      version: 1,
+      exportedAt: typeof parsed.exportedAt === 'string' ? parsed.exportedAt : undefined,
+      events: migratedEvents,
+      summary: summarizeEvents(migratedEvents),
+    };
+  }
+
+  if (parsed.version === FINANCE_STORAGE_VERSION) {
+    if (!Array.isArray(parsed.events)) {
+      return { success: false, error: 'Invalid v2 backup: "events" must be an array.' };
+    }
+    const parsedEvents = parsed.events.map(parseEvent);
+    if (parsedEvents.some((event): event is null => event === null)) {
+      return { success: false, error: 'Backup contains invalid or malformed financial events.' };
+    }
+    const validEvents = parsedEvents as FinancialEvent[];
+    if (!validateFinancialEvents(validEvents)) {
+      return { success: false, error: 'Backup violates financial domain invariants.' };
+    }
+    return {
+      success: true,
+      version: 2,
+      exportedAt: typeof parsed.exportedAt === 'string' ? parsed.exportedAt : undefined,
+      events: validEvents,
+      summary: summarizeEvents(validEvents),
+    };
+  }
+
+  return {
+    success: false,
+    error: `Unsupported backup version: ${String(parsed.version)}.`,
+  };
+};
+
+/**
+ * Defensive restore boundary:
+ * Re-validates the events using the authoritative validator before persistence.
+ * Impossibility of persisting unvalidated FinancialEvent[] guaranteed.
+ */
+export const restoreFinancialEvents = (events: FinancialEvent[]): void => {
+  if (!validateFinancialEvents(events)) {
+    throw new Error('Cannot restore invalid financial events: dataset failed financial validation.');
+  }
+  writeFinancialEvents(events);
+};
+
+export const downloadBackupFile = (content: string, filename: string): void => {
+  if (typeof window === 'undefined') return;
+  const blob = new Blob([content], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 };

@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState, useSyncExternalStore } from "react";
-import type { AccountId, ExpenseCategory, FinancialEvent, IncomeCategory } from "@/lib/types";
+import { useMemo, useRef, useState, useSyncExternalStore } from "react";
+import type { AccountId, BackupParseResult, ExpenseCategory, FinancialEvent, IncomeCategory } from "@/lib/types";
 import { GO_LIVE_DATE } from "@/lib/types";
 import { getAccountById } from "@/lib/accounts";
 import {
+  FINANCE_STORAGE_VERSION,
   calculateFinanceStats,
   calculateNetExpenseForDate,
 
@@ -12,15 +13,20 @@ import {
   createEventId,
   deleteFinancialEvent,
   deriveLedgerEntries,
+  downloadBackupFile,
   expenseCategories,
   getAccountBalances,
+  getBackupFilename,
   getOpeningBalances,
   hasNormalTransactionsForAccount,
   hasOpeningBalanceEvents,
   incomeCategories,
   isPositiveInteger,
+  parseAndValidateBackup,
   readFinancialEvents,
   replaceFinancialEvent,
+  restoreFinancialEvents,
+  serializeBackup,
   setOpeningBalance,
   subscribeToFinancialEvents,
   todayDate,
@@ -70,6 +76,75 @@ export default function FinancePage() {
   const [openingAmount, setOpeningAmount] = useState("");
   const [openingError, setOpeningError] = useState<string | null>(null);
   const [confirmingOpeningEdit, setConfirmingOpeningEdit] = useState(false);
+
+  // Backup & Restore State
+  const [showBackupModal, setShowBackupModal] = useState(false);
+  const [backupStatusMessage, setBackupStatusMessage] = useState<string | null>(null);
+  const [backupError, setBackupError] = useState<string | null>(null);
+  const [pendingRestore, setPendingRestore] = useState<Extract<BackupParseResult, { success: true }> | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleExportBackup = () => {
+    try {
+      const jsonString = serializeBackup(events);
+      const filename = getBackupFilename();
+      downloadBackupFile(jsonString, filename);
+      setBackupStatusMessage('Backup downloaded successfully.');
+      setBackupError(null);
+    } catch (err: unknown) {
+      setBackupError(err instanceof Error ? err.message : 'Failed to export backup.');
+    }
+  };
+
+  const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    setBackupStatusMessage(null);
+    setBackupError(null);
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result;
+      if (typeof text !== 'string') {
+        setBackupError('Failed to read file content.');
+        return;
+      }
+      const result = parseAndValidateBackup(text);
+      if (!result.success) {
+        setPendingRestore(null);
+        setBackupError(result.error);
+      } else {
+        setPendingRestore(result);
+        setBackupError(null);
+      }
+    };
+    reader.onerror = () => {
+      setBackupError('Error reading backup file.');
+    };
+    reader.readAsText(file);
+  };
+
+  const handleConfirmRestore = () => {
+    if (!pendingRestore) return;
+    try {
+      restoreFinancialEvents(pendingRestore.events);
+      setBackupStatusMessage(`Successfully restored ${pendingRestore.events.length} financial event(s).`);
+      setPendingRestore(null);
+      setBackupError(null);
+    } catch (err: unknown) {
+      setBackupError(err instanceof Error ? err.message : 'Unable to restore financial events.');
+    }
+  };
+
+  const handleDownloadCurrentBeforeRestore = () => {
+    handleExportBackup();
+  };
+
+  const handleCancelRestore = () => {
+    setPendingRestore(null);
+    setBackupError(null);
+  };
 
   // All reports and account balances are deterministic derivations of persisted events.
   const stats = useMemo(() => calculateFinanceStats(events, todayDate()), [events]);
@@ -287,20 +362,33 @@ export default function FinancePage() {
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
-            <button onClick={() => { setView('dashboard'); setFilterAccountId(null); }} className="text-sm text-blue-600 font-bold">← back</button>
-            <h2 className="text-2xl font-bold text-gray-800 lowercase">accounts</h2>
+              <button onClick={() => { setView('dashboard'); setFilterAccountId(null); }} className="text-sm text-blue-600 font-bold">← back</button>
+              <h2 className="text-2xl font-bold text-gray-800 lowercase">accounts</h2>
             </div>
-            <button
-              onClick={() => {
-                setEditingOpeningAccount(null);
-                setOpeningError(null);
-                setConfirmingOpeningEdit(false);
-                setShowOpeningModal(true);
-              }}
-              className="text-xs font-bold text-gray-700 bg-white border border-gray-200 px-3 py-1.5 rounded-xl shadow-sm hover:bg-gray-50 transition lowercase"
-            >
-              manage opening balances
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setBackupStatusMessage(null);
+                  setBackupError(null);
+                  setPendingRestore(null);
+                  setShowBackupModal(true);
+                }}
+                className="text-xs font-bold text-gray-700 bg-white border border-gray-200 px-3 py-1.5 rounded-xl shadow-sm hover:bg-gray-50 transition lowercase"
+              >
+                backup & restore
+              </button>
+              <button
+                onClick={() => {
+                  setEditingOpeningAccount(null);
+                  setOpeningError(null);
+                  setConfirmingOpeningEdit(false);
+                  setShowOpeningModal(true);
+                }}
+                className="text-xs font-bold text-gray-700 bg-white border border-gray-200 px-3 py-1.5 rounded-xl shadow-sm hover:bg-gray-50 transition lowercase"
+              >
+                manage opening balances
+              </button>
+            </div>
           </div>
 
           {/* Account List */}
@@ -749,6 +837,163 @@ export default function FinancePage() {
                     );
                   })}
                 </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ================= BACKUP & RESTORE MODAL ================= */}
+      {showBackupModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center backdrop-blur-sm p-4" onClick={() => setShowBackupModal(false)}>
+          <div className="bg-white w-full max-w-lg rounded-3xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => setShowBackupModal(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-800 transition bg-gray-100 hover:bg-gray-200 rounded-full p-1.5 z-10">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+
+            <div className="mb-5 pr-8">
+              <h3 className="font-bold text-xl text-gray-800 lowercase">backup & restore</h3>
+              <p className="text-xs text-gray-500 mt-1">export or restore your personal finance dataset (JSON format)</p>
+            </div>
+
+            {pendingRestore ? (
+              <div className="space-y-4">
+                <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl text-amber-900 text-xs space-y-2">
+                  <p className="font-bold text-sm lowercase flex items-center gap-1.5">
+                    <span>⚠️</span> replace current financial data?
+                  </p>
+                  <p>
+                    This will replace all current financial data on this device with the imported backup.
+                    Existing transactions will be overwritten.
+                  </p>
+                </div>
+
+                <div className="bg-gray-50 p-4 rounded-2xl space-y-2 text-xs text-gray-700">
+                  <p className="font-bold text-gray-900 lowercase text-sm mb-2">backup preview</p>
+                  <div className="flex justify-between py-1 border-b border-gray-200/60">
+                    <span className="text-gray-500 lowercase">schema version:</span>
+                    <span className="font-semibold">{pendingRestore.version === 2 ? 'version 2' : `version ${pendingRestore.version} (migrated)`}</span>
+                  </div>
+                  {pendingRestore.exportedAt && (
+                    <div className="flex justify-between py-1 border-b border-gray-200/60">
+                      <span className="text-gray-500 lowercase">export timestamp:</span>
+                      <span className="font-semibold">{new Date(pendingRestore.exportedAt).toLocaleString()}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between py-1 border-b border-gray-200/60">
+                    <span className="text-gray-500 lowercase">total events:</span>
+                    <span className="font-bold text-gray-900">{pendingRestore.summary.totalEvents}</span>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-gray-200/60">
+                    <span className="text-gray-500 lowercase">opening balances configured:</span>
+                    <span className="font-semibold">{pendingRestore.summary.openingBalanceAccounts} account(s)</span>
+                  </div>
+                  <div className="flex justify-between py-1">
+                    <span className="text-gray-500 lowercase">breakdown:</span>
+                    <span className="text-gray-600">
+                      {pendingRestore.summary.incomeCount} inc / {pendingRestore.summary.expenseCount} exp / {pendingRestore.summary.transferCount} trf / {pendingRestore.summary.refundCount} ref
+                    </span>
+                  </div>
+                </div>
+
+                {backupStatusMessage && (
+                  <div className="p-3 bg-green-50 border border-green-200 rounded-xl text-green-700 text-xs font-semibold">
+                    {backupStatusMessage}
+                  </div>
+                )}
+
+                {backupError && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-xs font-semibold">
+                    {backupError}
+                  </div>
+                )}
+
+                <div className="space-y-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={handleDownloadCurrentBeforeRestore}
+                    className="w-full py-2.5 rounded-xl border border-gray-300 text-gray-700 text-xs font-bold hover:bg-gray-50 transition lowercase"
+                  >
+                    download current backup first
+                  </button>
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={handleCancelRestore}
+                      className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-200 transition text-xs lowercase"
+                    >
+                      cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleConfirmRestore}
+                      className="flex-[2] bg-red-600 text-white py-3 rounded-xl font-bold hover:bg-red-700 transition shadow-lg text-xs lowercase"
+                    >
+                      continue & restore
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-5">
+                <div className="p-4 bg-gray-50 rounded-2xl flex items-center justify-between">
+                  <div>
+                    <p className="font-bold text-gray-900 text-sm lowercase">current dataset</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{events.length} event(s) recorded</p>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-blue-100 text-blue-700">
+                    v{FINANCE_STORAGE_VERSION} storage
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3">
+                  <div className="p-4 bg-white border border-gray-200 rounded-2xl space-y-2">
+                    <h4 className="font-bold text-gray-800 text-sm lowercase">export backup</h4>
+                    <p className="text-xs text-gray-500">
+                      Download all your financial events into a JSON file for safekeeping or transfer to another device.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleExportBackup}
+                      className="w-full py-2.5 rounded-xl bg-gray-900 text-white text-xs font-bold hover:bg-black transition shadow-sm lowercase"
+                    >
+                      download backup JSON
+                    </button>
+                  </div>
+
+                  <div className="p-4 bg-white border border-gray-200 rounded-2xl space-y-2">
+                    <h4 className="font-bold text-gray-800 text-sm lowercase">import backup</h4>
+                    <p className="text-xs text-gray-500">
+                      Restore a previously exported JSON backup file. This will validate the data and ask for confirmation before replacing current data.
+                    </p>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".json,application/json"
+                      onChange={handleFileSelected}
+                      className="hidden"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-full py-2.5 rounded-xl border border-gray-300 text-gray-800 text-xs font-bold hover:bg-gray-50 transition shadow-sm lowercase"
+                    >
+                      select backup file to restore
+                    </button>
+                  </div>
+                </div>
+
+                {backupStatusMessage && (
+                  <div className="p-3 bg-green-50 border border-green-200 rounded-xl text-green-700 text-xs font-semibold">
+                    {backupStatusMessage}
+                  </div>
+                )}
+
+                {backupError && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-xs font-semibold">
+                    {backupError}
+                  </div>
+                )}
               </div>
             )}
           </div>

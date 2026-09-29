@@ -67,3 +67,31 @@ export interface Account {
   name: string;
   colorClass: string;
 }
+
+export interface FinancialBackupEnvelope {
+  version: 2;
+  exportedAt: string;
+  events: FinancialEvent[];
+}
+
+export interface BackupSummary {
+  totalEvents: number;
+  openingBalanceAccounts: number;
+  incomeCount: number;
+  expenseCount: number;
+  transferCount: number;
+  refundCount: number;
+}
+
+export type BackupParseResult =
+  | {
+      success: true;
+      version: number;
+      exportedAt?: string;
+      events: FinancialEvent[];
+      summary: BackupSummary;
+    }
+  | {
+      success: false;
+      error: string;
+    };
