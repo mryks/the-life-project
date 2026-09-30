@@ -2,7 +2,7 @@
 
 import { Fragment, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import type { AccountId, BackupParseResult, ExpenseCategory, FinancialEvent, IncomeCategory } from "@/lib/types";
-import { GO_LIVE_DATE } from "@/lib/types";
+import { GO_LIVE_DATE, OPENING_BALANCE_DATE } from "@/lib/types";
 import { getAccountById } from "@/lib/accounts";
 import {
   FINANCE_STORAGE_VERSION,
@@ -17,7 +17,6 @@ import {
   getBackupFilename,
   getOpeningBalances,
   hasNormalTransactionsForAccount,
-  hasOpeningBalanceEvents,
   incomeCategories,
   isPositiveInteger,
   parseAndValidateBackup,
@@ -190,7 +189,6 @@ export default function FinancePage() {
   const stats = useMemo(() => calculateFinanceStats(events, todayDate()), [events]);
   const accountBalances = useMemo(() => getAccountBalances(events), [events]);
   const openingBalances = useMemo(() => getOpeningBalances(events), [events]);
-  const hasOpening = useMemo(() => hasOpeningBalanceEvents(events), [events]);
 
   // 5. Line Chart Data
   const lineChartData = useMemo(() => {
@@ -205,7 +203,9 @@ export default function FinancePage() {
     return last7Days;
   }, [events]);
 
-  // 6. Card View Transactions (DESC recording order: latest recorded first)
+  // 6. Card View Transactions:
+  // PRIMARY: date DESC
+  // SECONDARY: recording order DESC within each date (latest recorded within that date first)
   const cardEvents = useMemo(() => {
     let filtered = events.filter((event) => event.type !== 'opening-balance');
     if (filterAccountId) {
@@ -215,7 +215,16 @@ export default function FinancePage() {
           : event.accountId === filterAccountId
       );
     }
-    return [...filtered].reverse();
+    const indexed = filtered.map((event) => ({
+      event,
+      originalIndex: events.indexOf(event),
+    }));
+    indexed.sort((a, b) => {
+      const dateCmp = b.event.date.localeCompare(a.event.date); // date DESC
+      if (dateCmp !== 0) return dateCmp;
+      return b.originalIndex - a.originalIndex; // recording order DESC within same date
+    });
+    return indexed.map((item) => item.event);
   }, [events, filterAccountId]);
 
   const ledgerEntries = useMemo(() => {
@@ -232,7 +241,7 @@ export default function FinancePage() {
     setEditingEventId(null);
     setAmount("");
     setDesc("");
-    setDate(hasOpening && todayDate() < GO_LIVE_DATE ? GO_LIVE_DATE : todayDate());
+    setDate(todayDate() < GO_LIVE_DATE ? GO_LIVE_DATE : todayDate());
     setHasCashback(false);
     setCashbackAmount("");
     setFormError(null);
@@ -243,8 +252,11 @@ export default function FinancePage() {
     const trimmedDescription = (formType === 'transfer' ? `transfer to ${destinationAccount.toUpperCase()}` : desc).trim();
     if (!isPositiveInteger(parsedAmount)) return setFormError('Amount must be a positive whole number.');
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !trimmedDescription) return setFormError('Date and description are required.');
-    if (hasOpening && !validateNormalTransactionDate(date, true)) {
-      return setFormError('Transaction date cannot be before 2026-10-01 when Opening Balance is active.');
+    const isInitialSeedPreservingDate = Boolean(
+      editingEventId?.startsWith('initial-balance-') && date === OPENING_BALANCE_DATE
+    );
+    if (!isInitialSeedPreservingDate && !validateNormalTransactionDate(date, true)) {
+      return setFormError('Transaction date cannot be before 2026-10-01.');
     }
     if (formType === 'transfer' && selectedAccount === destinationAccount) return setFormError('Transfer accounts must be different.');
 
@@ -325,8 +337,16 @@ export default function FinancePage() {
   };
 
   const handleEdit = () => {
-    const event = events.find((candidate) => candidate.id === activeTransactionId);
-    if (!event || event.type === 'refund' || event.type === 'opening-balance' || (event.type === 'income' && event.category === 'Cashback')) return;
+    let event = events.find((candidate) => candidate.id === activeTransactionId);
+    if (!event || event.type === 'refund' || event.type === 'opening-balance') return;
+
+    if (event.type === 'income' && event.category === 'Cashback' && event.relatedEventId) {
+      const parentId = event.relatedEventId;
+      const parentExpense = events.find((candidate) => candidate.id === parentId);
+      if (parentExpense && parentExpense.type === 'expense') {
+        event = parentExpense;
+      }
+    }
     setFormType(event.type);
     setDesc(event.description);
     setAmount(event.amount.toString());
@@ -499,7 +519,7 @@ export default function FinancePage() {
                       </h3>
                     )}
                     {showDropAbove && (
-                      <div className="h-1 bg-blue-500 rounded-full mx-2 my-1 shadow-sm transition-all animate-pulse" />
+                      <div className="h-1 bg-blue-500 rounded-full mx-2 my-1 shadow-sm transition-all animate-pulse pointer-events-none" />
                     )}
                     <div
                       {...itemProps}
@@ -513,7 +533,7 @@ export default function FinancePage() {
                       <p className={`font-bold text-sm ${transferDirection === 'out' ? 'text-red-500' : transferDirection === 'in' ? 'text-green-600' : 'text-blue-600'}`}>{transferDirection === 'neutral' ? '' : transferDirection === 'out' ? '-' : '+'}{formatRupiah(event.amount)}</p>
                     </div>
                     {showDropBelow && (
-                      <div className="h-1 bg-blue-500 rounded-full mx-2 my-1 shadow-sm transition-all animate-pulse" />
+                      <div className="h-1 bg-blue-500 rounded-full mx-2 my-1 shadow-sm transition-all animate-pulse pointer-events-none" />
                     )}
                   </div>
                 );
@@ -547,9 +567,9 @@ export default function FinancePage() {
                     return (
                       <Fragment key={`${entry.eventId}-${entry.accountId}-${entry.direction}`}>
                         {showDropAbove && (
-                          <tr>
-                            <td colSpan={6} className="p-0 border-none">
-                              <div className="h-1 bg-blue-500 rounded-full mx-2 my-0.5 animate-pulse" />
+                          <tr className="pointer-events-none">
+                            <td colSpan={6} className="p-0 border-none pointer-events-none">
+                              <div className="h-1 bg-blue-500 rounded-full mx-2 my-0.5 animate-pulse pointer-events-none" />
                             </td>
                           </tr>
                         )}
@@ -611,9 +631,9 @@ export default function FinancePage() {
                           </td>
                         </tr>
                         {showDropBelow && (
-                          <tr>
-                            <td colSpan={6} className="p-0 border-none">
-                              <div className="h-1 bg-blue-500 rounded-full mx-2 my-0.5 animate-pulse" />
+                          <tr className="pointer-events-none">
+                            <td colSpan={6} className="p-0 border-none pointer-events-none">
+                              <div className="h-1 bg-blue-500 rounded-full mx-2 my-0.5 animate-pulse pointer-events-none" />
                             </td>
                           </tr>
                         )}
@@ -766,7 +786,7 @@ export default function FinancePage() {
             <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-6"></div>
             <h3 className="font-bold text-lg text-gray-800 mb-4 lowercase">pilih aksi</h3>
             <div className="space-y-3">
-              <button onClick={handleEdit} disabled={activeEvent?.type === 'refund' || activeEvent?.type === 'opening-balance' || (activeEvent?.type === 'income' && activeEvent.category === 'Cashback')} className="w-full py-3.5 rounded-xl bg-gray-100 text-gray-800 font-bold hover:bg-gray-200 transition lowercase disabled:cursor-not-allowed disabled:opacity-50">edit transaksi</button>
+              <button onClick={handleEdit} disabled={activeEvent?.type === 'refund' || activeEvent?.type === 'opening-balance'} className="w-full py-3.5 rounded-xl bg-gray-100 text-gray-800 font-bold hover:bg-gray-200 transition lowercase disabled:cursor-not-allowed disabled:opacity-50">edit transaksi</button>
               <button onClick={handleDelete} disabled={activeEvent?.type === 'opening-balance'} className="w-full py-3.5 rounded-xl bg-red-50 text-red-600 font-bold hover:bg-red-100 transition lowercase disabled:cursor-not-allowed disabled:opacity-50">hapus transaksi</button>
               <button onClick={() => setActionMenuOpen(false)} className="w-full py-3.5 rounded-xl text-gray-500 font-bold hover:bg-gray-50 transition lowercase">batal</button>
             </div>

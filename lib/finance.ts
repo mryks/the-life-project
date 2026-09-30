@@ -216,17 +216,22 @@ const migrateLegacyEvents = (value: unknown[]): FinancialEvent[] | null => {
   return validateFinancialEvents(events) ? events : null;
 };
 
+export const createInitialBalanceEvents = (): FinancialEvent[] => {
+  return accounts.map((account) => ({
+    id: `initial-balance-${account.id}`,
+    date: OPENING_BALANCE_DATE,
+    description: 'Initial balance',
+    amount: 50000,
+    type: 'income',
+    accountId: account.id,
+    category: 'Others',
+  }));
+};
+
 export const parseStoredEvents = (value: string | null): ParsedStorage => {
   if (value === null) {
     return {
-      events: [{
-        id: 'prototype-opening-balance-g',
-        date: OPENING_BALANCE_DATE,
-        description: 'Opening balance',
-        amount: 18565800,
-        type: 'opening-balance',
-        accountId: 'g',
-      }],
+      events: createInitialBalanceEvents(),
       shouldPersist: true,
     };
   }
@@ -347,7 +352,18 @@ export const deriveLedgerEntries = (events: FinancialEvent[]): LedgerEntry[] => 
   };
 
   const openingEntries = events.filter((e) => e.type === 'opening-balance').flatMap(toEntries);
-  const normalEntries = events.filter((e) => e.type !== 'opening-balance').flatMap(toEntries);
+
+  const normalEventsWithIndex = events
+    .map((event, originalIndex) => ({ event, originalIndex }))
+    .filter(({ event }) => event.type !== 'opening-balance');
+
+  normalEventsWithIndex.sort((a, b) => {
+    const dateCmp = a.event.date.localeCompare(b.event.date);
+    if (dateCmp !== 0) return dateCmp;
+    return a.originalIndex - b.originalIndex;
+  });
+
+  const normalEntries = normalEventsWithIndex.flatMap(({ event }) => toEntries(event));
   return [...openingEntries, ...normalEntries];
 };
 
@@ -415,7 +431,34 @@ export const replaceFinancialEvent = (events: FinancialEvent[], replacement: Fin
   }
   if (previous.type === 'expense' && replacement.type !== 'expense' && hasRelatedEvents(events, previous.id)) return null;
   if (previous.type === 'income' && previous.relatedEventId) return null;
-  const next = events.map((event) => event.id === replacement.id ? replacement : event);
+
+  if (previous.date === replacement.date) {
+    const next = events.map((event) => (event.id === replacement.id ? replacement : event));
+    return validateFinancialEvents(next) ? next : null;
+  }
+
+  if (previous.type === 'expense') {
+    const linkedCashback = events.find(
+      (candidate): candidate is IncomeEvent =>
+        candidate.type === 'income' && candidate.category === 'Cashback' && candidate.relatedEventId === replacement.id
+    );
+    if (linkedCashback) {
+      const updatedCashback: IncomeEvent = {
+        ...linkedCashback,
+        date: replacement.date,
+      };
+      const filtered = events.filter((e) => e.id !== replacement.id && e.id !== linkedCashback.id);
+      const next = [...filtered, replacement, updatedCashback];
+      return validateFinancialEvents(next) ? next : null;
+    }
+  }
+
+  if (previous.type === 'opening-balance' && replacement.date !== OPENING_BALANCE_DATE) {
+    return null;
+  }
+
+  const filtered = events.filter((e) => e.id !== replacement.id);
+  const next = [...filtered, replacement];
   return validateFinancialEvents(next) ? next : null;
 };
 
@@ -728,11 +771,22 @@ export const reorderFinancialEvents = (
   if (!activeEvent || !targetEvent) return events;
   if (activeEvent.type === 'opening-balance' || targetEvent.type === 'opening-balance') return events;
 
+  if (activeEvent.date !== targetEvent.date) {
+    return events;
+  }
+
   const units = getAtomicReorderUnits(events);
   const activeUnitIndex = units.findIndex((u) => u.events.some((e) => e.id === activeEventId));
   const targetUnitIndex = units.findIndex((u) => u.events.some((e) => e.id === targetEventId));
 
   if (activeUnitIndex === -1 || targetUnitIndex === -1 || activeUnitIndex === targetUnitIndex) {
+    return events;
+  }
+
+  const activeUnit = units[activeUnitIndex];
+  const targetUnit = units[targetUnitIndex];
+
+  if (activeUnit.primaryEvent.date !== targetUnit.primaryEvent.date) {
     return events;
   }
 

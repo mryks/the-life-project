@@ -144,5 +144,20 @@ describe('Ledger Derivation (Rule E)', () => {
       expect(ledger[2].eventId).toBe('event-b');
       expect(ledger[3].eventId).toBe('event-c');
     });
+
+    it('orders entries primarily by date ASC and secondarily by recording order ASC within equal dates', () => {
+      const oct5First = createIncome({ id: 'oct-5-first', date: '2026-10-05' });
+      const oct1First = createExpense({ id: 'oct-1-first', date: '2026-10-01' });
+      const oct5Second = createExpense({ id: 'oct-5-second', date: '2026-10-05' });
+      const oct1Second = createIncome({ id: 'oct-1-second', date: '2026-10-01' });
+
+      const ledger = deriveLedgerEntries([oct5First, oct1First, oct5Second, oct1Second]);
+      expect(ledger.map((l) => l.eventId)).toEqual([
+        'oct-1-first',
+        'oct-1-second',
+        'oct-5-first',
+        'oct-5-second',
+      ]);
+    });
   });
 });

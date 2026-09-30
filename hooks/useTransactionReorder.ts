@@ -113,11 +113,28 @@ export function useTransactionReorder({
       // If actively dragging, resolve drop target
       if (isDraggingRef.current && activeUnitIdRef.current) {
         const elements = document.elementsFromPoint(e.clientX, e.clientY);
-        const targetElement = elements.find((el) => el.getAttribute("data-reorder-unit-id"));
+        let targetUnitId: string | null = null;
 
-        if (targetElement) {
-          const targetUnitId = targetElement.getAttribute("data-reorder-unit-id");
-          if (targetUnitId && targetUnitId !== activeUnitIdRef.current) {
+        for (const el of elements) {
+          const matched = el.closest("[data-reorder-unit-id]");
+          if (matched) {
+            const uid = matched.getAttribute("data-reorder-unit-id");
+            if (uid) {
+              targetUnitId = uid;
+              break;
+            }
+          }
+        }
+
+        if (targetUnitId && targetUnitId !== activeUnitIdRef.current) {
+          const activeUnit = units.find((u) => u.id === activeUnitIdRef.current);
+          const targetUnit = units.find((u) => u.id === targetUnitId);
+
+          if (
+            activeUnit &&
+            targetUnit &&
+            activeUnit.primaryEvent.date === targetUnit.primaryEvent.date
+          ) {
             const allTargetElements = Array.from(
               document.querySelectorAll(`[data-reorder-unit-id="${targetUnitId}"]`)
             );
@@ -153,7 +170,12 @@ export function useTransactionReorder({
           const activeUnit = units.find((u) => u.id === currentActiveUnitId);
           const targetUnit = units.find((u) => u.id === currentDropTargetUnitId);
 
-          if (activeUnit && targetUnit && activeUnit.id !== targetUnit.id) {
+          if (
+            activeUnit &&
+            targetUnit &&
+            activeUnit.id !== targetUnit.id &&
+            activeUnit.primaryEvent.date === targetUnit.primaryEvent.date
+          ) {
             // In Card view (DESC), visual "above" means placing after in canonical recording order.
             // In Ledger view (ASC), visual "above" means placing before in canonical recording order.
             const canonicalPlacement: "before" | "after" =
@@ -179,10 +201,17 @@ export function useTransactionReorder({
       }
     };
 
+    const handleSelectStart = (e: Event) => {
+      if (timerRef.current !== null || isDraggingRef.current) {
+        e.preventDefault();
+      }
+    };
+
     window.addEventListener("pointermove", handleGlobalPointerMove, { passive: true });
     window.addEventListener("pointerup", handleGlobalPointerUp);
     window.addEventListener("pointercancel", resetDragState);
     window.addEventListener("contextmenu", handleContextMenu);
+    window.addEventListener("selectstart", handleSelectStart);
 
     return () => {
       cancelHoldTimer();
@@ -190,6 +219,7 @@ export function useTransactionReorder({
       window.removeEventListener("pointerup", handleGlobalPointerUp);
       window.removeEventListener("pointercancel", resetDragState);
       window.removeEventListener("contextmenu", handleContextMenu);
+      window.removeEventListener("selectstart", handleSelectStart);
     };
   }, [cancelHoldTimer, onReorder, resetDragState, units, viewMode]);
 

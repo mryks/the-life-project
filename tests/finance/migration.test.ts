@@ -3,17 +3,23 @@ import { isPrototypeSeedEvent, parseStoredEvents } from '@/lib/finance';
 import { OPENING_BALANCE_DATE } from '@/lib/types';
 
 describe('Opening Balance Migration & Legacy Compatibility (Rule I)', () => {
-  it('seeds an OpeningBalanceEvent rather than Income when storage is empty (null)', () => {
+  it('seeds 17 ordinary IncomeEvents when storage is empty (null)', () => {
     const parsed = parseStoredEvents(null);
     expect(parsed.shouldPersist).toBe(true);
-    expect(parsed.events).toHaveLength(1);
+    expect(parsed.events).toHaveLength(17);
 
-    const seed = parsed.events[0];
-    expect(seed.type).toBe('opening-balance');
-    if (seed.type === 'opening-balance') {
-      expect(seed.accountId).toBe('g');
-      expect(seed.amount).toBe(18_565_800);
-      expect(seed.date).toBe(OPENING_BALANCE_DATE);
+    const total = parsed.events.reduce((sum, e) => sum + e.amount, 0);
+    expect(total).toBe(850_000);
+
+    for (const event of parsed.events) {
+      expect(event.type).toBe('income');
+      expect(event.date).toBe(OPENING_BALANCE_DATE);
+      expect(event.amount).toBe(50_000);
+      expect(event.description).toBe('Initial balance');
+      if (event.type === 'income') {
+        expect(event.category).toBe('Others');
+        expect(event.id).toBe(`initial-balance-${event.accountId}`);
+      }
     }
   });
 

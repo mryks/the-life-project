@@ -42,7 +42,7 @@ export const createTransfer = (overrides?: Partial<TransferEvent>): TransferEven
 
 export const createRefund = (overrides?: Partial<RefundEvent>): RefundEvent => ({
   id: 'ref-test-1',
-  date: '2026-10-03',
+  date: '2026-10-02',
   description: 'Refund',
   amount: 50_000,
   type: 'refund',
@@ -53,7 +53,7 @@ export const createRefund = (overrides?: Partial<RefundEvent>): RefundEvent => (
 
 export const createCashback = (overrides?: Partial<IncomeEvent>): IncomeEvent => ({
   id: 'cb-test-1',
-  date: '2026-10-03',
+  date: '2026-10-02',
   description: 'Cashback G',
   amount: 25_000,
   type: 'income',
