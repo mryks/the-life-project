@@ -10,6 +10,7 @@ import type {
   BackupParseResult,
   BackupSummary,
   FinancialBackupEnvelope,
+  ReorderUnit,
 } from './types';
 import { GO_LIVE_DATE, OPENING_BALANCE_DATE, incomeCategories } from './types';
 
@@ -320,7 +321,8 @@ export const compareEventsNewestFirst = (left: FinancialEvent, right: FinancialE
 
 export const deriveLedgerEntries = (events: FinancialEvent[]): LedgerEntry[] => {
   const expenseById = new Map(events.filter((event) => event.type === 'expense').map((event) => [event.id, event]));
-  const entries = events.flatMap((event): LedgerEntry[] => {
+
+  const toEntries = (event: FinancialEvent): LedgerEntry[] => {
     if (event.type === 'opening-balance') {
       return [{
         eventId: event.id,
@@ -332,14 +334,21 @@ export const deriveLedgerEntries = (events: FinancialEvent[]): LedgerEntry[] => 
         eventType: event.type,
       }];
     }
-    if (event.type === 'transfer') return [
-      { eventId: event.id, date: event.date, description: event.description, accountId: event.sourceAccountId, amount: event.amount, direction: 'out', eventType: event.type, counterpartyAccountId: event.destinationAccountId },
-      { eventId: event.id, date: event.date, description: event.description, accountId: event.destinationAccountId, amount: event.amount, direction: 'in', eventType: event.type, counterpartyAccountId: event.sourceAccountId },
-    ];
-    if (event.type === 'refund') return [{ eventId: event.id, date: event.date, description: event.description, accountId: event.accountId, amount: event.amount, direction: 'in', eventType: event.type, category: expenseById.get(event.relatedEventId)?.category }];
+    if (event.type === 'transfer') {
+      return [
+        { eventId: event.id, date: event.date, description: event.description, accountId: event.sourceAccountId, amount: event.amount, direction: 'out', eventType: event.type, counterpartyAccountId: event.destinationAccountId },
+        { eventId: event.id, date: event.date, description: event.description, accountId: event.destinationAccountId, amount: event.amount, direction: 'in', eventType: event.type, counterpartyAccountId: event.sourceAccountId },
+      ];
+    }
+    if (event.type === 'refund') {
+      return [{ eventId: event.id, date: event.date, description: event.description, accountId: event.accountId, amount: event.amount, direction: 'in', eventType: event.type, category: expenseById.get(event.relatedEventId)?.category }];
+    }
     return [{ eventId: event.id, date: event.date, description: event.description, accountId: event.accountId, amount: event.amount, direction: event.type === 'expense' ? 'out' : 'in', eventType: event.type, category: event.category }];
-  });
-  return entries.sort((left, right) => right.date.localeCompare(left.date) || right.eventId.localeCompare(left.eventId) || left.direction.localeCompare(right.direction));
+  };
+
+  const openingEntries = events.filter((e) => e.type === 'opening-balance').flatMap(toEntries);
+  const normalEntries = events.filter((e) => e.type !== 'opening-balance').flatMap(toEntries);
+  return [...openingEntries, ...normalEntries];
 };
 
 export const getAccountBalances = (events: FinancialEvent[]): Record<AccountId, number> => {
@@ -641,3 +650,122 @@ export const downloadBackupFile = (content: string, filename: string): void => {
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 };
+
+export const getAtomicReorderUnits = (events: FinancialEvent[]): ReorderUnit[] => {
+  const units: ReorderUnit[] = [];
+  const cashbackByExpenseId = new Map<string, FinancialEvent>();
+
+  for (const event of events) {
+    if (event.type === 'income' && event.category === 'Cashback' && event.relatedEventId) {
+      cashbackByExpenseId.set(event.relatedEventId, event);
+    }
+  }
+
+  const consumedCashbackIds = new Set<string>();
+
+  for (const event of events) {
+    if (event.type === 'opening-balance') {
+      continue;
+    }
+    if (consumedCashbackIds.has(event.id)) {
+      continue;
+    }
+    if (event.type === 'expense') {
+      const cashback = cashbackByExpenseId.get(event.id);
+      if (cashback) {
+        consumedCashbackIds.add(cashback.id);
+        units.push({
+          id: event.id,
+          type: 'expense-with-cashback',
+          events: [event, cashback],
+          primaryEvent: event,
+        });
+      } else {
+        units.push({
+          id: event.id,
+          type: 'expense',
+          events: [event],
+          primaryEvent: event,
+        });
+      }
+    } else if (event.type === 'income') {
+      units.push({
+        id: event.id,
+        type: 'income',
+        events: [event],
+        primaryEvent: event,
+      });
+    } else if (event.type === 'transfer') {
+      units.push({
+        id: event.id,
+        type: 'transfer',
+        events: [event],
+        primaryEvent: event,
+      });
+    } else if (event.type === 'refund') {
+      units.push({
+        id: event.id,
+        type: 'refund',
+        events: [event],
+        primaryEvent: event,
+      });
+    }
+  }
+
+  return units;
+};
+
+export const reorderFinancialEvents = (
+  events: FinancialEvent[],
+  activeEventId: string,
+  targetEventId: string,
+  placement: 'before' | 'after'
+): FinancialEvent[] => {
+  if (!activeEventId || !targetEventId || activeEventId === targetEventId) return events;
+
+  const activeEvent = events.find((e) => e.id === activeEventId);
+  const targetEvent = events.find((e) => e.id === targetEventId);
+  if (!activeEvent || !targetEvent) return events;
+  if (activeEvent.type === 'opening-balance' || targetEvent.type === 'opening-balance') return events;
+
+  const units = getAtomicReorderUnits(events);
+  const activeUnitIndex = units.findIndex((u) => u.events.some((e) => e.id === activeEventId));
+  const targetUnitIndex = units.findIndex((u) => u.events.some((e) => e.id === targetEventId));
+
+  if (activeUnitIndex === -1 || targetUnitIndex === -1 || activeUnitIndex === targetUnitIndex) {
+    return events;
+  }
+
+  const nextUnits = [...units];
+  const [movedUnit] = nextUnits.splice(activeUnitIndex, 1);
+  const targetUnitId = units[targetUnitIndex].id;
+  const newTargetIndex = nextUnits.findIndex((u) => u.id === targetUnitId);
+  const insertIndex = placement === 'before' ? newTargetIndex : newTargetIndex + 1;
+  nextUnits.splice(insertIndex, 0, movedUnit);
+
+  const reorderedNormalEvents = nextUnits.flatMap((u) => u.events);
+
+  let normalIdx = 0;
+  const nextEvents = events.map((event) => {
+    if (event.type === 'opening-balance') return event;
+    return reorderedNormalEvents[normalIdx++];
+  });
+
+  return validateFinancialEvents(nextEvents) ? nextEvents : events;
+};
+
+export const reorderFinancialEventsByUnitIndex = (
+  events: FinancialEvent[],
+  fromUnitIndex: number,
+  toUnitIndex: number
+): FinancialEvent[] => {
+  const units = getAtomicReorderUnits(events);
+  if (fromUnitIndex < 0 || fromUnitIndex >= units.length) return events;
+  if (toUnitIndex < 0 || toUnitIndex >= units.length) return events;
+  if (fromUnitIndex === toUnitIndex) return events;
+
+  const targetUnit = units[toUnitIndex];
+  const placement: 'before' | 'after' = fromUnitIndex < toUnitIndex ? 'after' : 'before';
+  return reorderFinancialEvents(events, units[fromUnitIndex].id, targetUnit.id, placement);
+};
+

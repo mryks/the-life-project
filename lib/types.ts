@@ -95,3 +95,10 @@ export type BackupParseResult =
       success: false;
       error: string;
     };
+
+export interface ReorderUnit {
+  id: string;
+  type: 'income' | 'expense' | 'expense-with-cashback' | 'transfer' | 'refund';
+  events: FinancialEvent[];
+  primaryEvent: FinancialEvent;
+}

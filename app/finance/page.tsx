@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { Fragment, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import type { AccountId, BackupParseResult, ExpenseCategory, FinancialEvent, IncomeCategory } from "@/lib/types";
 import { GO_LIVE_DATE } from "@/lib/types";
 import { getAccountById } from "@/lib/accounts";
@@ -8,8 +8,6 @@ import {
   FINANCE_STORAGE_VERSION,
   calculateFinanceStats,
   calculateNetExpenseForDate,
-
-  compareEventsNewestFirst,
   createEventId,
   deleteFinancialEvent,
   deriveLedgerEntries,
@@ -24,6 +22,7 @@ import {
   isPositiveInteger,
   parseAndValidateBackup,
   readFinancialEvents,
+  reorderFinancialEvents,
   replaceFinancialEvent,
   restoreFinancialEvents,
   serializeBackup,
@@ -33,6 +32,7 @@ import {
   validateNormalTransactionDate,
   writeFinancialEvents,
 } from "@/lib/finance";
+import { useTransactionReorder } from "@/hooks/useTransactionReorder";
 import { 
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip, 
   LineChart, Line, XAxis, YAxis, CartesianGrid 
@@ -84,6 +84,43 @@ export default function FinancePage() {
   const [pendingRestore, setPendingRestore] = useState<Extract<BackupParseResult, { success: true }> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Undo & Reorder State
+  const undoTimerRef = useRef<number | null>(null);
+  const [undoSnapshot, setUndoSnapshot] = useState<FinancialEvent[] | null>(null);
+  const [undoToast, setUndoToast] = useState<string | null>(null);
+
+  const handleReorder = (activeEventId: string, targetEventId: string, placement: "before" | "after") => {
+    const nextEvents = reorderFinancialEvents(events, activeEventId, targetEventId, placement);
+    if (nextEvents === events) return;
+    setUndoSnapshot(events);
+    setUndoToast("transaction reordered");
+    if (undoTimerRef.current) window.clearTimeout(undoTimerRef.current);
+    undoTimerRef.current = window.setTimeout(() => {
+      setUndoToast(null);
+      setUndoSnapshot(null);
+    }, 8000);
+    writeFinancialEvents(nextEvents);
+  };
+
+  const handleUndoReorder = () => {
+    if (!undoSnapshot) return;
+    writeFinancialEvents(undoSnapshot);
+    setUndoSnapshot(null);
+    setUndoToast(null);
+    if (undoTimerRef.current) window.clearTimeout(undoTimerRef.current);
+  };
+
+  const {
+    isEventActive,
+    shouldShowDropIndicator,
+    getItemProps,
+  } = useTransactionReorder({
+    events,
+    viewMode: accountViewMode,
+    disabled: Boolean(filterAccountId),
+    onReorder: handleReorder,
+  });
+
   const handleExportBackup = () => {
     try {
       const jsonString = serializeBackup(events);
@@ -132,6 +169,9 @@ export default function FinancePage() {
       setBackupStatusMessage(`Successfully restored ${pendingRestore.events.length} financial event(s).`);
       setPendingRestore(null);
       setBackupError(null);
+      setUndoSnapshot(null);
+      setUndoToast(null);
+      if (undoTimerRef.current) window.clearTimeout(undoTimerRef.current);
     } catch (err: unknown) {
       setBackupError(err instanceof Error ? err.message : 'Unable to restore financial events.');
     }
@@ -165,22 +205,17 @@ export default function FinancePage() {
     return last7Days;
   }, [events]);
 
-  // 6. Grouped Transactions (For Card View)
-  const groupedTransactions = useMemo(() => {
+  // 6. Card View Transactions (DESC recording order: latest recorded first)
+  const cardEvents = useMemo(() => {
     let filtered = events.filter((event) => event.type !== 'opening-balance');
-    if (filterAccountId) filtered = filtered.filter((event) =>
-      event.type === 'transfer'
-        ? event.sourceAccountId === filterAccountId || event.destinationAccountId === filterAccountId
-        : event.accountId === filterAccountId
-    );
-    
-    const sorted = [...filtered].sort(compareEventsNewestFirst);
-    const groups: Record<string, FinancialEvent[]> = {};
-    sorted.forEach((event) => {
-      if (!groups[event.date]) groups[event.date] = [];
-      groups[event.date].push(event);
-    });
-    return groups;
+    if (filterAccountId) {
+      filtered = filtered.filter((event) =>
+        event.type === 'transfer'
+          ? event.sourceAccountId === filterAccountId || event.destinationAccountId === filterAccountId
+          : event.accountId === filterAccountId
+      );
+    }
+    return [...filtered].reverse();
   }, [events, filterAccountId]);
 
   const ledgerEntries = useMemo(() => {
@@ -240,9 +275,20 @@ export default function FinancePage() {
           category: 'Cashback',
           relatedEventId: eventId,
         };
-        nextEvents = existingCashback
-          ? nextEvents.map((candidate) => candidate.id === existingCashback.id ? cashback : candidate)
-          : [...nextEvents, cashback];
+        if (existingCashback) {
+          nextEvents = nextEvents.map((candidate) => candidate.id === existingCashback.id ? cashback : candidate);
+        } else {
+          const expenseIndex = nextEvents.findIndex((candidate) => candidate.id === eventId);
+          if (expenseIndex !== -1) {
+            nextEvents = [
+              ...nextEvents.slice(0, expenseIndex + 1),
+              cashback,
+              ...nextEvents.slice(expenseIndex + 1),
+            ];
+          } else {
+            nextEvents = [...nextEvents, cashback];
+          }
+        }
       } else if (existingCashback) {
         nextEvents = deleteFinancialEvent(nextEvents, existingCashback.id);
       }
@@ -250,6 +296,9 @@ export default function FinancePage() {
 
     try {
       writeFinancialEvents(nextEvents);
+      setUndoSnapshot(null);
+      setUndoToast(null);
+      if (undoTimerRef.current) window.clearTimeout(undoTimerRef.current);
     } catch {
       setFormError('Unable to save a valid financial event.');
       return;
@@ -270,6 +319,9 @@ export default function FinancePage() {
     if (!pendingDeleteEventId) return;
     writeFinancialEvents(deleteFinancialEvent(events, pendingDeleteEventId));
     setPendingDeleteEventId(null);
+    setUndoSnapshot(null);
+    setUndoToast(null);
+    if (undoTimerRef.current) window.clearTimeout(undoTimerRef.current);
   };
 
   const handleEdit = () => {
@@ -417,36 +469,55 @@ export default function FinancePage() {
 
           {/* Content: Card or Ledger */}
           {accountViewMode === 'card' ? (
-            <div className="space-y-6">
-              {Object.keys(groupedTransactions).length === 0 && <p className="text-center text-gray-400 mt-10">no transactions yet</p>}
-              {Object.keys(groupedTransactions).map(date => (
-                <div key={date}>
-                  <h3 className="text-sm font-bold text-gray-400 mb-3 sticky top-0 bg-gray-50 py-2 z-10 lowercase">{formatDateCard(date)}</h3>
-                  <div className="space-y-3">
-                    {groupedTransactions[date].map((event) => {
-                      const displayAccountId = event.type === 'transfer'
-                        ? (filterAccountId === event.destinationAccountId ? event.destinationAccountId : event.sourceAccountId)
-                        : event.accountId;
-                      const acc = getAccountById(displayAccountId);
-                      const sourceAccount = event.type === 'transfer' ? getAccountById(event.sourceAccountId) : null;
-                      const destinationAccount = event.type === 'transfer' ? getAccountById(event.destinationAccountId) : null;
-                      const transferDirection = event.type === 'transfer'
-                        ? filterAccountId === event.destinationAccountId ? 'in' : filterAccountId === event.sourceAccountId ? 'out' : 'neutral'
-                        : event.type === 'expense' ? 'out' : 'in';
-                      const cardDescription = event.type === 'transfer' && !filterAccountId
-                        ? `${sourceAccount?.name ?? event.sourceAccountId} → ${destinationAccount?.name ?? event.destinationAccountId}`
-                        : event.description;
-                      return (
-                        <div key={event.id} onContextMenu={(e) => { e.preventDefault(); handleActionOpen(event.id); }} className="bg-white p-4 rounded-2xl shadow-sm flex justify-between items-center active:bg-gray-50 transition cursor-pointer">
-                          <div className={`w-10 h-10 rounded-full ${acc?.colorClass} flex items-center justify-center text-white font-bold text-xs flex-shrink-0`}>{acc?.name}</div>
-                          <div className="flex-1 mx-4 min-w-0"><p className="font-bold text-gray-800 text-sm lowercase truncate">{cardDescription}</p></div>
-                          <p className={`font-bold text-sm ${transferDirection === 'out' ? 'text-red-500' : transferDirection === 'in' ? 'text-green-600' : 'text-blue-600'}`}>{transferDirection === 'neutral' ? '' : transferDirection === 'out' ? '-' : '+'}{formatRupiah(event.amount)}</p>
-                        </div>
-                      );
-                    })}
+            <div className="space-y-3">
+              {cardEvents.length === 0 && <p className="text-center text-gray-400 mt-10">no transactions yet</p>}
+              {cardEvents.map((event, index) => {
+                const showDateHeader = index === 0 || event.date !== cardEvents[index - 1].date;
+                const displayAccountId = event.type === 'transfer'
+                  ? (filterAccountId === event.destinationAccountId ? event.destinationAccountId : event.sourceAccountId)
+                  : event.accountId;
+                const acc = getAccountById(displayAccountId);
+                const sourceAccount = event.type === 'transfer' ? getAccountById(event.sourceAccountId) : null;
+                const destinationAccount = event.type === 'transfer' ? getAccountById(event.destinationAccountId) : null;
+                const transferDirection = event.type === 'transfer'
+                  ? filterAccountId === event.destinationAccountId ? 'in' : filterAccountId === event.sourceAccountId ? 'out' : 'neutral'
+                  : event.type === 'expense' ? 'out' : 'in';
+                const cardDescription = event.type === 'transfer' && !filterAccountId
+                  ? `${sourceAccount?.name ?? event.sourceAccountId} → ${destinationAccount?.name ?? event.destinationAccountId}`
+                  : event.description;
+
+                const isActive = isEventActive(event.id);
+                const showDropAbove = shouldShowDropIndicator(event.id, 'above');
+                const showDropBelow = shouldShowDropIndicator(event.id, 'below');
+                const itemProps = filterAccountId ? {} : getItemProps(event.id);
+
+                return (
+                  <div key={event.id}>
+                    {showDateHeader && (
+                      <h3 className={`text-sm font-bold text-gray-400 mb-3 sticky top-0 bg-gray-50 py-2 z-10 lowercase ${index > 0 ? 'mt-6' : ''}`}>
+                        {formatDateCard(event.date)}
+                      </h3>
+                    )}
+                    {showDropAbove && (
+                      <div className="h-1 bg-blue-500 rounded-full mx-2 my-1 shadow-sm transition-all animate-pulse" />
+                    )}
+                    <div
+                      {...itemProps}
+                      onContextMenu={(e) => { e.preventDefault(); handleActionOpen(event.id); }}
+                      className={`bg-white p-4 rounded-2xl shadow-sm flex justify-between items-center transition select-none ${
+                        isActive ? 'opacity-50 ring-2 ring-blue-500/50 scale-[0.99] bg-blue-50/30' : 'active:bg-gray-50'
+                      } ${filterAccountId ? 'cursor-pointer' : 'cursor-grab active:cursor-grabbing'}`}
+                    >
+                      <div className={`w-10 h-10 rounded-full ${acc?.colorClass} flex items-center justify-center text-white font-bold text-xs flex-shrink-0`}>{acc?.name}</div>
+                      <div className="flex-1 mx-4 min-w-0"><p className="font-bold text-gray-800 text-sm lowercase truncate">{cardDescription}</p></div>
+                      <p className={`font-bold text-sm ${transferDirection === 'out' ? 'text-red-500' : transferDirection === 'in' ? 'text-green-600' : 'text-blue-600'}`}>{transferDirection === 'neutral' ? '' : transferDirection === 'out' ? '-' : '+'}{formatRupiah(event.amount)}</p>
+                    </div>
+                    {showDropBelow && (
+                      <div className="h-1 bg-blue-500 rounded-full mx-2 my-1 shadow-sm transition-all animate-pulse" />
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="bg-white rounded-2xl shadow-sm overflow-hidden overflow-x-auto">
@@ -467,58 +538,86 @@ export default function FinancePage() {
                     const isOpening = entry.eventType === 'opening-balance';
                     const openingEv = isOpening ? openingBalances[entry.accountId] : undefined;
                     const rawOpeningAmount = openingEv ? openingEv.amount : (entry.direction === 'in' ? entry.amount : -entry.amount);
+
+                    const isActive = !isOpening && isEventActive(entry.eventId);
+                    const showDropAbove = !isOpening && shouldShowDropIndicator(entry.eventId, 'above', entry.direction);
+                    const showDropBelow = !isOpening && shouldShowDropIndicator(entry.eventId, 'below', entry.direction);
+                    const itemProps = isOpening || filterAccountId ? {} : getItemProps(entry.eventId);
+
                     return (
-                      <tr
-                        key={`${entry.eventId}-${entry.accountId}-${entry.direction}`}
-                        onContextMenu={(e) => {
-                          e.preventDefault();
-                          if (isOpening) {
-                            setEditingOpeningAccount(entry.accountId);
-                            setOpeningAmount(String(rawOpeningAmount));
-                            setOpeningError(null);
-                            setConfirmingOpeningEdit(false);
-                            setShowOpeningModal(true);
-                          } else {
-                            handleActionOpen(entry.eventId);
-                          }
-                        }}
-                        onClick={() => {
-                          if (isOpening) {
-                            setEditingOpeningAccount(entry.accountId);
-                            setOpeningAmount(String(rawOpeningAmount));
-                            setOpeningError(null);
-                            setConfirmingOpeningEdit(false);
-                            setShowOpeningModal(true);
-                          }
-                        }}
-                        className={`hover:bg-gray-50 cursor-pointer ${isOpening ? 'bg-blue-50/30' : ''}`}
-                      >
-                        <td className="px-4 py-3 text-gray-600 whitespace-nowrap text-xs">{formatDateLedger(entry.date)}</td>
-                        <td className="px-4 py-3 font-medium text-gray-800 lowercase max-w-[150px] truncate">
-                          {isOpening ? (
-                            <span className="inline-flex items-center gap-1.5">
-                              <span className="text-[10px] uppercase px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-bold tracking-tight">starting balance</span>
-                              <span className="truncate">{entry.description}</span>
-                            </span>
-                          ) : (
-                            entry.description
-                          )}
-                        </td>
-                        <td className="px-4 py-3"><span className={`px-2 py-1 rounded text-xs text-white font-bold ${acc?.colorClass}`}>{acc?.name}</span></td>
-                        <td className="px-4 py-3 text-right font-medium">
-                          {isOpening ? <span className="text-gray-400">-</span> : (entry.direction === 'in' ? <span className="text-green-600">{formatRupiah(entry.amount)}</span> : '-')}
-                        </td>
-                        <td className="px-4 py-3 text-right font-medium">
-                          {isOpening ? <span className="text-gray-400">-</span> : (entry.direction === 'out' ? <span className="text-red-500">{formatRupiah(entry.amount)}</span> : '-')}
-                        </td>
-                        <td className="px-4 py-3 text-right text-xs lowercase">
-                          {isOpening ? (
-                            <span className="font-bold text-gray-900">{formatRupiah(rawOpeningAmount)}</span>
-                          ) : (
-                            <span className="text-gray-500">{entry.category || '-'}</span>
-                          )}
-                        </td>
-                      </tr>
+                      <Fragment key={`${entry.eventId}-${entry.accountId}-${entry.direction}`}>
+                        {showDropAbove && (
+                          <tr>
+                            <td colSpan={6} className="p-0 border-none">
+                              <div className="h-1 bg-blue-500 rounded-full mx-2 my-0.5 animate-pulse" />
+                            </td>
+                          </tr>
+                        )}
+                        <tr
+                          {...itemProps}
+                          onContextMenu={(e) => {
+                            e.preventDefault();
+                            if (isOpening) {
+                              setEditingOpeningAccount(entry.accountId);
+                              setOpeningAmount(String(rawOpeningAmount));
+                              setOpeningError(null);
+                              setConfirmingOpeningEdit(false);
+                              setShowOpeningModal(true);
+                            } else {
+                              handleActionOpen(entry.eventId);
+                            }
+                          }}
+                          onClick={() => {
+                            if (isOpening) {
+                              setEditingOpeningAccount(entry.accountId);
+                              setOpeningAmount(String(rawOpeningAmount));
+                              setOpeningError(null);
+                              setConfirmingOpeningEdit(false);
+                              setShowOpeningModal(true);
+                            }
+                          }}
+                          className={`hover:bg-gray-50 transition select-none ${
+                            isOpening
+                              ? 'bg-blue-50/30 cursor-pointer'
+                              : filterAccountId
+                                ? 'cursor-pointer'
+                                : 'cursor-grab active:cursor-grabbing'
+                          } ${isActive ? 'bg-blue-100/60 opacity-60' : ''}`}
+                        >
+                          <td className="px-4 py-3 text-gray-600 whitespace-nowrap text-xs">{formatDateLedger(entry.date)}</td>
+                          <td className="px-4 py-3 font-medium text-gray-800 lowercase max-w-[150px] truncate">
+                            {isOpening ? (
+                              <span className="inline-flex items-center gap-1.5">
+                                <span className="text-[10px] uppercase px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-bold tracking-tight">starting balance</span>
+                                <span className="truncate">{entry.description}</span>
+                              </span>
+                            ) : (
+                              entry.description
+                            )}
+                          </td>
+                          <td className="px-4 py-3"><span className={`px-2 py-1 rounded text-xs text-white font-bold ${acc?.colorClass}`}>{acc?.name}</span></td>
+                          <td className="px-4 py-3 text-right font-medium">
+                            {isOpening ? <span className="text-gray-400">-</span> : (entry.direction === 'in' ? <span className="text-green-600">{formatRupiah(entry.amount)}</span> : '-')}
+                          </td>
+                          <td className="px-4 py-3 text-right font-medium">
+                            {isOpening ? <span className="text-gray-400">-</span> : (entry.direction === 'out' ? <span className="text-red-500">{formatRupiah(entry.amount)}</span> : '-')}
+                          </td>
+                          <td className="px-4 py-3 text-right text-xs lowercase">
+                            {isOpening ? (
+                              <span className="font-bold text-gray-900">{formatRupiah(rawOpeningAmount)}</span>
+                            ) : (
+                              <span className="text-gray-500">{entry.category || '-'}</span>
+                            )}
+                          </td>
+                        </tr>
+                        {showDropBelow && (
+                          <tr>
+                            <td colSpan={6} className="p-0 border-none">
+                              <div className="h-1 bg-blue-500 rounded-full mx-2 my-0.5 animate-pulse" />
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
                     );
                   })}
                 </tbody>
@@ -711,6 +810,9 @@ export default function FinancePage() {
                       setEditingOpeningAccount(null);
                       setConfirmingOpeningEdit(false);
                       setOpeningError(null);
+                      setUndoSnapshot(null);
+                      setUndoToast(null);
+                      if (undoTimerRef.current) window.clearTimeout(undoTimerRef.current);
                     } catch (err: unknown) {
                       setOpeningError(err instanceof Error ? err.message : 'Unable to save opening balance.');
                     }
@@ -997,6 +1099,30 @@ export default function FinancePage() {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* ================= UNDO TOAST ================= */}
+      {undoToast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-gray-900 text-white px-5 py-3 rounded-2xl shadow-xl text-sm font-medium">
+          <span className="lowercase">{undoToast}</span>
+          <button
+            onClick={handleUndoReorder}
+            className="bg-white/20 hover:bg-white/30 text-white px-3 py-1 rounded-xl text-xs font-bold transition lowercase cursor-pointer"
+          >
+            undo
+          </button>
+          <button
+            onClick={() => {
+              setUndoToast(null);
+              setUndoSnapshot(null);
+              if (undoTimerRef.current) window.clearTimeout(undoTimerRef.current);
+            }}
+            className="text-gray-400 hover:text-white transition text-xs ml-1 cursor-pointer"
+            aria-label="close"
+          >
+            ✕
+          </button>
         </div>
       )}
 

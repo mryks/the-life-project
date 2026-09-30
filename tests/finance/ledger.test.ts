@@ -130,19 +130,19 @@ describe('Ledger Derivation (Rule E)', () => {
   });
 
   describe('Ledger Entry Ordering', () => {
-    it('orders entries newest date first, then by eventId descending', () => {
+    it('orders entries in ascending recording order with opening balances as starting balances', () => {
       const e1 = createIncome({ id: 'event-a', date: '2026-10-01' });
       const e2 = createExpense({ id: 'event-b', date: '2026-10-05' });
       const e3 = createIncome({ id: 'event-c', date: '2026-10-05' });
+      const op = createOpeningBalance({ id: 'op-1', accountId: 'g' });
 
-      const ledger = deriveLedgerEntries([e1, e2, e3]);
-      expect(ledger[0].date).toBe('2026-10-05');
-      expect(ledger[1].date).toBe('2026-10-05');
-      expect(ledger[2].date).toBe('2026-10-01');
-
-      // Between event-b and event-c (both on 2026-10-05), event-c comes before event-b by id descending
-      expect(ledger[0].eventId).toBe('event-c');
-      expect(ledger[1].eventId).toBe('event-b');
+      const ledger = deriveLedgerEntries([e1, op, e2, e3]);
+      expect(ledger).toHaveLength(4);
+      expect(ledger[0].eventId).toBe('op-1');
+      expect(ledger[0].eventType).toBe('opening-balance');
+      expect(ledger[1].eventId).toBe('event-a');
+      expect(ledger[2].eventId).toBe('event-b');
+      expect(ledger[3].eventId).toBe('event-c');
     });
   });
 });
