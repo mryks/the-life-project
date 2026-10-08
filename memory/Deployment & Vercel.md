@@ -36,3 +36,14 @@
      git push origin finance-foundation
      git push origin finance-foundation:main
      ```
+
+4. **Duplicate Vercel Projects (`eta` vs `os`)**:
+   - `the-life-project-eta.vercel.app`: Legacy/duplicate project. It does NOT have Supabase environment variables configured (`isSupabaseConfigured() === false`).
+   - `the-life-project-os.vercel.app`: Active official production deployment.
+   - **Safe Deletion Protocol**: If the user has any transactions recorded solely in `the-life-project-eta` on their phone, they should first export them via JSON Backup and restore them into `the-life-project-os`. Once restored, the `the-life-project-eta` project in Vercel can be safely deleted.
+
+5. **Open-Source Privacy Guarantees**:
+   - **Zero Financial Data on GitHub**: The GitHub repository stores 100% application code only (TypeScript, React components, CSS, SQL migrations).
+   - All transactions reside exclusively in the user's private Supabase database and local device storage.
+   - All database secrets and Master PIN are in `.env.local` which is permanently ignored by `.gitignore`.
+   - The web app is shielded by single-user Master PIN authentication. No public GitHub visitor can view or alter financial data.

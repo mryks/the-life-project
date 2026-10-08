@@ -58,3 +58,14 @@ To prevent duplicate overlapping HTTP requests when multiple events fire simulta
 - **Soft Deletions**: Deletions are recorded in `thelife-pending-deleted-ids` and written to cloud with `deleted_at = now()`. Tombstoned events are stripped from local storage and not resurrected.
 - **Within-Day Ordering**: Maintained via `within_day_order`, ensuring manual card reordering persists across devices.
 - **Outbox Persistence**: Pending changes are queued in `localStorage` under `thelife-pending-upsert-ids` and retried automatically if the network is temporarily offline.
+
+### 4. Direct Force Upload (`forceUploadAllToCloud`)
+- When transactions are present locally (e.g. entered while offline or restored from a JSON backup), `forceUploadAllToCloud()` directly pushes all active domain events to Supabase with `{ onConflict: 'id' }`.
+- Available in the Cloud Sync Modal as a manual action and triggered automatically upon JSON backup restore.
+
+---
+
+## 💾 Why LocalStorage + Database? (Local-First Paradigm)
+1. **Instant App Launch (Zero Latency)**: Financial data loads immediately from local cache on mobile without waiting for round-trip network latency or database cold-starts.
+2. **Offline Resilience**: Allows adding expenses even with poor mobile reception (e.g., in basements, transit, elevators); events are queued in the outbox and synced as soon as connectivity resumes.
+3. **Database as Single Source of Truth**: Supabase PostgreSQL is the authoritative master. LocalStorage acts solely as a high-speed read cache and offline staging area.

@@ -580,3 +580,43 @@ export const deleteFinancialEventWithSync = async (
 
   return remaining;
 };
+
+/**
+ * Force pushes all local events directly to Supabase with onConflict: 'id'.
+ * Useful when local storage has newer records that need guaranteed immediate cloud upload.
+ */
+export const forceUploadAllToCloud = async (
+  events?: FinancialEvent[]
+): Promise<{ success: boolean; count: number; error?: string }> => {
+  if (!isSupabaseConfigured()) {
+    return { success: false, count: 0, error: 'Supabase is not configured' };
+  }
+  const client = getSupabaseClient();
+  if (!client) {
+    return { success: false, count: 0, error: 'Supabase client unavailable' };
+  }
+  const local = events || readFinancialEvents();
+  const orderMap = computeWithinDayOrders(local);
+  const rows = local.map((e) => eventToDbRow(e, orderMap.get(e.id) ?? 0));
+
+  try {
+    notifySyncState({ status: 'syncing', errorMessage: null });
+    const { error } = await client
+      .from('financial_events')
+      .upsert(rows, { onConflict: 'id' });
+
+    if (error) {
+      notifySyncState({ status: 'error', errorMessage: error.message });
+      return { success: false, count: 0, error: error.message };
+    }
+
+    clearPendingUpserts(local.map((e) => e.id));
+    const nowIso = new Date().toISOString();
+    notifySyncState({ status: 'synced', lastSyncedAt: nowIso, errorMessage: null });
+    return { success: true, count: rows.length };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Upload failed';
+    notifySyncState({ status: 'error', errorMessage: message });
+    return { success: false, count: 0, error: message };
+  }
+};

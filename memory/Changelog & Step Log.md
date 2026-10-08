@@ -6,6 +6,17 @@
 
 ## 📜 Sprint & Evolution Log
 
+### Langkah 17: Direct Force Upload to Cloud, Backup Auto-Push & Architecture Clarification
+- **Force Upload to Cloud (`forceUploadAllToCloud`)**:
+  - Implemented direct bulk upsert in `lib/sync.ts` that pushes all active events to Supabase with `{ onConflict: 'id' }`.
+  - Added "Force Push All Records to Cloud" button in Cloud Sync Modal for one-click manual synchronization.
+- **Backup Restore Auto-Push**:
+  - Updated `handleConfirmRestore` so importing a JSON backup immediately force-uploads all restored records to Supabase.
+- **Root-Cause Clarification & Resolution**:
+  - Investigated `the-life-project-eta.vercel.app`: confirmed it lacked Supabase env variables (`isSupabaseConfigured() === false`), trapping phone transactions in local storage. Provided clear backup & migration path before safe deletion.
+  - Verified GitHub privacy: transactions and database keys never touch Git.
+- **Verification**: 194/194 Vitest tests passing, `next build` 100% green.
+
 ### Langkah 16: Multi-Device Sync Hardening & Obsidian Memory Vault
 - **Obsidian Vault in Root**: Created dedicated `memory/` vault with Atlas index, wikilinks, and comprehensive architectural documentation.
 - **Vercel Build Fix**: Fixed TS2339 in `tests/finance/crud.test.ts` (narrowed event types before reading `accountId`), unblocking Vercel production deployment.

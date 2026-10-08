@@ -51,6 +51,7 @@ import {
 import { isSupabaseConfigured } from "@/lib/supabase";
 import {
   syncWithCloud,
+  forceUploadAllToCloud,
   getSyncState,
   deleteFinancialEventWithSync,
   queuePendingUpserts,
@@ -509,16 +510,21 @@ export default function FinancePage() {
     reader.readAsText(file);
   };
 
-  const handleConfirmRestore = () => {
+  const handleConfirmRestore = async () => {
     if (!pendingRestore) return;
     try {
-      restoreFinancialEvents(pendingRestore.events);
-      setBackupStatusMessage(`Successfully restored ${pendingRestore.events.length} transactions.`);
+      const restoredEvents = pendingRestore.events;
+      restoreFinancialEvents(restoredEvents);
+      setBackupStatusMessage(`Successfully restored ${restoredEvents.length} transactions.`);
       setPendingRestore(null);
       setBackupError(null);
       setUndoSnapshot(null);
       setUndoToast(null);
       if (undoTimerRef.current) window.clearTimeout(undoTimerRef.current);
+
+      if (isSupabaseConfigured()) {
+        await forceUploadAllToCloud(restoredEvents);
+      }
     } catch (err: unknown) {
       setBackupError(err instanceof Error ? err.message : 'Unable to restore financial records.');
     }
@@ -2533,17 +2539,32 @@ export default function FinancePage() {
                   Your transactions are stored in your device&apos;s local database and automatically synced to your private Supabase PostgreSQL table in the background.
                 </p>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    syncWithCloud();
-                  }}
-                  disabled={syncState.status === 'syncing'}
-                  className="btn-tactile-primary w-full py-3 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 cursor-pointer shadow-xs disabled:opacity-50"
-                >
-                  <RefreshCw className={`w-4 h-4 ${syncState.status === 'syncing' ? 'animate-spin' : ''}`} />
-                  <span>{syncState.status === 'syncing' ? 'Syncing Now...' : 'Sync Now'}</span>
-                </button>
+                <div className="flex flex-col gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      syncWithCloud();
+                    }}
+                    disabled={syncState.status === 'syncing'}
+                    className="btn-tactile-primary w-full py-2.5 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 cursor-pointer shadow-xs disabled:opacity-50"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${syncState.status === 'syncing' ? 'animate-spin' : ''}`} />
+                    <span>{syncState.status === 'syncing' ? 'Syncing Now...' : 'Sync with Cloud'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await forceUploadAllToCloud(events);
+                    }}
+                    disabled={syncState.status === 'syncing'}
+                    className="btn-tactile-neutral w-full py-2.5 text-xs font-bold flex items-center justify-center gap-2 cursor-pointer shadow-2xs text-stone-700 hover:text-stone-900"
+                    title="Upload all active local records directly to Supabase"
+                  >
+                    <Upload className="w-4 h-4 text-stone-600" />
+                    <span>Force Push All ({events.length}) Records to Cloud</span>
+                  </button>
+                </div>
               </div>
             ) : (
               <div className="space-y-4">
