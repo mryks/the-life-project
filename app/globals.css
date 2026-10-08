@@ -96,6 +96,22 @@ body {
   transform: translateY(4px);
 }
 
+.btn-tactile-blue {
+  background-color: #2563EB;
+  color: #FFFFFF;
+  border-bottom: 4px solid #1D4ED8;
+  border-radius: 1rem;
+  font-weight: 700;
+  transition: all 0.08s ease-in-out;
+}
+.btn-tactile-blue:hover {
+  background-color: #3B82F6;
+}
+.btn-tactile-blue:active {
+  border-bottom-width: 0px;
+  transform: translateY(4px);
+}
+
 /* Tactile Surface Cards */
 .card-tactile {
   background-color: #FFFFFF;

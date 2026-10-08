@@ -49,6 +49,7 @@
 10. **Langkah 11: 3-Letter Month Standard & Unselected Form Defaults** (Ledger date uses strict 3-letter months e.g. `30 Sep 2026`; New transaction form starts with account & category unselected).
 11. **Langkah 12: Simplified Form Labels & Clean Card View** (Labels simplified to `AMOUNT`, `DESCRIPTION`, `ACCOUNT`, Transfer retains `SOURCE ACCOUNT`/`DESTINATION ACCOUNT`, removed `Click for options` hint from Card view).
 12. **Langkah 13: Background Scroll Lock on Modal Open** (Locked background body scrolling with scrollbar compensation and touch-none overscroll containment when Transaction Options or other interactive modals are active).
+13. **Langkah 14: Type Color Harmonization & Custom Tactile Category Dropdown** (Transfer set to blue in both form switcher `.btn-tactile-blue` and filter chips; Refund filter set to purple/violet `.bg-violet-600`; Category filter upgraded from native `<select>` to custom tactile Duolingo-style dropdown).
 
 ---
 

@@ -1668,7 +1668,7 @@ export default function FinancePage() {
                                 </span>
                               )}
                               {event.type === 'refund' && (
-                                <span className="text-[10px] bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 rounded-full font-bold">
+                                <span className="text-[10px] bg-violet-100 text-violet-800 border border-violet-200 px-2 py-0.5 rounded-full font-bold">
                                   Refund
                                 </span>
                               )}
@@ -1873,7 +1873,7 @@ export default function FinancePage() {
                 }}
                 className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                   formType === 'transfer'
-                    ? 'btn-tactile-dark shadow-xs'
+                    ? 'btn-tactile-blue shadow-xs'
                     : 'text-stone-600 hover:text-stone-900'
                 }`}
               >
