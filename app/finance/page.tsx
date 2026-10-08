@@ -1655,9 +1655,6 @@ export default function FinancePage() {
                           }`}>
                             {transferDirection === 'neutral' ? '' : transferDirection === 'out' ? '-' : '+'}{formatRupiah(event.amount)}
                           </p>
-                          <span className="text-[10px] text-stone-400 font-medium block mt-0.5">
-                            Click for options
-                          </span>
                         </div>
                       </div>
                       {showDropBelow && (
@@ -1858,7 +1855,7 @@ export default function FinancePage() {
               {/* Amount Input with Live Dot Delimiter */}
               <div>
                 <label className="text-xs font-bold text-stone-700 uppercase tracking-wider mb-1 block">
-                  Amount (IDR)
+                  Amount
                 </label>
                 <div className="relative">
                   <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400 font-bold text-base">
@@ -1901,7 +1898,7 @@ export default function FinancePage() {
               {formType !== 'transfer' && (
                 <div>
                   <label className="text-xs font-bold text-stone-700 uppercase tracking-wider mb-1 block">
-                    Description / Notes
+                    Description
                   </label>
                   <input
                     type="text"
@@ -1917,7 +1914,7 @@ export default function FinancePage() {
               {formType !== 'transfer' && (
                 <div>
                   <label className="text-xs font-bold text-stone-700 uppercase tracking-wider mb-1 block">
-                    Select Account ({formType === 'expense' ? 'Source' : 'Destination'})
+                    Account
                   </label>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-44 overflow-y-auto p-1.5 bg-stone-50 rounded-2xl border border-stone-200">
                     {accounts.map((acc) => (
