@@ -263,7 +263,33 @@ export default function FinancePage() {
     return () => window.removeEventListener(SYNC_STATUS_EVENT, handleSyncStatus);
   }, []);
 
-  // Background auto-sync when vault is unlocked and Supabase is configured
+  // Proactive multi-device cloud synchronization (mount, visibility change, and focus)
+  useEffect(() => {
+    if (!isSupabaseConfigured()) return;
+
+    // Immediate sync on mount (pulls cloud events even before unlocking so data is instantly ready)
+    syncWithCloud().catch(() => {});
+
+    // Sync when user switches back to this tab/window (e.g. mobile app switch or returning from desktop browser)
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        syncWithCloud().catch(() => {});
+      }
+    };
+    const handleFocus = () => {
+      syncWithCloud().catch(() => {});
+    };
+
+    window.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      window.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, []);
+
+  // Sync again whenever vault transitions to unlocked state
   useEffect(() => {
     if (!isLocked && isSupabaseConfigured()) {
       syncWithCloud().catch(() => {});

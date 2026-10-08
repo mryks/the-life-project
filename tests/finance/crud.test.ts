@@ -165,8 +165,8 @@ describe('CRUD, Event Replacement & Cascade Deletion (Rules C & D)', () => {
 
       const exp = next!.find((e) => e.id === 'exp-1');
       const ref = next!.find((e) => e.id === 'ref-1');
-      expect(exp?.accountId).toBe('b');
-      expect(ref?.accountId).toBe('b');
+      expect(exp?.type === 'expense' && exp.accountId).toBe('b');
+      expect(ref?.type === 'refund' && ref.accountId).toBe('b');
     });
 
     it('ensures Transfer can only remain Transfer and cannot become Income or Expense', () => {

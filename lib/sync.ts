@@ -445,6 +445,8 @@ const notifySyncState = (state: Partial<SyncState>): void => {
   }
 };
 
+let inFlightSync: Promise<{ success: boolean; events: FinancialEvent[]; error?: string }> | null = null;
+
 /**
  * Main Cloud Synchronization Function.
  * Runs in the background and is resilient to network failures.
@@ -452,10 +454,15 @@ const notifySyncState = (state: Partial<SyncState>): void => {
 export const syncWithCloud = async (
   currentEvents?: FinancialEvent[]
 ): Promise<{ success: boolean; events: FinancialEvent[]; error?: string }> => {
-  if (!isSupabaseConfigured()) {
-    notifySyncState({ status: 'unconfigured' });
-    return { success: false, events: currentEvents || readFinancialEvents(), error: 'Supabase is not configured' };
+  if (inFlightSync && !currentEvents) {
+    return inFlightSync;
   }
+
+  const runSync = async (): Promise<{ success: boolean; events: FinancialEvent[]; error?: string }> => {
+    if (!isSupabaseConfigured()) {
+      notifySyncState({ status: 'unconfigured' });
+      return { success: false, events: currentEvents || readFinancialEvents(), error: 'Supabase is not configured' };
+    }
 
   if (typeof navigator !== 'undefined' && !navigator.onLine) {
     notifySyncState({ status: 'offline' });
@@ -525,10 +532,21 @@ export const syncWithCloud = async (
     notifySyncState({ status: 'synced', lastSyncedAt: nowIso, errorMessage: null });
 
     return { success: true, events: mergedEvents };
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Unknown sync failure';
-    notifySyncState({ status: 'error', errorMessage: message });
-    return { success: false, events: currentEvents || readFinancialEvents(), error: message };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown sync failure';
+      notifySyncState({ status: 'error', errorMessage: message });
+      return { success: false, events: currentEvents || readFinancialEvents(), error: message };
+    }
+  };
+
+  const syncPromise = runSync();
+  inFlightSync = syncPromise;
+  try {
+    return await syncPromise;
+  } finally {
+    if (inFlightSync === syncPromise) {
+      inFlightSync = null;
+    }
   }
 };
 
