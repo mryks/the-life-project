@@ -111,12 +111,12 @@ function TransferAccountDropdown({
   excludeAccountId,
 }: {
   label: string;
-  value: AccountId;
+  value: AccountId | null;
   onChange: (id: AccountId) => void;
-  excludeAccountId?: AccountId;
+  excludeAccountId?: AccountId | null;
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  const selectedAcc = getAccountById(value);
+  const selectedAcc = value ? getAccountById(value) : null;
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -144,12 +144,20 @@ function TransferAccountDropdown({
         className="w-full bg-white border-2 border-stone-200 hover:border-stone-300 text-stone-800 rounded-xl px-3 py-2 flex items-center justify-between transition cursor-pointer shadow-2xs"
       >
         <div className="flex items-center gap-2 min-w-0">
-          <span className={`w-5 h-5 rounded-full ${selectedAcc?.colorClass || 'bg-stone-500'} text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0 shadow-2xs`}>
-            {selectedAcc?.name}
-          </span>
-          <span className="text-xs font-bold truncate text-stone-900">
-            {selectedAcc?.fullName}
-          </span>
+          {selectedAcc ? (
+            <>
+              <span className={`w-5 h-5 rounded-full ${selectedAcc?.colorClass || 'bg-stone-500'} text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0 shadow-2xs`}>
+                {selectedAcc?.name}
+              </span>
+              <span className="text-xs font-bold truncate text-stone-900">
+                {selectedAcc?.fullName}
+              </span>
+            </>
+          ) : (
+            <span className="text-xs font-medium text-stone-400">
+              Select {label.toLowerCase()}...
+            </span>
+          )}
         </div>
         <ChevronDown className={`w-4 h-4 text-stone-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
@@ -158,7 +166,7 @@ function TransferAccountDropdown({
         <div className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-white border-2 border-stone-200 rounded-2xl shadow-xl p-1.5 max-h-56 overflow-y-auto space-y-1">
           {accounts.map((acc) => {
             const isSelected = acc.id === value;
-            const isExcluded = acc.id === excludeAccountId;
+            const isExcluded = Boolean(excludeAccountId && acc.id === excludeAccountId);
             return (
               <button
                 key={acc.id}
@@ -286,11 +294,11 @@ export default function FinancePage() {
   const [adminFee, setAdminFee] = useState("");
   const [desc, setDesc] = useState("");
   const [date, setDate] = useState(todayDate());
-  const [selectedAccount, setSelectedAccount] = useState<AccountId>('g');
-  const [destinationAccount, setDestinationAccount] = useState<AccountId>('s');
+  const [selectedAccount, setSelectedAccount] = useState<AccountId | null>(null);
+  const [destinationAccount, setDestinationAccount] = useState<AccountId | null>(null);
   const [hasCashback, setHasCashback] = useState(false);
   const [cashbackAmount, setCashbackAmount] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<ExpenseCategory | IncomeCategory>('Food & Drinks');
+  const [selectedCategory, setSelectedCategory] = useState<ExpenseCategory | IncomeCategory | null>(null);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [showCashbackAccountWarning, setShowCashbackAccountWarning] = useState(false);
@@ -705,9 +713,11 @@ export default function FinancePage() {
     setAdminFee("");
     setDesc("");
     setDate(todayDate());
+    setSelectedAccount(null);
+    setDestinationAccount(null);
     setHasCashback(false);
     setCashbackAmount("");
-    setSelectedCategory(formType === 'income' ? 'Salary' : 'Food & Drinks');
+    setSelectedCategory(null);
     setFormError(null);
     setShowCashbackAccountWarning(false);
   };
@@ -715,44 +725,52 @@ export default function FinancePage() {
   const handleSave = () => {
     const rawDigits = amount.replace(/\D/g, '');
     const parsedAmount = rawDigits ? Number(rawDigits) : 0;
-    const trimmedDescription = (formType === 'transfer' ? `Transfer to ${destinationAccount.toUpperCase()}` : desc).trim();
     if (!isPositiveInteger(parsedAmount)) return setFormError('Amount must be a positive whole number.');
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !trimmedDescription) return setFormError('Date and description are required.');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return setFormError('Transaction date is required.');
     if (!validateNormalTransactionDate(date)) {
       return setFormError('Transaction date is invalid.');
     }
-    if (formType === 'transfer' && selectedAccount === destinationAccount) {
-      return setFormError('Source and destination accounts must be different.');
-    }
 
-    if (formType === 'transfer' && adminFee.trim()) {
-      const rawAdminDigits = adminFee.replace(/\D/g, '');
-      const parsedAdminFee = rawAdminDigits ? Number(rawAdminDigits) : undefined;
-      if (parsedAdminFee !== undefined && !isPositiveInteger(parsedAdminFee)) {
-        return setFormError('Admin fee must be a positive whole number.');
+    if (formType === 'transfer') {
+      if (!selectedAccount) return setFormError('Please select a source account.');
+      if (!destinationAccount) return setFormError('Please select a destination account.');
+      if (selectedAccount === destinationAccount) {
+        return setFormError('Source and destination accounts must be different.');
       }
-    }
+      if (adminFee.trim()) {
+        const rawAdminDigits = adminFee.replace(/\D/g, '');
+        const parsedAdminFee = rawAdminDigits ? Number(rawAdminDigits) : undefined;
+        if (parsedAdminFee !== undefined && !isPositiveInteger(parsedAdminFee)) {
+          return setFormError('Admin fee must be a positive whole number.');
+        }
+      }
+    } else {
+      const trimmedDescription = desc.trim();
+      if (!trimmedDescription) return setFormError('Description is required.');
+      if (!selectedAccount) return setFormError('Please select an account.');
+      if (!selectedCategory) return setFormError('Please select a category.');
 
-    if (formType === 'expense' && hasCashback) {
-      const rawCashbackDigits = cashbackAmount.replace(/\D/g, '');
-      const parsedCashback = rawCashbackDigits ? Number(rawCashbackDigits) : 0;
-      if (!isPositiveInteger(parsedCashback)) return setFormError('Cashback must be a positive whole number.');
-    }
+      if (formType === 'expense' && hasCashback) {
+        const rawCashbackDigits = cashbackAmount.replace(/\D/g, '');
+        const parsedCashback = rawCashbackDigits ? Number(rawCashbackDigits) : 0;
+        if (!isPositiveInteger(parsedCashback)) return setFormError('Cashback must be a positive whole number.');
+      }
 
-    // Check if editing an expense with cashback and the account was changed
-    if (editingEventId && formType === 'expense') {
-      const originalExpense = events.find((e) => e.id === editingEventId);
-      const existingCashback = events.find(
-        (candidate) => candidate.type === 'income' && candidate.category === 'Cashback' && candidate.relatedEventId === editingEventId
-      );
-      if (
-        originalExpense &&
-        originalExpense.type === 'expense' &&
-        originalExpense.accountId !== selectedAccount &&
-        (hasCashback || Boolean(existingCashback))
-      ) {
-        setShowCashbackAccountWarning(true);
-        return;
+      // Check if editing an expense with cashback and the account was changed
+      if (editingEventId && formType === 'expense') {
+        const originalExpense = events.find((e) => e.id === editingEventId);
+        const existingCashback = events.find(
+          (candidate) => candidate.type === 'income' && candidate.category === 'Cashback' && candidate.relatedEventId === editingEventId
+        );
+        if (
+          originalExpense &&
+          originalExpense.type === 'expense' &&
+          originalExpense.accountId !== selectedAccount &&
+          (hasCashback || Boolean(existingCashback))
+        ) {
+          setShowCashbackAccountWarning(true);
+          return;
+        }
       }
     }
 
@@ -763,7 +781,9 @@ export default function FinancePage() {
     setFormError(null);
     const rawDigits = amount.replace(/\D/g, '');
     const parsedAmount = rawDigits ? Number(rawDigits) : 0;
-    const trimmedDescription = (formType === 'transfer' ? `Transfer to ${destinationAccount.toUpperCase()}` : desc).trim();
+    const trimmedDescription = formType === 'transfer'
+      ? `Transfer to ${destinationAccount!.toUpperCase()}`
+      : desc.trim();
 
     let parsedAdminFee: number | undefined = undefined;
     if (formType === 'transfer' && adminFee.trim()) {
@@ -779,13 +799,13 @@ export default function FinancePage() {
           description: trimmedDescription, 
           amount: parsedAmount, 
           type: 'transfer', 
-          sourceAccountId: selectedAccount, 
-          destinationAccountId: destinationAccount,
+          sourceAccountId: selectedAccount!, 
+          destinationAccountId: destinationAccount!,
           ...(parsedAdminFee !== undefined ? { adminFee: parsedAdminFee } : {})
         }
       : formType === 'expense'
-        ? { id: eventId, date, description: trimmedDescription, amount: parsedAmount, type: 'expense', accountId: selectedAccount, category: selectedCategory as ExpenseCategory }
-        : { id: eventId, date, description: trimmedDescription, amount: parsedAmount, type: 'income', accountId: selectedAccount, category: selectedCategory as IncomeCategory };
+        ? { id: eventId, date, description: trimmedDescription, amount: parsedAmount, type: 'expense', accountId: selectedAccount!, category: selectedCategory as ExpenseCategory }
+        : { id: eventId, date, description: trimmedDescription, amount: parsedAmount, type: 'income', accountId: selectedAccount!, category: selectedCategory as IncomeCategory };
 
     let nextEvents: FinancialEvent[] | null = editingEventId
       ? replaceFinancialEvent(events, event)
@@ -801,10 +821,10 @@ export default function FinancePage() {
         const cashback: FinancialEvent = {
           id: existingCashback?.id ?? createEventId(),
           date,
-          description: `Cashback ${selectedAccount.toUpperCase()}`,
+          description: `Cashback ${selectedAccount!.toUpperCase()}`,
           amount: parsedCashback,
           type: 'income',
-          accountId: selectedAccount,
+          accountId: selectedAccount!,
           category: 'Cashback',
           relatedEventId: eventId,
         };
@@ -895,9 +915,11 @@ export default function FinancePage() {
       setDestinationAccount(event.destinationAccountId);
       setAdminFee(event.adminFee ? event.adminFee.toLocaleString('id-ID') : '');
     } else {
+      setDestinationAccount(null);
       setAdminFee('');
     }
     if (event.type !== 'transfer') setSelectedCategory(event.category);
+    else setSelectedCategory(null);
     if (event.type === 'expense') {
       const cashback = events.find((candidate) => candidate.type === 'income' && candidate.category === 'Cashback' && candidate.relatedEventId === event.id);
       setHasCashback(Boolean(cashback));
@@ -921,11 +943,16 @@ export default function FinancePage() {
     const d = new Date(year, month - 1, day);
     return d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   };
+  const MONTH_SHORT_NAMES = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  ] as const;
+
   const formatDateLedger = (dateStr: string) => {
     if (!dateStr || !isDateOnly(dateStr)) return dateStr;
     const [year, month, day] = dateStr.split('-').map(Number);
-    const d = new Date(year, month - 1, day);
-    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    const shortMonth = MONTH_SHORT_NAMES[month - 1] ?? '';
+    return `${day} ${shortMonth} ${year}`;
   };
 
   return (
@@ -1784,7 +1811,7 @@ export default function FinancePage() {
                 type="button"
                 onClick={() => {
                   setFormType('expense');
-                  setSelectedCategory('Food & Drinks');
+                  if (!editingEventId) setSelectedCategory(null);
                 }}
                 className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                   formType === 'expense'
@@ -1799,7 +1826,7 @@ export default function FinancePage() {
                 type="button"
                 onClick={() => {
                   setFormType('income');
-                  setSelectedCategory('Salary');
+                  if (!editingEventId) setSelectedCategory(null);
                 }}
                 className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                   formType === 'income'
@@ -1812,7 +1839,10 @@ export default function FinancePage() {
               </button>
               <button
                 type="button"
-                onClick={() => setFormType('transfer')}
+                onClick={() => {
+                  setFormType('transfer');
+                  if (!editingEventId) setSelectedCategory(null);
+                }}
                 className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                   formType === 'transfer'
                     ? 'btn-tactile-dark shadow-xs'
@@ -2164,8 +2194,8 @@ export default function FinancePage() {
             <p className="text-xs text-stone-600 leading-relaxed">
               This expense has a linked cashback transaction. Changing the expense account from{' '}
               <strong className="text-stone-900">{getAccountById((events.find((e): e is ExpenseEvent => e.id === editingEventId && e.type === 'expense'))?.accountId as AccountId)?.fullName || 'Original Account'}</strong> to{' '}
-              <strong className="text-stone-900">{getAccountById(selectedAccount)?.fullName || selectedAccount}</strong> will also automatically update the cashback account to{' '}
-              <strong className="text-stone-900">{getAccountById(selectedAccount)?.fullName || selectedAccount}</strong>.
+              <strong className="text-stone-900">{selectedAccount ? (getAccountById(selectedAccount)?.fullName || selectedAccount) : ''}</strong> will also automatically update the cashback account to{' '}
+              <strong className="text-stone-900">{selectedAccount ? (getAccountById(selectedAccount)?.fullName || selectedAccount) : ''}</strong>.
             </p>
             <div className="flex gap-2 pt-2">
               <button
