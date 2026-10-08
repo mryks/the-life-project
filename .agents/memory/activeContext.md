@@ -46,6 +46,7 @@
 7. **Langkah 8: Edit & Reorder Sync Engine Fix** (Pending upserts queue, per-date `within_day_order` calculation, deterministic cloud reconciliation).
 8. **Langkah 9: Cashback Account Change Cascade & Confirmation Warning** (Expense account migration cascades to linked cashback with modal guardrail).
 9. **Langkah 10: Date Presentation Formatting Polish** (Card view sticky date: `Wednesday, 7 October 2026`; Ledger view date column: `7 Oct 2026`; Transaction options modal: `7 October 2026`).
+10. **Langkah 11: 3-Letter Month Standard & Unselected Form Defaults** (Ledger date uses strict 3-letter months e.g. `30 Sep 2026`; New transaction form starts with account & category unselected).
 
 ---
 
