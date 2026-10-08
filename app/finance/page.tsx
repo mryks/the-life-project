@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import type { AccountId, BackupParseResult, ExpenseCategory, ExpenseEvent, FinancialEvent, IncomeCategory } from "@/lib/types";
+import type { AccountId, BackupParseResult, ExpenseCategory, ExpenseEvent, FinancialEvent, IncomeCategory, RefundEvent } from "@/lib/types";
 import { 
   accounts, 
   getAccountById, 
@@ -311,6 +311,7 @@ export default function FinancePage() {
   // Refund Flow State
   const [showRefundModal, setShowRefundModal] = useState(false);
   const [refundParentExpense, setRefundParentExpense] = useState<ExpenseEvent | null>(null);
+  const [editingRefundEvent, setEditingRefundEvent] = useState<RefundEvent | null>(null);
   const [refundError, setRefundError] = useState<string | null>(null);
 
   // Backup & Restore State
@@ -638,13 +639,24 @@ export default function FinancePage() {
   // Refund Calculation
   const refundCalculation = useMemo(() => {
     if (!refundParentExpense) return { maxRefundable: 0, totalRefunded: 0 };
-    const existingRefunds = events.filter(
-      (e) => e.type === 'refund' && e.relatedEventId === refundParentExpense.id
+    const otherRefunds = events.filter(
+      (e) => e.type === 'refund' && e.relatedEventId === refundParentExpense.id && (!editingRefundEvent || e.id !== editingRefundEvent.id)
     );
-    const totalRefunded = existingRefunds.reduce((sum, r) => sum + r.amount, 0);
+    const totalRefunded = otherRefunds.reduce((sum, r) => sum + r.amount, 0);
     const maxRefundable = Math.max(0, refundParentExpense.amount - totalRefunded);
     return { maxRefundable, totalRefunded };
-  }, [events, refundParentExpense]);
+  }, [events, refundParentExpense, editingRefundEvent]);
+
+  // Precomputed refunds map for fast lookup on expense cards
+  const refundsByExpenseId = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const e of events) {
+      if (e.type === 'refund') {
+        map.set(e.relatedEventId, (map.get(e.relatedEventId) ?? 0) + e.amount);
+      }
+    }
+    return map;
+  }, [events]);
 
   const handleOpenRefund = () => {
     if (!activeEvent || activeEvent.type !== 'expense') return;
@@ -657,6 +669,7 @@ export default function FinancePage() {
       alert("This expense has already been fully refunded.");
       return;
     }
+    setEditingRefundEvent(null);
     setRefundParentExpense(activeEvent);
     setRefundError(null);
     setShowRefundModal(true);
@@ -666,6 +679,38 @@ export default function FinancePage() {
 
   const handleSaveRefund = ({ date: refDate, amount: refAmount, description: refDesc }: { date: string; amount: number; description: string }) => {
     if (!refundParentExpense) return;
+
+    if (editingRefundEvent) {
+      const updatedRefund: RefundEvent = {
+        ...editingRefundEvent,
+        date: refDate,
+        description: refDesc,
+        amount: refAmount,
+      };
+      const nextEvents = replaceFinancialEvent(events, updatedRefund);
+      if (!nextEvents) {
+        setRefundError("Refund validation failed. Amount cannot exceed remaining original expense.");
+        return;
+      }
+      try {
+        queuePendingUpserts([updatedRefund.id]);
+        writeFinancialEvents(nextEvents);
+        if (isSupabaseConfigured()) {
+          syncWithCloud(nextEvents).catch(() => {});
+        }
+        setShowRefundModal(false);
+        setRefundParentExpense(null);
+        setEditingRefundEvent(null);
+        setRefundError(null);
+        setUndoSnapshot(null);
+        setUndoToast(null);
+        if (undoTimerRef.current) window.clearTimeout(undoTimerRef.current);
+      } catch {
+        setRefundError("Failed to update refund.");
+      }
+      return;
+    }
+
     const refundEvent: FinancialEvent = {
       id: createEventId(),
       date: refDate,
@@ -688,6 +733,7 @@ export default function FinancePage() {
       }
       setShowRefundModal(false);
       setRefundParentExpense(null);
+      setEditingRefundEvent(null);
       setRefundError(null);
       setUndoSnapshot(null);
       setUndoToast(null);
@@ -927,9 +973,25 @@ export default function FinancePage() {
   };
 
   const handleEdit = () => {
-    let event = events.find((candidate) => candidate.id === activeTransactionId);
-    if (!event || event.type === 'refund') return;
+    const rawEvent = events.find((candidate) => candidate.id === activeTransactionId);
+    if (!rawEvent) return;
 
+    if (rawEvent.type === 'refund') {
+      const parent = events.find((candidate): candidate is ExpenseEvent => candidate.id === rawEvent.relatedEventId && candidate.type === 'expense');
+      if (!parent) {
+        alert("Parent expense transaction not found.");
+        return;
+      }
+      setEditingRefundEvent(rawEvent);
+      setRefundParentExpense(parent);
+      setRefundError(null);
+      setShowRefundModal(true);
+      setActionMenuOpen(false);
+      setActiveTransactionId(null);
+      return;
+    }
+
+    let event = rawEvent;
     if (event.type === 'income' && event.category === 'Cashback' && event.relatedEventId) {
       const parentId = event.relatedEventId;
       const parentExpense = events.find((candidate) => candidate.id === parentId);
@@ -1606,6 +1668,9 @@ export default function FinancePage() {
                     ? `${sourceAccount?.name ?? event.sourceAccountId} → ${destinationAccount?.name ?? event.destinationAccountId}`
                     : event.description;
 
+                  const totalRefundedForEvent = event.type === 'expense' ? (refundsByExpenseId.get(event.id) ?? 0) : 0;
+                  const netExpenseForEvent = event.type === 'expense' ? event.amount - totalRefundedForEvent : event.amount;
+
                   const isActive = isEventActive(event.id);
                   const showDropAbove = shouldShowDropIndicator(event.id, 'above');
                   const showDropBelow = shouldShowDropIndicator(event.id, 'below');
@@ -1662,6 +1727,11 @@ export default function FinancePage() {
                                   {event.category}
                                 </span>
                               )}
+                              {event.type === 'expense' && totalRefundedForEvent > 0 && (
+                                <span className="text-[10px] bg-violet-50 text-violet-700 px-2 py-0.5 rounded-full font-bold border border-violet-200/70">
+                                  Refunded: {formatRupiah(totalRefundedForEvent)}
+                                </span>
+                              )}
                               {event.type === 'transfer' && event.adminFee && (
                                 <span className="text-[10px] bg-violet-100 text-violet-800 px-2 py-0.5 rounded-full font-bold border border-violet-200">
                                   Fee: {formatRupiah(event.adminFee)}
@@ -1678,14 +1748,23 @@ export default function FinancePage() {
 
                         <div className="text-right flex-shrink-0 ml-3">
                           <p className={`font-black font-mono-numbers text-sm sm:text-base ${
-                            transferDirection === 'out' 
-                              ? 'text-rose-600' 
-                              : transferDirection === 'in' 
-                                ? 'text-emerald-600' 
-                                : 'text-stone-900'
+                            event.type === 'refund'
+                              ? 'text-violet-600'
+                              : transferDirection === 'out' 
+                                ? 'text-rose-600' 
+                                : transferDirection === 'in' 
+                                  ? 'text-emerald-600' 
+                                  : 'text-stone-900'
                           }`}>
-                            {transferDirection === 'neutral' ? '' : transferDirection === 'out' ? '-' : '+'}{formatRupiah(event.amount)}
+                            {event.type === 'refund'
+                              ? `+${formatRupiah(event.amount)}`
+                              : `${transferDirection === 'neutral' ? '' : transferDirection === 'out' ? '-' : '+'}${formatRupiah(event.amount)}`}
                           </p>
+                          {event.type === 'expense' && totalRefundedForEvent > 0 && (
+                            <p className="text-[11px] font-bold text-stone-400 font-mono-numbers mt-0.5">
+                              Net: -{formatRupiah(netExpenseForEvent)}
+                            </p>
+                          )}
                         </div>
                       </div>
                       {showDropBelow && (
@@ -1763,7 +1842,11 @@ export default function FinancePage() {
                               </span>
                             </td>
                             <td className="px-4 py-3 text-right font-bold font-mono-numbers">
-                              {entry.direction === 'in' ? <span className="text-emerald-600">+{formatRupiah(entry.amount)}</span> : '-'}
+                              {entry.direction === 'in' ? (
+                                <span className={entry.eventType === 'refund' ? "text-violet-600" : "text-emerald-600"}>
+                                  +{formatRupiah(entry.amount)}
+                                </span>
+                              ) : '-'}
                             </td>
                             <td className="px-4 py-3 text-right font-bold font-mono-numbers">
                               {entry.direction === 'out' ? <span className="text-rose-600">-{formatRupiah(entry.amount)}</span> : '-'}
@@ -2125,16 +2208,14 @@ export default function FinancePage() {
             </div>
 
             <div className="space-y-1.5">
-              {activeEvent.type !== 'refund' && (
-                <button
-                  type="button"
-                  onClick={handleEdit}
-                  className="w-full text-left px-3.5 py-2.5 rounded-xl text-sm font-bold text-stone-800 hover:bg-stone-100 transition cursor-pointer flex items-center gap-2"
-                >
-                  <Edit3 className="w-4 h-4 text-stone-500" />
-                  <span>Edit Transaction</span>
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={handleEdit}
+                className="w-full text-left px-3.5 py-2.5 rounded-xl text-sm font-bold text-stone-800 hover:bg-stone-100 transition cursor-pointer flex items-center gap-2"
+              >
+                <Edit3 className="w-4 h-4 text-stone-500" />
+                <span>{activeEvent.type === 'refund' ? 'Edit Refund' : 'Edit Transaction'}</span>
+              </button>
 
               {activeEvent.type === 'expense' && (
                 <button
@@ -2502,9 +2583,11 @@ export default function FinancePage() {
         onClose={() => {
           setShowRefundModal(false);
           setRefundParentExpense(null);
+          setEditingRefundEvent(null);
           setRefundError(null);
         }}
         parentExpense={refundParentExpense}
+        editingRefund={editingRefundEvent}
         maxRefundableAmount={refundCalculation.maxRefundable}
         existingRefundedAmount={refundCalculation.totalRefunded}
         onSaveRefund={handleSaveRefund}

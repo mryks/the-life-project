@@ -50,6 +50,7 @@
 11. **Langkah 12: Simplified Form Labels & Clean Card View** (Labels simplified to `AMOUNT`, `DESCRIPTION`, `ACCOUNT`, Transfer retains `SOURCE ACCOUNT`/`DESTINATION ACCOUNT`, removed `Click for options` hint from Card view).
 12. **Langkah 13: Background Scroll Lock on Modal Open** (Locked background body scrolling with scrollbar compensation and touch-none overscroll containment when Transaction Options or other interactive modals are active).
 13. **Langkah 14: Type Color Harmonization & Custom Tactile Category Dropdown** (Transfer set to blue in both form switcher `.btn-tactile-blue` and filter chips; Refund filter set to purple/violet `.bg-violet-600`; Category filter upgraded from native `<select>` to custom tactile Duolingo-style dropdown).
+14. **Langkah 15: Refund Editing & Net Expense Accounting Integrity** (Enabled editing existing refunds via RefundModal, validated max refundable limit against remaining parent balance, cascaded parent account changes to refunds, enforced refund non-income rule with purple credit styling, and displayed net expense breakdown directly on parent expense cards).
 
 ---
 

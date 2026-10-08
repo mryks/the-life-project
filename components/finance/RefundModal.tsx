@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { ExpenseEvent } from "@/lib/types";
+import type { ExpenseEvent, RefundEvent } from "@/lib/types";
 import { getAccountById } from "@/lib/accounts";
 import { todayDate } from "@/lib/finance";
 import { X, RotateCcw, AlertCircle, Check } from "lucide-react";
@@ -10,6 +10,7 @@ interface RefundModalProps {
   isOpen: boolean;
   onClose: () => void;
   parentExpense: ExpenseEvent | null;
+  editingRefund?: RefundEvent | null;
   maxRefundableAmount: number;
   existingRefundedAmount: number;
   onSaveRefund: (data: { date: string; amount: number; description: string }) => void;
@@ -21,6 +22,7 @@ export default function RefundModal({
   isOpen,
   onClose,
   parentExpense,
+  editingRefund,
   maxRefundableAmount,
   existingRefundedAmount,
   onSaveRefund,
@@ -31,9 +33,10 @@ export default function RefundModal({
 
   return (
     <RefundModalInner
-      key={parentExpense.id}
+      key={`${parentExpense.id}-${editingRefund?.id ?? 'new'}`}
       onClose={onClose}
       parentExpense={parentExpense}
+      editingRefund={editingRefund}
       maxRefundableAmount={maxRefundableAmount}
       existingRefundedAmount={existingRefundedAmount}
       onSaveRefund={onSaveRefund}
@@ -46,15 +49,16 @@ export default function RefundModal({
 function RefundModalInner({
   onClose,
   parentExpense,
+  editingRefund,
   maxRefundableAmount,
   existingRefundedAmount,
   onSaveRefund,
   error,
   formatRupiah,
 }: Omit<RefundModalProps, "isOpen"> & { parentExpense: ExpenseEvent }) {
-  const [date, setDate] = useState(todayDate());
-  const [amount, setAmount] = useState(() => maxRefundableAmount.toString());
-  const [desc, setDesc] = useState(() => `Refund: ${parentExpense.description}`);
+  const [date, setDate] = useState(() => editingRefund ? editingRefund.date : todayDate());
+  const [amount, setAmount] = useState(() => editingRefund ? editingRefund.amount.toString() : maxRefundableAmount.toString());
+  const [desc, setDesc] = useState(() => editingRefund ? editingRefund.description : `Refund: ${parentExpense.description}`);
   const [localError, setLocalError] = useState<string | null>(null);
 
   const parentAcc = getAccountById(parentExpense.accountId);
@@ -103,11 +107,15 @@ function RefundModalInner({
           <div className="flex items-center gap-2 mb-1">
             <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-violet-50 text-violet-700 border border-violet-200/60">
               <RotateCcw className="w-3 h-3" />
-              Refund Flow
+              {editingRefund ? "Edit Refund" : "Refund Flow"}
             </span>
           </div>
-          <h3 className="text-xl font-bold text-zinc-900 tracking-tight">Record Refund</h3>
-          <p className="text-xs text-zinc-500">Credit incoming funds back to the original expense</p>
+          <h3 className="text-xl font-bold text-zinc-900 tracking-tight">
+            {editingRefund ? "Update Refund" : "Record Refund"}
+          </h3>
+          <p className="text-xs text-zinc-500">
+            {editingRefund ? "Modify existing refund credited to the original expense" : "Credit incoming funds back to the original expense"}
+          </p>
         </div>
 
         {/* Parent Expense Summary Box */}
@@ -211,7 +219,7 @@ function RefundModalInner({
               className="flex-[2] bg-zinc-900 hover:bg-zinc-800 text-white py-2.5 rounded-xl text-sm font-semibold transition shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
             >
               <Check className="w-4 h-4" />
-              <span>Save Refund</span>
+              <span>{editingRefund ? "Save Changes" : "Save Refund"}</span>
             </button>
           </div>
         </form>

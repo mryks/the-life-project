@@ -5,6 +5,7 @@ import type {
   FinancialEvent,
   IncomeCategory,
   IncomeEvent,
+  RefundEvent,
   LedgerEntry,
   BackupParseResult,
   BackupSummary,
@@ -492,26 +493,54 @@ export const replaceFinancialEvent = (events: FinancialEvent[], replacement: Fin
       (candidate): candidate is IncomeEvent =>
         candidate.type === 'income' && candidate.category === 'Cashback' && candidate.relatedEventId === replacement.id
     );
-    if (linkedCashback) {
-      const updatedCashback: IncomeEvent = {
-        ...linkedCashback,
-        date: replacement.date,
-        accountId: replacement.accountId,
-        description: linkedCashback.description.startsWith('Cashback ')
-          ? `Cashback ${replacement.accountId.toUpperCase()}`
-          : linkedCashback.description,
-      };
+    const linkedRefunds = events.filter(
+      (candidate): candidate is RefundEvent =>
+        candidate.type === 'refund' && candidate.relatedEventId === replacement.id
+    );
 
+    const updatedCashback: IncomeEvent | undefined = linkedCashback
+      ? {
+          ...linkedCashback,
+          date: replacement.date,
+          accountId: replacement.accountId,
+          description: linkedCashback.description.startsWith('Cashback ')
+            ? `Cashback ${replacement.accountId.toUpperCase()}`
+            : linkedCashback.description,
+        }
+      : undefined;
+
+    const updatedRefundsMap = new Map<string, RefundEvent>(
+      linkedRefunds.map((ref) => [
+        ref.id,
+        {
+          ...ref,
+          accountId: replacement.accountId,
+        },
+      ])
+    );
+
+    if (linkedCashback || linkedRefunds.length > 0) {
       if (previous.date === replacement.date) {
         const next = events.map((event) => {
           if (event.id === replacement.id) return replacement;
-          if (event.id === linkedCashback.id) return updatedCashback;
+          if (updatedCashback && event.id === updatedCashback.id) return updatedCashback;
+          if (updatedRefundsMap.has(event.id)) return updatedRefundsMap.get(event.id)!;
           return event;
         });
         return validateFinancialEvents(next) ? next : null;
       } else {
-        const filtered = events.filter((e) => e.id !== replacement.id && e.id !== linkedCashback.id);
-        const next = [...filtered, replacement, updatedCashback];
+        const affectedIds = new Set<string>([
+          replacement.id,
+          ...(updatedCashback ? [updatedCashback.id] : []),
+          ...linkedRefunds.map((r) => r.id),
+        ]);
+        const filtered = events.filter((e) => !affectedIds.has(e.id));
+        const next = [
+          ...filtered,
+          replacement,
+          ...(updatedCashback ? [updatedCashback] : []),
+          ...linkedRefunds.map((r) => updatedRefundsMap.get(r.id)!),
+        ];
         return validateFinancialEvents(next) ? next : null;
       }
     }

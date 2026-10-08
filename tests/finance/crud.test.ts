@@ -118,6 +118,57 @@ describe('CRUD, Event Replacement & Cascade Deletion (Rules C & D)', () => {
       expect(next).toBeNull();
     });
 
+    it('allows replacing/updating an existing Refund event (amount, date, description)', () => {
+      const expense = createExpense({ id: 'exp-1', accountId: 'g', amount: 100_000 });
+      const refund = createRefund({ id: 'ref-1', relatedEventId: 'exp-1', accountId: 'g', amount: 60_000, description: 'Initial refund' });
+      const events: FinancialEvent[] = [expense, refund];
+
+      // Update refund amount from 60,000 to 40,000
+      const updatedRefund = createRefund({
+        id: 'ref-1',
+        relatedEventId: 'exp-1',
+        accountId: 'g',
+        amount: 40_000,
+        description: 'Updated refund: partial item returned',
+      });
+      const next = replaceFinancialEvent(events, updatedRefund);
+      expect(next).not.toBeNull();
+      expect(next).toHaveLength(2);
+
+      const ref = next!.find((e) => e.id === 'ref-1');
+      expect(ref?.amount).toBe(40_000);
+      expect(ref?.description).toBe('Updated refund: partial item returned');
+    });
+
+    it('rejects updating Refund amount if it exceeds the remaining refundable parent expense', () => {
+      const expense = createExpense({ id: 'exp-1', accountId: 'g', amount: 100_000 });
+      const ref1 = createRefund({ id: 'ref-1', relatedEventId: 'exp-1', accountId: 'g', amount: 40_000 });
+      const ref2 = createRefund({ id: 'ref-2', relatedEventId: 'exp-1', accountId: 'g', amount: 50_000 });
+      const events: FinancialEvent[] = [expense, ref1, ref2]; // total refunded: 90,000
+
+      // Attempt to increase ref1 to 60,000 (total would be 60,000 + 50,000 = 110,000 > 100,000)
+      const invalidRefund = createRefund({ id: 'ref-1', relatedEventId: 'exp-1', accountId: 'g', amount: 60_000 });
+      const next = replaceFinancialEvent(events, invalidRefund);
+      expect(next).toBeNull();
+    });
+
+    it('cascades account change from parent Expense to associated Refunds', () => {
+      const expense = createExpense({ id: 'exp-1', accountId: 'g', amount: 200_000 });
+      const refund = createRefund({ id: 'ref-1', relatedEventId: 'exp-1', accountId: 'g', amount: 50_000 });
+      const events: FinancialEvent[] = [expense, refund];
+
+      // Change expense account from 'g' to 'b'
+      const updatedExpense = createExpense({ id: 'exp-1', accountId: 'b', amount: 200_000 });
+      const next = replaceFinancialEvent(events, updatedExpense);
+      expect(next).not.toBeNull();
+      expect(next).toHaveLength(2);
+
+      const exp = next!.find((e) => e.id === 'exp-1');
+      const ref = next!.find((e) => e.id === 'ref-1');
+      expect(exp?.accountId).toBe('b');
+      expect(ref?.accountId).toBe('b');
+    });
+
     it('ensures Transfer can only remain Transfer and cannot become Income or Expense', () => {
       const transfer = createTransfer({ id: 'trf-1', amount: 100_000, sourceAccountId: 'g', destinationAccountId: 's' });
       const events: FinancialEvent[] = [transfer];
