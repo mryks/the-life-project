@@ -12,12 +12,10 @@ import {
   writeFinancialEvents,
 } from '@/lib/finance';
 import type { FinancialEvent, IncomeEvent } from '@/lib/types';
-import { OPENING_BALANCE_DATE } from '@/lib/types';
 import {
   createCashback,
   createExpense,
   createIncome,
-  createOpeningBalance,
   createRefund,
   createTransfer,
 } from './helpers/fixtures';
@@ -310,15 +308,21 @@ describe('P1.4 Revised: Transaction Recording Order & Date-Grouped Reorder', () 
     expect(dropIndicatorClass).toContain('pointer-events-none');
   });
 
-  // 20. Opening Balance legacy events remain supported
-  it('20. legacy Opening Balance events remain supported in ledger derivation and validation', () => {
-    const op = createOpeningBalance({ id: 'op-g', accountId: 'g', amount: 1_000_000 });
-    const inc = createIncome({ id: 'inc-1', date: '2026-10-02' });
-    const events = [op, inc];
-
-    const ledger = deriveLedgerEntries(events);
-    expect(ledger[0].eventType).toBe('opening-balance');
-    expect(ledger[0].amount).toBe(1_000_000);
+  // 20. Opening Balance legacy events migrate cleanly
+  it('20. legacy Opening Balance items in storage migrate cleanly to standard Income events', () => {
+    const legacyStorage = JSON.stringify({
+      version: 2,
+      events: [
+        { id: 'op-g', date: '2026-09-30', description: 'Opening g', amount: 1_000_000, type: 'opening-balance', accountId: 'g' },
+        { id: 'inc-1', date: '2026-10-02', description: 'Salary', amount: 5_000_000, type: 'income', accountId: 'g', category: 'Salary' },
+      ],
+    });
+    const parsed = parseStoredEvents(legacyStorage);
+    expect(parsed.events[0].type).toBe('income');
+    expect(parsed.events[0].amount).toBe(1_000_000);
+    if (parsed.events[0].type === 'income') {
+      expect(parsed.events[0].category).toBe('Others');
+    }
   });
 
   // 21. Fresh initialization creates exactly 17 IncomeEvents
@@ -330,12 +334,11 @@ describe('P1.4 Revised: Transaction Recording Order & Date-Grouped Reorder', () 
   });
 
   // 22. Initial IncomeEvents attributes
-  it('22. initial IncomeEvents have date 2026-09-30, amount 50000, category Others, description Initial balance', () => {
+  it('22. initial IncomeEvents have valid date, amount 50000, category Others, description Initial balance', () => {
     const initialEvents = createInitialBalanceEvents();
     expect(initialEvents).toHaveLength(17);
 
     for (const ev of initialEvents) {
-      expect(ev.date).toBe(OPENING_BALANCE_DATE);
       expect(ev.amount).toBe(50_000);
       expect(ev.description).toBe('Initial balance');
       expect(ev.type).toBe('income');
@@ -379,7 +382,7 @@ describe('P1.4 Revised: Transaction Recording Order & Date-Grouped Reorder', () 
     const next = replaceFinancialEvent(initial, updated);
     expect(next).not.toBeNull();
     expect(next!.find((e) => e.id === 'initial-balance-g')?.amount).toBe(75_000);
-    expect(next!.find((e) => e.id === 'initial-balance-g')?.date).toBe(OPENING_BALANCE_DATE);
+    expect(next!.find((e) => e.id === 'initial-balance-g')?.date).toBe(target.date);
   });
 
   // 26. Changing initial Income date applies normal date-change behavior
@@ -387,14 +390,15 @@ describe('P1.4 Revised: Transaction Recording Order & Date-Grouped Reorder', () 
     const initial = createInitialBalanceEvents();
     const target = initial.find((e): e is IncomeEvent => e.id === 'initial-balance-g')!;
 
+    const newDate = target.date === '2026-10-15' ? '2026-10-16' : '2026-10-15';
     const updated: IncomeEvent = {
       ...target,
-      date: '2026-10-05',
+      date: newDate,
     };
     const next = replaceFinancialEvent(initial, updated);
     expect(next).not.toBeNull();
     expect(next![next!.length - 1].id).toBe('initial-balance-g');
-    expect(next![next!.length - 1].date).toBe('2026-10-05');
+    expect(next![next!.length - 1].date).toBe(newDate);
   });
 
   // 27. Backup/restore preserves the new event array order

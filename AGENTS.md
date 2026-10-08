@@ -14,10 +14,11 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 The Life Project is a 100% personal life-management application.
 
-The current active domain is personal finance.
-
-The application is currently a client-side prototype using localStorage.
-Do not introduce authentication, multi-user architecture, or a backend unless explicitly requested.
+The current active domain is personal finance (daily expense tracker and financial dashboard).
+- User Target: Single-user personal finance tracker used daily on both Desktop (PC) and Mobile (smartphone).
+- Currency Standard: IDR (Indonesian Rupiah).
+- Access Control & Security: Single-user encrypted personal Master PIN protection for go-live online access.
+- Target Database: Supabase (PostgreSQL free tier) to enable seamless synchronization between PC and Mobile, migrating cleanly from the current localStorage prototype.
 
 ## General Development Principles
 
@@ -54,15 +55,16 @@ Financial correctness is more important than UI convenience or visual polish.
 - Related financial records such as refunds/cashback must have explicitly defined relationships.
 - Do not introduce new transaction types without documenting their accounting behavior.
 
-## Data Persistence
+## Data Persistence & Target Database
 
-- localStorage is the current persistence mechanism.
-- Do not replace localStorage with a database unless explicitly requested.
-- Data loaded from localStorage must not be blindly trusted as valid application data.
+- The current prototype runs on localStorage.
+- Target production database is Supabase (PostgreSQL free tier) to enable daily multi-device sync between PC and Mobile.
+- Migration to Supabase must be executed carefully: retain the FinancialEvent single-source-of-truth model.
+- Data loaded from localStorage or Supabase must not be blindly trusted as valid application data.
 - Schema changes should consider backward compatibility and migration.
 - Empty transaction collections must be persisted correctly.
 - Corrupt or invalid persisted data must fail safely rather than crashing the application.
-- Real financial data must never be added to the public repository.
+- Real financial data and database secrets (.env) must never be added to the public repository.
 
 ## TypeScript
 
@@ -72,10 +74,14 @@ Financial correctness is more important than UI convenience or visual polish.
 - Do not weaken types merely to make an error disappear.
 - `JSON.parse` results must be validated before being treated as domain data.
 
-## UI and UX
+## UI and UX Standards
 
-- Preserve the existing visual language unless a UI redesign is explicitly requested.
-- Do not change unrelated UI while implementing a feature.
+- Language: 100% English for all UI labels, navigation, headers, forms, placeholders, and error messages.
+- Aesthetic Vibe: "Simple, casual, engaging, not boring, friendly but mature" — clean, polished, thoughtful micro-interactions.
+- Strictly NO default keyboard/phone Unicode emojis (e.g. no 💰, 💳, 📈, 🍔). Use `lucide-react` icons, custom SVG design elements, or curated 3D vector icons (3dicons.co).
+- Account Labels: Do NOT display intrusive "Liquid" vs "Non-Liquid" badges on transaction cards or transfer forms. Keep account selectors clean.
+- Typography: Use clean modern casual sans (Plus Jakarta Sans, Geist Sans, Inter) + tabular numbers (JetBrains Mono/Geist Mono) for currency amounts. Strictly avoid childlike handwriting fonts (Caveat, Patrick Hand).
+- Theme: Clean, warm light mode (soft light canvas, subtle 1px border, soft elevations, thoughtful micro-interactions).
 - Financial actions such as delete, edit, transfer, and refund should have clear and understandable behavior.
 - Accessibility should be considered when introducing interactive controls.
 
@@ -123,3 +129,15 @@ Keep changes minimal and reviewable.
 - Any financial change, including edit, delete, refund, cashback, or related-event changes, must be reflected through FinancialEvent data.
 - Derived data must be recalculated deterministically from FinancialEvent.
 - FinancialEvent data must remain sufficient to reconstruct all financial views and calculations.
+
+## Memory Bank & Session Continuity
+
+- The agent must maintain and reference `.agents/memory/` across all development sessions.
+- Core memory files:
+  * `projectBrief.md`: Core requirements, goals, and constraints.
+  * `activeContext.md`: Current sprint focus and immediate next steps.
+  * `systemPatterns.md`: System architecture, database schemas, and component structure.
+  * `techContext.md`: Tech stack, dependencies, and environment setup.
+  * `progress.md`: Completed features vs backlog.
+- At the start of tasks, consult the Memory Bank before performing redundant codebase rescans.
+- When finishing major milestones, update the relevant Memory Bank files.

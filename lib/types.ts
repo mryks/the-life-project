@@ -2,9 +2,9 @@
 
 export type AccountId = 's' | 'b' | 'g' | 'k' | 'e' | 'c' | 'q' | 'jy' | 'h' | 'j' | 'p' | 'sb' | 'sea' | 'poe' | 'cla' | 'kb' | 'i';
 
-export type ExpenseCategory = 'Home & Family' | 'Food & Drinks' | 'Transportation' | 'Shopping' | 'Utilities' | 'Medical' | 'Investments' | '𝓡' | 'Other';
+export type ExpenseCategory = 'Home & Family' | 'Food & Drinks' | 'Transportation' | 'Personal Care' | 'Leisure' | 'Medical' | '𝓡' | 'Other';
 
-export const incomeCategories = ['Salary', 'Investment', 'Allowance', 'Cashback', 'Others'] as const;
+export const incomeCategories = ['Salary', 'Allowance', 'Cashback', 'Others'] as const;
 export type IncomeCategory = typeof incomeCategories[number];
 
 interface FinancialEventBase {
@@ -31,6 +31,7 @@ export interface TransferEvent extends FinancialEventBase {
   type: 'transfer';
   sourceAccountId: AccountId;
   destinationAccountId: AccountId;
+  adminFee?: number;
 }
 
 export interface RefundEvent extends FinancialEventBase {
@@ -39,16 +40,7 @@ export interface RefundEvent extends FinancialEventBase {
   relatedEventId: string;
 }
 
-export const OPENING_BALANCE_DATE = '2026-09-30';
-export const GO_LIVE_DATE = '2026-10-01';
-
-export interface OpeningBalanceEvent extends FinancialEventBase {
-  type: 'opening-balance';
-  accountId: AccountId;
-  date: typeof OPENING_BALANCE_DATE;
-}
-
-export type FinancialEvent = IncomeEvent | ExpenseEvent | TransferEvent | RefundEvent | OpeningBalanceEvent;
+export type FinancialEvent = IncomeEvent | ExpenseEvent | TransferEvent | RefundEvent;
 
 export interface LedgerEntry {
   eventId: string;
@@ -62,10 +54,14 @@ export interface LedgerEntry {
   counterpartyAccountId?: AccountId;
 }
 
+export type AccountGroup = 'liquid' | 'investment';
+
 export interface Account {
   id: AccountId;
   name: string;
+  fullName: string;
   colorClass: string;
+  group: AccountGroup;
 }
 
 export interface FinancialBackupEnvelope {
@@ -76,11 +72,11 @@ export interface FinancialBackupEnvelope {
 
 export interface BackupSummary {
   totalEvents: number;
-  openingBalanceAccounts: number;
   incomeCount: number;
   expenseCount: number;
   transferCount: number;
   refundCount: number;
+  openingBalanceAccounts?: number;
 }
 
 export type BackupParseResult =

@@ -1,35 +1,198 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --background: #FBF9F4;
+  --foreground: #1C1917;
+  --card: #FFFFFF;
+  --card-foreground: #1C1917;
+  --border: #E7E4DC;
+  --muted: #78716C;
+  --primary: #10B981;
+  --primary-foreground: #FFFFFF;
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Utility untuk menyembunyikan scrollbar tapi tetap bisa di-scroll */
+/* Tabular Numbers for Precise Financial Figures using Sora */
+.font-mono-numbers,
+.font-sora-numbers {
+  font-family: var(--font-sora), system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-feature-settings: "tnum" 1, "cv01" 1;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* Duolingo-style Tactile 3D Buttons */
+.btn-tactile-primary {
+  background-color: #10B981;
+  color: #FFFFFF;
+  border-bottom: 4px solid #047857;
+  border-radius: 1rem;
+  font-weight: 700;
+  transition: all 0.08s ease-in-out;
+}
+.btn-tactile-primary:hover {
+  background-color: #34D399;
+}
+.btn-tactile-primary:active {
+  border-bottom-width: 0px;
+  transform: translateY(4px);
+}
+
+.btn-tactile-dark {
+  background-color: #1C1917;
+  color: #FFFFFF;
+  border-bottom: 4px solid #0C0A09;
+  border-radius: 1rem;
+  font-weight: 700;
+  transition: all 0.08s ease-in-out;
+}
+.btn-tactile-dark:hover {
+  background-color: #292524;
+}
+.btn-tactile-dark:active {
+  border-bottom-width: 0px;
+  transform: translateY(4px);
+}
+
+.btn-tactile-neutral {
+  background-color: #FFFFFF;
+  color: #292524;
+  border: 1px solid #E7E4DC;
+  border-bottom: 3px solid #D6D3CD;
+  border-radius: 1rem;
+  font-weight: 700;
+  transition: all 0.08s ease-in-out;
+}
+.btn-tactile-neutral:hover {
+  background-color: #F5F3EF;
+}
+.btn-tactile-neutral:active {
+  border-bottom-width: 1px;
+  transform: translateY(2px);
+}
+
+.btn-tactile-rose {
+  background-color: #F43F5E;
+  color: #FFFFFF;
+  border-bottom: 4px solid #BE123C;
+  border-radius: 1rem;
+  font-weight: 700;
+  transition: all 0.08s ease-in-out;
+}
+.btn-tactile-rose:hover {
+  background-color: #FB7185;
+}
+.btn-tactile-rose:active {
+  border-bottom-width: 0px;
+  transform: translateY(4px);
+}
+
+/* Tactile Surface Cards */
+.card-tactile {
+  background-color: #FFFFFF;
+  border: 1px solid #E7E4DC;
+  border-bottom: 3px solid #DCD8CF;
+  border-radius: 1.5rem;
+  transition: all 0.15s ease-out;
+}
+.card-tactile:hover {
+  border-color: #D6D2C4;
+  box-shadow: 0 8px 24px -6px rgba(120, 53, 15, 0.06);
+}
+
+/* Logo Idle Organic Random Drift (Multi-axis organic float, wobble & pulse) */
+@keyframes emblem-organic-drift {
+  0% {
+    transform: translate(0px, 0px) rotate(0deg) scale(1);
+  }
+  18% {
+    transform: translate(1.6px, -2.4px) rotate(1.8deg) scale(1.02);
+  }
+  42% {
+    transform: translate(-1.8px, -0.8px) rotate(-1.5deg) scale(0.99);
+  }
+  68% {
+    transform: translate(-1.2px, 2px) rotate(1.2deg) scale(1.015);
+  }
+  86% {
+    transform: translate(1.5px, 1px) rotate(-0.8deg) scale(1);
+  }
+  100% {
+    transform: translate(0px, 0px) rotate(0deg) scale(1);
+  }
+}
+.animate-emblem-organic {
+  animation: emblem-organic-drift 7s ease-in-out infinite;
+}
+
+/* Dynamic Morphing Color Gradient */
+@keyframes dynamic-gradient-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+.dynamic-gradient-badge {
+  background: linear-gradient(135deg, #F59E0B, #F43F5E, #8B5CF6, #06B6D4, #10B981, #F59E0B);
+  background-size: 300% 300%;
+  animation: dynamic-gradient-flow 8s ease infinite;
+}
+
+/* Duolingo Spring Squash & Stretch Bounce */
+@keyframes duolingo-bounce {
+  0% {
+    transform: scale(1, 1) translateY(0);
+  }
+  15% {
+    transform: scale(1.18, 0.82) translateY(2.5px);
+  }
+  40% {
+    transform: scale(0.88, 1.22) translateY(-10px) rotate(-3deg);
+  }
+  65% {
+    transform: scale(1.08, 0.94) translateY(1.5px) rotate(1.5deg);
+  }
+  82% {
+    transform: scale(0.98, 1.02) translateY(-1px);
+  }
+  100% {
+    transform: scale(1, 1) translateY(0) rotate(0deg);
+  }
+}
+.animate-duolingo-bounce {
+  animation: duolingo-bounce 0.65s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* Scrollbar Hide */
 .scrollbar-hide::-webkit-scrollbar {
-    display: none;
+  display: none;
 }
 .scrollbar-hide {
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
+
+/* Lockscreen Shake Animation on Error */
+@keyframes pin-shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-8px); }
+  40%, 80% { transform: translateX(8px); }
+}
+.animate-shake {
+  animation: pin-shake 0.4s ease-in-out;
+}
+

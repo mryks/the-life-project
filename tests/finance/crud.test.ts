@@ -1,11 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { deleteFinancialEvent, replaceFinancialEvent } from '@/lib/finance';
-import type { FinancialEvent } from '@/lib/types';
+import type { FinancialEvent, ExpenseEvent, IncomeEvent } from '@/lib/types';
 import {
   createCashback,
   createExpense,
   createIncome,
-  createOpeningBalance,
   createRefund,
   createTransfer,
 } from './helpers/fixtures';
@@ -52,7 +51,7 @@ describe('CRUD, Event Replacement & Cascade Deletion (Rules C & D)', () => {
     });
 
     it('allows Expense -> Income transition when no related Cashback or Refund exists', () => {
-      const original = createExpense({ id: 'tx-1', amount: 100_000, accountId: 'g', category: 'Shopping' });
+      const original = createExpense({ id: 'tx-1', amount: 100_000, accountId: 'g', category: 'Leisure' });
       const replacement = createIncome({ id: 'tx-1', amount: 100_000, accountId: 'g', category: 'Salary' });
 
       const next = replaceFinancialEvent([original], replacement);
@@ -74,6 +73,41 @@ describe('CRUD, Event Replacement & Cascade Deletion (Rules C & D)', () => {
       expect(next).toBeNull();
     });
 
+    it('allows changing Expense account when Cashback is linked and automatically cascades the new account to Cashback', () => {
+      const expense = createExpense({ id: 'exp-1', accountId: 'g', amount: 300_000 });
+      const cashback = createCashback({ id: 'cb-1', relatedEventId: 'exp-1', accountId: 'g', amount: 30_000 });
+      const events: FinancialEvent[] = [expense, cashback];
+
+      // Change expense account from 'g' (GoPay) to 'b' (BNI)
+      const updatedExpense = createExpense({ id: 'exp-1', accountId: 'b', amount: 300_000 });
+      const next = replaceFinancialEvent(events, updatedExpense);
+      expect(next).not.toBeNull();
+      expect(next).toHaveLength(2);
+
+      const exp = next!.find((e): e is ExpenseEvent => e.id === 'exp-1');
+      const cb = next!.find((e): e is IncomeEvent => e.id === 'cb-1');
+      expect(exp?.accountId).toBe('b');
+      expect(cb?.accountId).toBe('b');
+      expect(cb?.description).toBe('Cashback B');
+    });
+
+    it('allows changing Expense account and date simultaneously when Cashback is linked', () => {
+      const expense = createExpense({ id: 'exp-1', date: '2026-10-01', accountId: 'g', amount: 200_000 });
+      const cashback = createCashback({ id: 'cb-1', date: '2026-10-01', relatedEventId: 'exp-1', accountId: 'g', amount: 20_000 });
+      const events: FinancialEvent[] = [expense, cashback];
+
+      const updatedExpense = createExpense({ id: 'exp-1', date: '2026-10-05', accountId: 's', amount: 200_000 });
+      const next = replaceFinancialEvent(events, updatedExpense);
+      expect(next).not.toBeNull();
+
+      const exp = next!.find((e): e is ExpenseEvent => e.id === 'exp-1');
+      const cb = next!.find((e): e is IncomeEvent => e.id === 'cb-1');
+      expect(exp?.date).toBe('2026-10-05');
+      expect(exp?.accountId).toBe('s');
+      expect(cb?.date).toBe('2026-10-05');
+      expect(cb?.accountId).toBe('s');
+    });
+
     it('rejects Expense -> Income transition when Expense has an associated Refund', () => {
       const expense = createExpense({ id: 'exp-1', accountId: 'g', amount: 300_000 });
       const refund = createRefund({ id: 'ref-1', relatedEventId: 'exp-1', accountId: 'g', amount: 50_000 });
@@ -92,20 +126,13 @@ describe('CRUD, Event Replacement & Cascade Deletion (Rules C & D)', () => {
       expect(replaceFinancialEvent(events, createIncome({ id: 'trf-1', accountId: 'g', category: 'Salary' }))).toBeNull();
 
       // Transfer -> Expense forbidden
-      expect(replaceFinancialEvent(events, createExpense({ id: 'trf-1', accountId: 'g', category: 'Shopping' }))).toBeNull();
+      expect(replaceFinancialEvent(events, createExpense({ id: 'trf-1', accountId: 'g', category: 'Leisure' }))).toBeNull();
 
       // Income -> Transfer forbidden
       const inc = createIncome({ id: 'inc-1', accountId: 'g' });
       expect(replaceFinancialEvent([inc], createTransfer({ id: 'inc-1', sourceAccountId: 'g', destinationAccountId: 's' }))).toBeNull();
     });
 
-    it('ensures Opening Balance can only remain Opening Balance', () => {
-      const op = createOpeningBalance({ id: 'op-1', accountId: 'g', amount: 1_000_000 });
-      const events: FinancialEvent[] = [op];
-
-      expect(replaceFinancialEvent(events, createIncome({ id: 'op-1', accountId: 'g', category: 'Salary' }))).toBeNull();
-      expect(replaceFinancialEvent(events, createExpense({ id: 'op-1', accountId: 'g', category: 'Food & Drinks' }))).toBeNull();
-    });
 
     it('rejects replacement when replacement data is invalid', () => {
       const original = createIncome({ id: 'inc-1', amount: 100_000 });

@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Life Project — 7 Konsep Visual Mockup Nyata (HP & PC)</title>
+  <!-- Tailwind CSS Play CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              emerald: '#10b981',
+              rose: '#f43f5e',
+              cyan: '#06b6d4',
+              appleGreen: '#34c759',
+              appleRed: '#ff3b30',
+            }
+          },
+          fontFamily: {
+            sans: ['Plus Jakarta Sans', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+            mono: ['JetBrains Mono', 'Consolas', 'monospace'],
+            serif: ['Newsreader', 'Georgia', 'serif'],
+            grotesk: ['Space Grotesk', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .font-tabular {
+      font-variant-numeric: tabular-nums;
+    }
+    /* Phone Screen Mockup Frame */
+    .phone-frame {
+      width: 360px;
+      height: 740px;
+      border-radius: 44px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 0 10px #27272a, 0 0 0 12px #3f3f46;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+    .phone-notch {
+      width: 95px;
+      height: 24px;
+      background: #000000;
+      border-radius: 18px;
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 8px;
+    }
+    .phone-camera {
+      width: 8px;
+      height: 8px;
+      background: #111827;
+      border-radius: 50%;
+    }
+    .home-bar {
+      width: 120px;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.35);
+      border-radius: 9999px;
+      margin: 6px auto 4px auto;
+    }
+    /* Desktop Window Mockup Frame */
+    .desktop-frame {
+      border-radius: 14px;
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1);
+      overflow: hidden;
+      width: 100%;
+      max-width: 1100px;
+    }
+    .window-header {
+      padding: 8px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .traffic-lights {
+      display: flex;
+      gap: 6px;
+    }
+    .traffic-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+    /* Glassmorphism helpers */
+    .glass-card {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-top: 1px solid rgba(255, 255, 255, 0.25);
+    }
+  </style>
+</head>
+<body class="bg-zinc-950 text-zinc-100 min-h-screen pb-28 antialiased selection:bg-emerald-500 selection:text-black">
+
+  <!-- TOP STICKY BAR & 7-CONCEPT TABS -->
+  <header class="sticky top-0 z-50 bg-zinc-900/95 backdrop-blur-md border-b border-zinc-800 px-6 py-3.5 shadow-xl">
+    <div class="max-w-[1440px] mx-auto flex flex-wrap items-center justify-between gap-4">
+      
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center font-bold text-zinc-950 text-base shadow-md shadow-emerald-500/20">
+          ◈
+        </div>
+        <div>
+          <h1 class="text-sm font-bold tracking-tight text-white flex items-center gap-2">
+            The Life Project <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono">Showcase 7 Konsep Nyata</span>
+          </h1>
+          <p class="text-[11px] text-zinc-400">High-Fidelity Screen Mockups Lengkap: HP (375px) & PC Desktop (1200px) • 100% IDR</p>
+        </div>
+      </div>
+
+      <!-- 7 TAB SWITCHERS -->
+      <div class="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full">
+        <button onclick="showTab('all')" id="tab-btn-all" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500 text-zinc-950 shadow">
+          Semua 7 Konsep
+        </button>
+        <button onclick="showTab('c1')" id="tab-btn-c1" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-zinc-400 hover:text-white bg-zinc-800/80">
+          1. Linear/Raycast
+        </button>
+        <button onclick="showTab('c2')" id="tab-btn-c2" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-zinc-400 hover:text-white bg-zinc-800/80">
+          2. Apple Minimalist
+        </button>
+        <button onclick="showTab('c3')" id="tab-btn-c3" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-zinc-400 hover:text-white bg-zinc-800/80">
+          3. Warm Editorial
+        </button>
+        <button onclick="showTab('c4')" id="tab-btn-c4" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-zinc-400 hover:text-white bg-zinc-800/80">
+          4. Playful Fintech
+        </button>
+        <button onclick="showTab('c5')" id="tab-btn-c5" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-zinc-400 hover:text-white bg-zinc-800/80">
+          5. Swiss Brutalism
+        </button>
+        <button onclick="showTab('c6')" id="tab-btn-c6" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-zinc-400 hover:text-white bg-zinc-800/80">
+          6. Glassmorphism
+        </button>
+        <button onclick="showTab('c7')" id="tab-btn-c7" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-zinc-400 hover:text-white bg-zinc-800/80">
+          7. Compact Mobile
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="max-w-[1440px] mx-auto px-6 py-8 space-y-24">
+
+    <!-- ======================================================== -->
+    <!-- KONSEP 1: LINEAR / RAYCAST PRECISION                     -->
+    <!-- ======================================================== -->
+    <section id="concept-1" class="concept-section border-t border-zinc-800/80 pt-8 first:border-0 first:pt-0">
+      <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2 mb-1">
+            <span class="px-2.5 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-mono font-bold">KONSEP 01</span>
+            <span class="text-xs text-zinc-400 font-mono">Inspirasi: Linear.app, Raycast, Vercel</span>
+          </div>
+          <h2 class="text-2xl font-extrabold text-white tracking-tight">Linear / Raycast Precision</h2>
+          <p class="text-sm text-zinc-400 max-w-2xl">Dark mode pekat, 1px crisp borders, kerapatan data maksimal, keyboard shortcut-first, dan zero animasi lambat.</p>
+        </div>
+        <div class="flex items-center gap-2 text-xs font-mono">
+          <span class="px-2 py-1 rounded bg-[#09090b] border border-[#27272a] text-zinc-300">Bg: #09090B</span>
+          <span class="px-2 py-1 rounded bg-[#18181b] border border-[#27272a] text-zinc-300">Card: #18181B</span>
+          <span class="px-2 py-1 rounded bg-[#10b981]/20 text-[#10b981] font-bold">+Rp 10B981</span>
+          <span class="px-2 py-1 rounded bg-[#f43f5e]/20 text-[#f43f5e] font-bold">-Rp F43F5E</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        <!-- HP MOCKUP (4 cols) -->
+        <div class="lg:col-span-4 flex flex-col items-center">
+          <span class="text-xs font-mono text-zinc-400 mb-2.5">📱 Layar HP (375px) — Linear Mobile</span>
+          <div class="phone-frame bg-[#09090b] border border-zinc-800">
+            <div class="phone-notch"><div class="phone-camera"></div></div>
+            <div class="pt-3 px-6 pb-2 flex justify-between text-[11px] font-semibold text-zinc-400 font-mono">
+              <span>09:41</span><span>5G • 100%</span>
+            </div>
+            <div class="flex-1 overflow-y-auto px-4 pt-1 pb-3 space-y-3">
+              <!-- Total Saldo -->
+              <div class="bg-[#18181b] border border-[#27272a] rounded-xl p-3.5">
+                <div class="flex justify-between text-[9px] font-mono uppercase text-zinc-400">
+                  <span>Total Saldo Likuid</span><span class="text-emerald-400">10 Akun</span>
+                </div>
+                <div class="text-2xl font-bold font-mono text-white mt-0.5 font-tabular">Rp 48.750.000</div>
+                <div class="flex justify-between text-[9px] text-zinc-400 pt-2 mt-2 border-t border-zinc-800/80 font-mono">
+                  <span>Invest: Rp 135.4M</span><span>Net Worth: Rp 184.2M</span>
+                </div>
+              </div>
+              <!-- Cashflow -->
+              <div class="grid grid-cols-2 gap-2 text-xs font-mono">
+                <div class="bg-[#18181b] border border-[#27272a] rounded-lg p-2">
+                  <div class="text-[8px] text-zinc-400 uppercase">Pemasukan</div>
+                  <div class="text-emerald-400 font-bold font-tabular">+12.500.000</div>
+                </div>
+                <div class="bg-[#18181b] border border-[#27272a] rounded-lg p-2">
+                  <div class="text-[8px] text-zinc-400 uppercase">Pengeluaran</div>
+                  <div class="text-rose-400 font-bold font-tabular">-4.050.000</div>
+                </div>
+              </div>
+              <!-- Quick Account Chips -->
+              <div class="flex gap-1.5 overflow-x-auto text-[10px] font-mono">
+                <span class="px-2 py-1 rounded bg-[#18181b] border border-emerald-500 text-emerald-400 flex-shrink-0">C: 2.45M</span>
+                <span class="px-2 py-1 rounded bg-[#18181b] border border-zinc-800 text-zinc-300 flex-shrink-0">G: 1.15M</span>
+                <span class="px-2 py-1 rounded bg-[#18181b] border border-zinc-800 text-zinc-300 flex-shrink-0">B: 18.2M</span>
+                <span class="px-2 py-1 rounded bg-[#18181b] border border-zinc-800 text-zinc-300 flex-shrink-0">SEA: 14.5M</span>
+              </div>
+              <!-- Transactions -->
+              <div class="space-y-1.5 text-xs">
+                <div class="bg-[#18181b] border border-[#27272a] rounded-lg p-2 flex justify-between items-center">
+                  <div>
+                    <div class="font-semibold text-white text-[11px]">Makan Siang Soto</div>
+                    <div class="text-[9px] text-zinc-400 font-mono">GoPay [G] • 12:45</div>
+                  </div>
+                  <div class="font-mono text-rose-400 font-bold text-[11px] font-tabular">-Rp 45.000</div>
+                </div>
+                <div class="bg-[#18181b] border border-[#27272a] rounded-lg p-2 flex justify-between items-center">
+                  <div>
+                    <div class="font-semibold text-white text-[11px]">Trf BNI ke SeaBank</div>
+                    <div class="text-[8px] text-amber-400 font-mono">Fee: Rp 2.500</div>
+                  </div>
+                  <div class="font-mono text-zinc-200 font-bold text-[11px] font-tabular">Rp 2.500.000</div>
+                </div>
+                <div class="bg-[#18181b] border border-[#27272a] rounded-lg p-2 flex justify-between items-center">
+                  <div>
+                    <div class="font-semibold text-white text-[11px]">Gaji Freelance</div>
+                    <div class="text-[9px] text-zinc-400 font-mono">BNI [B] • 1 Okt</div>
+                  </div>
+                  <div class="font-mono text-emerald-400 font-bold text-[11px] font-tabular">+Rp 12.500.000</div>
+                </div>
+              </div>
+            </div>
+            <!-- Bottom Nav -->
+            <div class="bg-[#18181b] border-t border-[#27272a] px-6 py-2 flex justify-between items-center text-[10px] text-zinc-400 font-mono">
+              <span class="text-emerald-400 font-bold">Dash</span><span>Akun</span><span class="text-emerald-400 text-base font-bold">+</span><span>Ledger</span><span>Set</span>
+            </div>
+            <div class="home-bar"></div>
+          </div>
+        </div>
+
+        <!-- PC MOCKUP (8 cols) -->
+        <div class="lg:col-span-8">
+          <span class="text-xs font-mono text-zinc-400 mb-2.5 block">💻 Layar Desktop PC — Bento Grid & 1px Table</span>
+          <div class="desktop-frame bg-[#09090b] border border-[#27272a]">
+            <div class="window-header bg-[#18181b] border-b border-[#27272a] justify-between">
+              <div class="flex items-center gap-3">
+                <div class="traffic-lights"><div class="traffic-dot bg-[#ff5f56]"></div><div class="traffic-dot bg-[#ffbd2e]"></div><div class="traffic-dot bg-[#27c93f]"></div></div>
+                <span class="text-xs font-mono text-zinc-400 bg-[#09090b] px-3 py-0.5 rounded border border-[#27272a]">the-life-project.app/finance</span>
+              </div>
+              <span class="text-xs font-mono text-zinc-400">Cmd+K</span>
+            </div>
+            <div class="p-4 space-y-4">
+              <!-- Bento Header 4 Cols -->
+              <div class="grid grid-cols-4 gap-3 text-xs">
+                <div class="bg-[#18181b] border border-[#27272a] rounded-lg p-3">
+                  <span class="text-[9px] font-mono text-zinc-400 uppercase">Saldo Likuid</span>
+                  <div class="text-lg font-bold font-mono text-white mt-1 font-tabular">Rp 48.750.000</div>
+                  <span class="text-[8px] text-zinc-500 font-mono">Net Worth: 184.2M</span>
+                </div>
+                <div class="bg-[#18181b] border border-[#27272a] rounded-lg p-3">
+                  <span class="text-[9px] font-mono text-zinc-400 uppercase">Net Cashflow</span>
+                  <div class="text-lg font-bold font-mono text-emerald-400 mt-1 font-tabular">+Rp 8.450.000</div>
+                  <span class="text-[8px] text-zinc-500 font-mono">Surplus Bulan Ini</span>
+                </div>
+                <div class="bg-[#18181b] border border-[#27272a] rounded-lg p-3">
+                  <span class="text-[9px] font-mono text-zinc-400 uppercase">Burn Rate</span>
+                  <div class="text-lg font-bold font-mono text-rose-400 mt-1 font-tabular">Rp 130.645/hr</div>
+                  <span class="text-[8px] text-zinc-500 font-mono">Target: 200rb/hr</span>
+                </div>
+                <div class="bg-[#18181b] border border-[#27272a] rounded-lg p-3">
+                  <span class="text-[9px] font-mono text-zinc-400 uppercase">Savings Rate</span>
+                  <div class="text-lg font-bold font-mono text-white mt-1 font-tabular">67.6%</div>
+                  <span class="text-[8px] text-emerald-400 font-mono">✓ Target Terjaga</span>
+                </div>
+              </div>
+              <!-- Table Area -->
+              <div class="bg-[#18181b] border border-[#27272a] rounded-lg p-3">
+                <div class="flex justify-between items-center mb-2 text-xs font-mono">
+                  <span class="font-bold text-white uppercase text-[10px]">Ledger Transaksi</span>
+                  <span class="text-zinc-500 text-[10px]">Shortcuts: J/K Nav • E Add • Enter Edit</span>
+                </div>
+                <table class="w-full text-left text-xs font-mono">
+                  <thead>
+                    <tr class="border-b border-[#27272a] text-zinc-500 text-[10px]">
+                      <th class="py-1.5">Tanggal</th><th>Deskripsi</th><th>Kategori</th><th>Akun</th><th class="text-right">Nominal IDR</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-[#27272a]/60 text-[11px]">
+                    <tr class="bg-zinc-800/40">
+                      <td class="py-1.5 text-zinc-400">02 Okt</td><td class="text-white font-semibold">Makan Siang Soto Betawi</td><td><span class="px-1.5 py-0.5 rounded bg-zinc-800 text-[9px]">Food</span></td><td class="text-zinc-300">GoPay [G]</td><td class="text-right text-rose-400 font-bold font-tabular">-Rp 45.000</td>
+                    </tr>
+                    <tr>
+                      <td class="py-1.5 text-zinc-400">02 Okt</td><td class="text-white">Transfer BNI ke SeaBank <span class="text-[9px] text-amber-400">(Fee: 2.5rb)</span></td><td><span class="px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 text-[9px]">Transfer</span></td><td class="text-zinc-300">BNI → SEA</td><td class="text-right text-zinc-200 font-bold font-tabular">Rp 2.500.000</td>
+                    </tr>
+                    <tr>
+                      <td class="py-1.5 text-zinc-400">01 Okt</td><td class="text-white">Kopi Espresso <span class="text-[9px] text-emerald-400">(Cashback 5rb)</span></td><td><span class="px-1.5 py-0.5 rounded bg-zinc-800 text-[9px]">Cafe</span></td><td class="text-zinc-300">Cash [C]</td><td class="text-right text-rose-400 font-bold font-tabular">-Rp 35.000</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- KONSEP 2: APPLE & CRAFT MINIMALIST                       -->
+    <!-- ======================================================== -->
+    <section id="concept-2" class="concept-section border-t border-zinc-800/80 pt-8">
+      <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2 mb-1">
+            <span class="px-2.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-mono font-bold">KONSEP 02</span>
+            <span class="text-xs text-zinc-400 font-mono">Inspirasi: Things 3, Apple Wallet, Craft.do</span>
+          </div>
+          <h2 class="text-2xl font-extrabold text-white tracking-tight">Apple & Craft Minimalist</h2>
+          <p class="text-sm text-zinc-400 max-w-2xl">Visual lapang, sudut membulat squircle lembut (rounded-3xl), bayangan difus alami, tipografi SF Pro bernapas, dan ketenangan pikiran.</p>
+        </div>
+        <div class="flex items-center gap-2 text-xs font-mono">
+          <span class="px-2 py-1 rounded bg-[#fbfbfd] text-zinc-900 font-bold">Bg: #FBFBFD</span>
+          <span class="px-2 py-1 rounded bg-white text-zinc-900 font-bold">Card: #FFFFFF</span>
+          <span class="px-2 py-1 rounded bg-[#34c759] text-white font-bold">+Rp 34C759</span>
+          <span class="px-2 py-1 rounded bg-[#ff3b30] text-white font-bold">-Rp FF3B30</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        <!-- HP MOCKUP -->
+        <div class="lg:col-span-4 flex flex-col items-center">
+          <span class="text-xs font-mono text-zinc-400 mb-2.5">📱 Layar HP (375px) — Apple Light Canvas</span>
+          <div class="phone-frame bg-[#fbfbfd] text-zinc-900 border-zinc-300" style="box-shadow: 0 25px 60px -15px rgba(0,0,0,0.3), 0 0 0 10px #d4d4d8;">
+            <div class="phone-notch"><div class="phone-camera"></div></div>
+            <div class="pt-3 px-6 pb-2 flex justify-between text-[11px] font-semibold text-zinc-500 font-mono">
+              <span>09:41</span><span>100%</span>
+            </div>
+            <div class="flex-1 overflow-y-auto px-4 pt-1 pb-3 space-y-3">
+              <!-- Soft White Apple Card -->
+              <div class="bg-white rounded-3xl p-5 shadow-sm border border-zinc-100 text-center">
+                <span class="text-[9px] uppercase font-bold text-zinc-400 tracking-wider">Saldo Likuid Tersedia</span>
+                <div class="text-2xl font-extrabold text-zinc-900 mt-1 font-tabular">Rp 48.750.000</div>
+                <div class="mt-2 pt-2 border-t border-zinc-100 flex justify-center gap-3 text-[9px] text-zinc-500 font-medium">
+                  <span>Net Worth: <strong>Rp 184.2M</strong></span><span>•</span><span>Investasi: <strong>Rp 135.4M</strong></span>
+                </div>
+              </div>
+              <!-- Segmented Pill -->
+              <div class="bg-zinc-200/70 p-1 rounded-2xl flex text-xs font-semibold text-zinc-500">
+                <div class="flex-1 py-1.5 bg-white text-zinc-900 rounded-xl text-center shadow-sm">Semua</div>
+                <div class="flex-1 py-1.5 text-center">Pengeluaran</div>
+                <div class="flex-1 py-1.5 text-center">Pemasukan</div>
+              </div>
+              <!-- Soft Transaction Cards -->
+              <div class="bg-white rounded-2xl p-2 border border-zinc-100 shadow-sm space-y-1">
+                <div class="p-2 flex items-center justify-between border-b border-zinc-50">
+                  <div class="flex items-center gap-2.5">
+                    <div class="w-7 h-7 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center text-xs">🍔</div>
+                    <div>
+                      <div class="text-xs font-semibold text-zinc-900">Makan Siang Soto</div>
+                      <div class="text-[9px] text-zinc-400">GoPay • 12:45</div>
+                    </div>
+                  </div>
+                  <div class="text-xs font-bold text-rose-500 font-mono font-tabular">-Rp 45.000</div>
+                </div>
+                <div class="p-2 flex items-center justify-between">
+                  <div class="flex items-center gap-2.5">
+                    <div class="w-7 h-7 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center text-xs">⚡</div>
+                    <div>
+                      <div class="text-xs font-semibold text-zinc-900">Transfer SeaBank</div>
+                      <div class="text-[9px] text-zinc-400">BNI → SeaBank</div>
+                    </div>
+                  </div>
+                  <div class="text-xs font-bold text-zinc-700 font-mono font-tabular">Rp 2.500.000</div>
+                </div>
+              </div>
+            </div>
+            <!-- Bottom Tab -->
+            <div class="bg-white/90 border-t border-zinc-200 px-8 py-2.5 flex justify-between text-[10px] text-zinc-400 font-medium">
+              <span class="text-blue-600 font-bold">Dompet</span><span>Statistik</span><span>Akun</span><span>Setelan</span>
+            </div>
+            <div class="home-bar bg-zinc-300"></div>
+          </div>
+        </div>
+
+        <!-- PC MOCKUP -->
+        <div class="lg:col-span-8">
+          <span class="text-xs font-mono text-zinc-400 mb-2.5 block">💻 Layar Desktop PC — Apple Clean Desktop Layout</span>
+          <div class="desktop-frame bg-[#fbfbfd] text-zinc-900 border border-zinc-200 shadow-lg">
+            <div class="window-header bg-white border-b border-zinc-200 justify-between">
+              <div class="traffic-lights"><div class="traffic-dot bg-[#ff5f56]"></div><div class="traffic-dot bg-[#ffbd2e]"></div><div class="traffic-dot bg-[#27c93f]"></div></div>
+              <span class="text-xs font-medium text-zinc-500">The Life Project — Personal Finance</span>
+              <div class="w-5 h-5 rounded-full bg-blue-500 text-white text-[10px] font-bold flex items-center justify-center">Y</div>
+            </div>
+            <div class="p-5 space-y-4">
+              <!-- Rounded Horizontal Bento -->
+              <div class="grid grid-cols-3 gap-4">
+                <div class="bg-white rounded-2xl p-4 shadow-sm border border-zinc-100">
+                  <span class="text-[10px] uppercase font-bold text-zinc-400">Saldo Likuid</span>
+                  <div class="text-xl font-bold text-zinc-900 mt-1 font-tabular">Rp 48.750.000</div>
+                  <div class="text-[9px] text-zinc-500 mt-2">10 Akun Likuid Aktif</div>
+                </div>
+                <div class="bg-white rounded-2xl p-4 shadow-sm border border-zinc-100">
+                  <span class="text-[10px] uppercase font-bold text-zinc-400">Net Cashflow</span>
+                  <div class="text-xl font-bold text-emerald-600 mt-1 font-tabular">+Rp 8.450.000</div>
+                  <div class="text-[9px] text-emerald-600 mt-2">Surplus 67.6%</div>
+                </div>
+                <div class="bg-white rounded-2xl p-4 shadow-sm border border-zinc-100">
+                  <span class="text-[10px] uppercase font-bold text-zinc-400">Net Worth</span>
+                  <div class="text-xl font-bold text-zinc-900 mt-1 font-tabular">Rp 184.200.000</div>
+                  <div class="text-[9px] text-zinc-500 mt-2">Termasuk 7 Akun Investasi</div>
+                </div>
+              </div>
+              <!-- Clean White Table -->
+              <div class="bg-white rounded-2xl p-4 shadow-sm border border-zinc-100">
+                <div class="flex justify-between items-center mb-3">
+                  <h3 class="font-bold text-sm text-zinc-900">Riwayat Pembukuan</h3>
+                  <button class="px-3 py-1 bg-zinc-900 text-white rounded-xl text-xs font-semibold">+ Catat Baru</button>
+                </div>
+                <div class="space-y-2 text-xs">
+                  <div class="flex justify-between p-2 rounded-xl hover:bg-zinc-50 border border-transparent hover:border-zinc-100">
+                    <span class="font-semibold text-zinc-800">🍔 Makan Siang Soto Betawi (GoPay)</span>
+                    <span class="font-mono font-bold text-rose-500 font-tabular">-Rp 45.000</span>
+                  </div>
+                  <div class="flex justify-between p-2 rounded-xl hover:bg-zinc-50 border border-transparent hover:border-zinc-100">
+                    <span class="font-semibold text-zinc-800">⚡ Transfer BNI ke SeaBank</span>
+                    <span class="font-mono font-bold text-zinc-700 font-tabular">Rp 2.500.000</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- KONSEP 3: WARM EDITORIAL LEDGER                          -->
+    <!-- ======================================================== -->
+    <section id="concept-3" class="concept-section border-t border-zinc-800/80 pt-8">
+      <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2 mb-1">
+            <span class="px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-mono font-bold">KONSEP 03</span>
+            <span class="text-xs text-zinc-400 font-mono">Inspirasi: iA Writer, Notion, Apartamento Magazine</span>
+          </div>
+          <h2 class="text-2xl font-extrabold text-white tracking-tight">Warm Editorial Ledger</h2>
+          <p class="text-sm text-zinc-400 max-w-2xl">Kertas perkamen hangat, garis buku bergaris halus (ruled notebook), tipografi serif sastra (Newsreader), dan journaling keuangan yang mindful.</p>
+        </div>
+        <div class="flex items-center gap-2 text-xs font-mono">
+          <span class="px-2 py-1 rounded bg-[#f7f4ee] text-[#201e1c] font-bold">Paper: #F7F4EE</span>
+          <span class="px-2 py-1 rounded bg-[#efebe2] text-[#201e1c] font-bold">Card: #EFEBE2</span>
+          <span class="px-2 py-1 rounded bg-[#2e6f40] text-white font-bold">+Rp 2E6F40</span>
+          <span class="px-2 py-1 rounded bg-[#c25438] text-white font-bold">-Rp C25438</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        <!-- HP MOCKUP -->
+        <div class="lg:col-span-4 flex flex-col items-center">
+          <span class="text-xs font-mono text-zinc-400 mb-2.5">📱 Layar HP — Warm Paper Notebook</span>
+          <div class="phone-frame bg-[#f7f4ee] text-[#201e1c]" style="box-shadow: 0 25px 60px -15px rgba(0,0,0,0.3), 0 0 0 10px #d8cfc0;">
+            <div class="phone-notch"><div class="phone-camera"></div></div>
+            <div class="pt-3 px-6 pb-2 flex justify-between text-[11px] font-semibold text-[#8c8273] font-mono">
+              <span>09:41</span><span>100%</span>
+            </div>
+            <div class="flex-1 overflow-y-auto px-4 pt-1 pb-3 space-y-3 font-serif">
+              <!-- Journal Chapter Header -->
+              <div class="bg-[#efebe2] border border-[#e2dacb] rounded-xl p-4 text-center">
+                <span class="text-[9px] uppercase tracking-widest text-[#8c8273] font-sans font-semibold">Buku Kas Personal</span>
+                <div class="text-2xl font-serif italic font-bold text-[#201e1c] mt-1 font-tabular">Rp 48.750.000</div>
+                <div class="text-[9px] text-[#6b6357] mt-2 font-sans">10 Akun Likuid Aktif • Net Worth Rp 184.2M</div>
+              </div>
+              <!-- Ruled Entry List -->
+              <div class="space-y-2">
+                <div class="text-[10px] font-sans uppercase tracking-wider text-[#8c8273] font-bold border-b border-[#e2dacb] pb-1">Jumat, 2 Oktober 2026</div>
+                <div class="flex justify-between items-center py-1.5 border-b border-dashed border-[#e2dacb] text-xs">
+                  <div>
+                    <div class="font-bold text-[#201e1c]">Makan Siang Soto Betawi</div>
+                    <div class="text-[9px] text-[#6b6357] font-sans">GoPay • 12:45</div>
+                  </div>
+                  <div class="font-mono text-[#c25438] font-bold font-tabular">-Rp 45.000</div>
+                </div>
+                <div class="flex justify-between items-center py-1.5 border-b border-dashed border-[#e2dacb] text-xs">
+                  <div>
+                    <div class="font-bold text-[#201e1c]">Transfer ke SeaBank</div>
+                    <div class="text-[9px] text-[#6b6357] font-sans">BNI → SeaBank</div>
+                  </div>
+                  <div class="font-mono text-[#201e1c] font-bold font-tabular">Rp 2.500.000</div>
+                </div>
+              </div>
+            </div>
+            <!-- Bookmark Ribbon Button -->
+            <div class="bg-[#efebe2] border-t border-[#e2dacb] px-6 py-2.5 flex justify-between items-center text-[10px] text-[#8c8273] font-sans">
+              <span class="font-bold text-[#201e1c]">Bab Hari Ini</span><span>Arsip</span><span class="bg-[#201e1c] text-[#f7f4ee] px-2 py-0.5 rounded font-bold">+ Catat</span>
+            </div>
+            <div class="home-bar bg-[#d8cfc0]"></div>
+          </div>
+        </div>
+
+        <!-- PC MOCKUP -->
+        <div class="lg:col-span-8">
+          <span class="text-xs font-mono text-zinc-400 mb-2.5 block">💻 Layar Desktop PC — Asymmetric Editorial Layout</span>
+          <div class="desktop-frame bg-[#f7f4ee] text-[#201e1c] border border-[#e2dacb]">
+            <div class="window-header bg-[#efebe2] border-b border-[#e2dacb] justify-between">
+              <div class="traffic-lights"><div class="traffic-dot bg-[#ff5f56]"></div><div class="traffic-dot bg-[#ffbd2e]"></div><div class="traffic-dot bg-[#27c93f]"></div></div>
+              <span class="text-xs font-serif italic text-[#6b6357]">The Life Project — Journal of Accounts</span>
+              <span class="text-xs font-sans text-[#8c8273]">Oktober 2026</span>
+            </div>
+            <div class="p-6 grid grid-cols-12 gap-6 font-serif">
+              <div class="col-span-4 border-r border-[#e2dacb] pr-4 space-y-4">
+                <div>
+                  <span class="text-[10px] uppercase font-sans text-[#8c8273] font-bold">Total Likuid</span>
+                  <div class="text-2xl font-bold italic mt-1 font-tabular">Rp 48.750.000</div>
+                </div>
+                <div class="pt-3 border-t border-[#e2dacb]">
+                  <span class="text-[10px] uppercase font-sans text-[#8c8273] font-bold">Net Cashflow</span>
+                  <div class="text-lg font-bold text-[#2e6f40] font-tabular">+Rp 8.450.000</div>
+                  <span class="text-[9px] font-sans text-[#6b6357]">Surplus Terjaga (67.6%)</span>
+                </div>
+              </div>
+              <div class="col-span-8 space-y-3">
+                <h3 class="text-base font-bold italic">Catatan Pembukuan Bulan Ini</h3>
+                <div class="space-y-2 text-xs">
+                  <div class="p-2 border-b border-dashed border-[#e2dacb] flex justify-between">
+                    <span>Makan Siang Soto Betawi (GoPay)</span>
+                    <span class="font-mono text-[#c25438] font-bold font-tabular">-Rp 45.000</span>
+                  </div>
+                  <div class="p-2 border-b border-dashed border-[#e2dacb] flex justify-between">
+                    <span>Transfer Antar Rekening BNI ke SeaBank</span>
+                    <span class="font-mono font-bold font-tabular">Rp 2.500.000</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- KONSEP 4: PLAYFUL NEO-FINTECH                            -->
+    <!-- ======================================================== -->
+    <section id="concept-4" class="concept-section border-t border-zinc-800/80 pt-8">
+      <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2 mb-1">
+            <span class="px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono font-bold">KONSEP 04</span>
+            <span class="text-xs text-zinc-400 font-mono">Inspirasi: Monzo, Wise, Copilot Money</span>
+          </div>
+          <h2 class="text-2xl font-extrabold text-white tracking-tight">Playful Neo-Fintech</h2>
+          <p class="text-sm text-zinc-400 max-w-2xl">Badge kategori warna-warni ceria, kurva dinamis ramah, progress bar visual, dan antusiasme positif tanpa rasa stres saat mencatat.</p>
+        </div>
+        <div class="flex items-center gap-2 text-xs font-mono">
+          <span class="px-2 py-1 rounded bg-[#00d665] text-zinc-950 font-bold">Wise: #00D665</span>
+          <span class="px-2 py-1 rounded bg-[#ff4757] text-white font-bold">Coral: #FF4757</span>
+          <span class="px-2 py-1 rounded bg-[#6366f1] text-white font-bold">Neo: #6366F1</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        <!-- HP MOCKUP -->
+        <div class="lg:col-span-4 flex flex-col items-center">
+          <span class="text-xs font-mono text-zinc-400 mb-2.5">📱 Layar HP — Playful Neo Mobile</span>
+          <div class="phone-frame bg-[#0f172a] text-white border-zinc-700">
+            <div class="phone-notch"><div class="phone-camera"></div></div>
+            <div class="pt-3 px-6 pb-2 flex justify-between text-[11px] font-semibold text-slate-400 font-mono">
+              <span>09:41</span><span>100%</span>
+            </div>
+            <div class="flex-1 overflow-y-auto px-4 pt-1 pb-3 space-y-3">
+              <!-- Vibrant Header -->
+              <div class="bg-gradient-to-br from-indigo-900/80 to-slate-900 border border-indigo-500/30 rounded-2xl p-4 text-center">
+                <span class="text-[9px] uppercase font-bold text-indigo-300">Total Saldo Likuid</span>
+                <div class="text-2xl font-extrabold text-white mt-0.5 font-tabular">Rp 48.750.000</div>
+                <div class="mt-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold">
+                  <span>★</span> Surplus Cashflow: +8.45M
+                </div>
+              </div>
+              <!-- Category Chips -->
+              <div class="flex gap-1.5 overflow-x-auto text-[10px] font-bold">
+                <span class="px-2 py-1 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30">🍔 Food</span>
+                <span class="px-2 py-1 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">⚡ Bills</span>
+                <span class="px-2 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">🚗 Transport</span>
+              </div>
+              <!-- Playful Rows -->
+              <div class="space-y-1.5 text-xs">
+                <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-2.5 flex justify-between items-center">
+                  <div class="flex items-center gap-2">
+                    <div class="w-7 h-7 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center">🍔</div>
+                    <div>
+                      <div class="font-bold text-white text-[11px]">Soto Betawi</div>
+                      <div class="text-[9px] text-slate-400">GoPay • 12:45</div>
+                    </div>
+                  </div>
+                  <div class="font-bold text-rose-400 font-tabular">-Rp 45.000</div>
+                </div>
+              </div>
+            </div>
+            <!-- FAB Nav -->
+            <div class="bg-slate-900 border-t border-slate-800 px-6 py-2 flex justify-between items-center text-xs">
+              <span class="text-emerald-400 font-bold">Home</span>
+              <div class="w-8 h-8 rounded-full bg-emerald-500 text-black font-bold flex items-center justify-center -mt-3 shadow-lg">+</div>
+              <span class="text-slate-400">Set</span>
+            </div>
+            <div class="home-bar"></div>
+          </div>
+        </div>
+
+        <!-- PC MOCKUP -->
+        <div class="lg:col-span-8">
+          <span class="text-xs font-mono text-zinc-400 mb-2.5 block">💻 Layar Desktop PC — Gamified Cashflow Deck</span>
+          <div class="desktop-frame bg-[#0f172a] text-white border border-slate-700">
+            <div class="window-header bg-slate-900 border-b border-slate-800 justify-between">
+              <div class="traffic-lights"><div class="traffic-dot bg-[#ff5f56]"></div><div class="traffic-dot bg-[#ffbd2e]"></div><div class="traffic-dot bg-[#27c93f]"></div></div>
+              <span class="text-xs font-bold text-slate-300">The Life Project — Playful Finance</span>
+              <span class="text-xs text-emerald-400 font-bold">Wise Green Mode</span>
+            </div>
+            <div class="p-5 grid grid-cols-3 gap-4">
+              <div class="bg-slate-800/90 border border-slate-700 rounded-2xl p-4">
+                <span class="text-[10px] uppercase font-bold text-slate-400">Saldo Likuid</span>
+                <div class="text-xl font-bold text-white mt-1 font-tabular">Rp 48.750.000</div>
+                <div class="w-full bg-slate-700 h-1.5 rounded-full mt-3 overflow-hidden">
+                  <div class="bg-emerald-400 h-full" style="width: 70%;"></div>
+                </div>
+              </div>
+              <div class="bg-slate-800/90 border border-slate-700 rounded-2xl p-4">
+                <span class="text-[10px] uppercase font-bold text-slate-400">Cashflow Surplus</span>
+                <div class="text-xl font-bold text-emerald-400 mt-1 font-tabular">+Rp 8.450.000</div>
+                <span class="text-[10px] text-slate-400">Tabungan Aman</span>
+              </div>
+              <div class="bg-slate-800/90 border border-slate-700 rounded-2xl p-4">
+                <span class="text-[10px] uppercase font-bold text-slate-400">Net Worth</span>
+                <div class="text-xl font-bold text-indigo-400 mt-1 font-tabular">Rp 184.200.000</div>
+                <span class="text-[10px] text-slate-400">Aset Bertumbuh</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- KONSEP 5: SWISS BRUTALISM / HIGH-CONTRAST DATA           -->
+    <!-- ======================================================== -->
+    <section id="concept-5" class="concept-section border-t border-zinc-800/80 pt-8">
+      <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2 mb-1">
+            <span class="px-2.5 py-0.5 rounded-full bg-white text-black text-xs font-mono font-bold">KONSEP 05</span>
+            <span class="text-xs text-zinc-400 font-mono">Inspirasi: Basel Typography, Pitch, Bloomberg Modern</span>
+          </div>
+          <h2 class="text-2xl font-extrabold text-white tracking-tight">Swiss Brutalism / High-Contrast Data</h2>
+          <p class="text-sm text-zinc-400 max-w-2xl">Monokrom murni hitam-putih, garis batas 2px solid tebal, tanpa sudut rounded (radius: 0), angka tabular presisi, dan transparansi data radikal.</p>
+        </div>
+        <div class="flex items-center gap-2 text-xs font-mono">
+          <span class="px-2 py-1 rounded bg-white text-black font-bold border-2 border-black">#FFFFFF</span>
+          <span class="px-2 py-1 rounded bg-black text-white font-bold border-2 border-white">#000000</span>
+          <span class="px-2 py-1 rounded bg-[#00f076] text-black font-bold">Signal: #00F076</span>
+          <span class="px-2 py-1 rounded bg-[#ff3300] text-white font-bold">Klein: #FF3300</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        <!-- HP MOCKUP -->
+        <div class="lg:col-span-4 flex flex-col items-center">
+          <span class="text-xs font-mono text-zinc-400 mb-2.5">📱 Layar HP — Swiss Brutalist</span>
+          <div class="phone-frame bg-white text-black border-4 border-black" style="box-shadow: 6px 6px 0px #000; border-radius: 0;">
+            <div class="phone-notch" style="border-radius: 0;"><div class="phone-camera"></div></div>
+            <div class="pt-3 px-6 pb-2 flex justify-between text-[11px] font-bold font-mono">
+              <span>09:41</span><span>100%</span>
+            </div>
+            <div class="flex-1 overflow-y-auto px-4 pt-1 pb-3 space-y-3 font-mono">
+              <!-- Brutalist Big Box -->
+              <div class="border-2 border-black p-3 bg-[#f4f4f4]" style="box-shadow: 3px 3px 0px #000;">
+                <div class="text-[9px] uppercase font-bold">TOTAL SALDO LIKUID</div>
+                <div class="text-2xl font-black mt-1 font-tabular">IDR 48,750,000</div>
+                <div class="text-[9px] font-bold border-t-2 border-black pt-1 mt-2 flex justify-between">
+                  <span>NW: 184.2M</span><span>INV: 135.4M</span>
+                </div>
+              </div>
+              <!-- Hard Rows -->
+              <div class="border-2 border-black divide-y-2 divide-black text-xs font-bold">
+                <div class="p-2 flex justify-between bg-white">
+                  <span>[OUT] SOTO BETAWI</span>
+                  <span class="text-[#ff3300] font-tabular">-45,000</span>
+                </div>
+                <div class="p-2 flex justify-between bg-white">
+                  <span>[TRF] BNI -> SEA</span>
+                  <span class="font-tabular">2,500,000</span>
+                </div>
+                <div class="p-2 flex justify-between bg-white">
+                  <span>[IN] GAJI FREELANCE</span>
+                  <span class="text-[#00a854] font-tabular">+12,500,000</span>
+                </div>
+              </div>
+            </div>
+            <!-- Bottom Hard Button -->
+            <button class="w-full bg-black text-white font-mono font-bold text-xs py-2.5 border-t-2 border-black uppercase tracking-wider">
+              [+] CATAT TRANSAKSI
+            </button>
+          </div>
+        </div>
+
+        <!-- PC MOCKUP -->
+        <div class="lg:col-span-8">
+          <span class="text-xs font-mono text-zinc-400 mb-2.5 block">💻 Layar Desktop PC — Exposed Grid Lines</span>
+          <div class="desktop-frame bg-white text-black border-2 border-black" style="box-shadow: 6px 6px 0px #000; border-radius: 0;">
+            <div class="window-header bg-black text-white justify-between" style="border-radius: 0;">
+              <span class="text-xs font-mono font-bold uppercase tracking-wider">THE LIFE PROJECT // SYSTEM.FINANCE</span>
+              <span class="text-xs font-mono">OCTOBER 2026</span>
+            </div>
+            <div class="p-4 font-mono space-y-3">
+              <div class="grid grid-cols-3 border-2 border-black divide-x-2 divide-black text-center">
+                <div class="p-2"><span class="text-[9px] block">LIQUID BALANCE</span><span class="text-lg font-black font-tabular">48,750,000</span></div>
+                <div class="p-2 bg-[#f4f4f4]"><span class="text-[9px] block">NET CASHFLOW</span><span class="text-lg font-black text-[#00a854] font-tabular">+8,450,000</span></div>
+                <div class="p-2"><span class="text-[9px] block">SAVINGS RATE</span><span class="text-lg font-black font-tabular">67.6%</span></div>
+              </div>
+              <table class="w-full border-2 border-black text-xs">
+                <thead><tr class="bg-black text-white text-[10px] uppercase"><th class="p-2">DATE</th><th class="p-2">EVENT</th><th class="p-2">ACCOUNT</th><th class="p-2 text-right">AMOUNT IDR</th></tr></thead>
+                <tbody class="divide-y-2 divide-black">
+                  <tr><td class="p-2">02.10</td><td class="p-2 font-bold">MAKAN SIANG SOTO</td><td class="p-2">GOPAY</td><td class="p-2 text-right font-bold text-[#ff3300] font-tabular">-45,000</td></tr>
+                  <tr><td class="p-2">02.10</td><td class="p-2 font-bold">TRANSFER KE SEABANK</td><td class="p-2">BNI->SEA</td><td class="p-2 text-right font-bold font-tabular">2,500,000</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- KONSEP 6: GLASSMORPHISM & AMBIENT GLOW                   -->
+    <!-- ======================================================== -->
+    <section id="concept-6" class="concept-section border-t border-zinc-800/80 pt-8">
+      <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2 mb-1">
+            <span class="px-2.5 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-mono font-bold">KONSEP 06</span>
+            <span class="text-xs text-zinc-400 font-mono">Inspirasi: Apple visionOS, Mercury.com, Cron</span>
+          </div>
+          <h2 class="text-2xl font-extrabold text-white tracking-tight">Glassmorphism & Ambient Glow</h2>
+          <p class="text-sm text-zinc-400 max-w-2xl">Latar obsidian kosmis gelap, panel kaca buram transparan (blur 24px), pantulan garis cahaya atas (specular highlight), dan halo gradien futuristik.</p>
+        </div>
+        <div class="flex items-center gap-2 text-xs font-mono">
+          <span class="px-2 py-1 rounded bg-[#07090e] border border-cyan-500/30 text-cyan-300 font-bold">Void: #07090E</span>
+          <span class="px-2 py-1 rounded bg-[#10e599]/20 text-[#10e599] font-bold">Neon: #10E599</span>
+          <span class="px-2 py-1 rounded bg-[#ff2d55]/20 text-[#ff2d55] font-bold">Cyber: #FF2D55</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        <!-- HP MOCKUP -->
+        <div class="lg:col-span-4 flex flex-col items-center">
+          <span class="text-xs font-mono text-zinc-400 mb-2.5">📱 Layar HP — Frosted Glass</span>
+          <div class="phone-frame bg-[#07090e] border border-cyan-500/20 relative overflow-hidden" style="box-shadow: 0 0 40px rgba(16,229,153,0.15);">
+            <div class="absolute -top-10 -right-10 w-44 h-44 bg-cyan-500/20 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute -bottom-10 -left-10 w-44 h-44 bg-pink-500/20 rounded-full blur-3xl pointer-events-none"></div>
+            
+            <div class="phone-notch"><div class="phone-camera"></div></div>
+            <div class="pt-3 px-6 pb-2 flex justify-between text-[11px] font-semibold text-cyan-300 font-mono z-10">
+              <span>09:41</span><span>5G • 100%</span>
+            </div>
+            <div class="flex-1 overflow-y-auto px-4 pt-1 pb-3 space-y-3 z-10">
+              <!-- Luminous Glass Card -->
+              <div class="glass-card rounded-2xl p-4 text-center">
+                <span class="text-[9px] uppercase font-mono tracking-widest text-cyan-300 font-bold">Liquid Wealth</span>
+                <div class="text-2xl font-extrabold text-white mt-1 font-tabular" style="text-shadow: 0 0 15px rgba(16,229,153,0.4);">
+                  Rp 48.750.000
+                </div>
+                <div class="text-[9px] text-zinc-400 mt-2 font-mono">Net Worth: Rp 184.2M</div>
+              </div>
+              <!-- Floating Glass Rows -->
+              <div class="space-y-1.5 text-xs">
+                <div class="glass-card rounded-xl p-2.5 flex justify-between items-center">
+                  <div>
+                    <div class="font-bold text-white text-[11px]">Soto Betawi</div>
+                    <div class="text-[9px] text-zinc-400">GoPay • 12:45</div>
+                  </div>
+                  <div class="font-mono text-[#ff2d55] font-bold font-tabular">-Rp 45.000</div>
+                </div>
+                <div class="glass-card rounded-xl p-2.5 flex justify-between items-center">
+                  <div>
+                    <div class="font-bold text-white text-[11px]">Transfer SeaBank</div>
+                    <div class="text-[9px] text-zinc-400">BNI → SEA</div>
+                  </div>
+                  <div class="font-mono text-cyan-300 font-bold font-tabular">Rp 2.500.000</div>
+                </div>
+              </div>
+            </div>
+            <!-- Translucent Bottom Bar -->
+            <div class="glass-card border-x-0 border-b-0 px-6 py-2.5 flex justify-between items-center text-[10px] text-cyan-300 z-10">
+              <span class="font-bold">Dashboard</span><span>Accounts</span><span class="text-white text-base font-bold">+</span><span>Stats</span>
+            </div>
+            <div class="home-bar"></div>
+          </div>
+        </div>
+
+        <!-- PC MOCKUP -->
+        <div class="lg:col-span-8">
+          <span class="text-xs font-mono text-zinc-400 mb-2.5 block">💻 Layar Desktop PC — Futuristic Obsidian Glass Deck</span>
+          <div class="desktop-frame bg-[#07090e] border border-cyan-500/20 relative overflow-hidden">
+            <div class="absolute top-10 left-40 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="window-header glass-card border-x-0 border-t-0 justify-between">
+              <div class="traffic-lights"><div class="traffic-dot bg-[#ff5f56]"></div><div class="traffic-dot bg-[#ffbd2e]"></div><div class="traffic-dot bg-[#27c93f]"></div></div>
+              <span class="text-xs font-mono text-cyan-400">visionOS Glass Deck // Personal Finance</span>
+              <span class="text-xs font-mono text-zinc-400">Oct 2026</span>
+            </div>
+            <div class="p-5 grid grid-cols-3 gap-4 relative z-10">
+              <div class="glass-card rounded-2xl p-4">
+                <span class="text-[10px] uppercase font-mono text-cyan-300 font-bold">Liquid Balance</span>
+                <div class="text-xl font-bold text-white mt-1 font-tabular" style="text-shadow: 0 0 15px rgba(16,229,153,0.3);">Rp 48.750.000</div>
+              </div>
+              <div class="glass-card rounded-2xl p-4">
+                <span class="text-[10px] uppercase font-mono text-cyan-300 font-bold">Net Cashflow</span>
+                <div class="text-xl font-bold text-[#10e599] mt-1 font-tabular">+Rp 8.450.000</div>
+              </div>
+              <div class="glass-card rounded-2xl p-4">
+                <span class="text-[10px] uppercase font-mono text-cyan-300 font-bold">Savings Rate</span>
+                <div class="text-xl font-bold text-white mt-1 font-tabular">67.6%</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- KONSEP 7: MOBILE-FIRST COMPACT LEDGER                    -->
+    <!-- ======================================================== -->
+    <section id="concept-7" class="concept-section border-t border-zinc-800/80 pt-8">
+      <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2 mb-1">
+            <span class="px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono font-bold">KONSEP 07</span>
+            <span class="text-xs text-zinc-400 font-mono">Inspirasi: Toshl, Dime iOS, Cash App</span>
+          </div>
+          <h2 class="text-2xl font-extrabold text-white tracking-tight">Mobile-First Compact Ledger</h2>
+          <p class="text-sm text-zinc-400 max-w-2xl">Arsitektur 100% Thumb Zone (zona jangkauan satu jempol), keypad numerik terintegrasi, auto-separator ribuan instan, dan pencatatan kasir sub-3 detik.</p>
+        </div>
+        <div class="flex items-center gap-2 text-xs font-mono">
+          <span class="px-2 py-1 rounded bg-[#0b0f19] text-zinc-300 font-bold">Slate: #0B0F19</span>
+          <span class="px-2 py-1 rounded bg-[#00e5a3] text-black font-bold">Mint: #00E5A3</span>
+          <span class="px-2 py-1 rounded bg-[#ff5757] text-white font-bold">Red: #FF5757</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        <!-- HP MOCKUP (THUMB ZONE ACTIVE BOTTOM SHEET) -->
+        <div class="lg:col-span-4 flex flex-col items-center">
+          <span class="text-xs font-mono text-zinc-400 mb-2.5">📱 Layar HP — 100% Thumb Zone Keypad</span>
+          <div class="phone-frame bg-[#0b0f19] border border-zinc-800">
+            <div class="phone-notch"><div class="phone-camera"></div></div>
+            <div class="pt-3 px-6 pb-2 flex justify-between text-[11px] font-semibold text-zinc-400 font-mono">
+              <span>09:41</span><span>100%</span>
+            </div>
+            
+            <!-- Bottom Sheet Pop-Up UI directly shown -->
+            <div class="flex-1 flex flex-col justify-end p-3 pb-2 space-y-2">
+              <div class="bg-[#131b2e] border border-[#334155] rounded-2xl p-3 shadow-2xl space-y-2">
+                <!-- Type Switcher -->
+                <div class="grid grid-cols-3 gap-1 bg-[#0b0f19] p-1 rounded-lg text-center text-[10px] font-bold">
+                  <div class="bg-[#ff5757] text-white py-1 rounded">Pengeluaran</div>
+                  <div class="text-zinc-400 py-1">Pemasukan</div>
+                  <div class="text-zinc-400 py-1">Transfer</div>
+                </div>
+                <!-- Amount Display -->
+                <div class="bg-[#0b0f19] border border-[#334155] rounded-xl p-2 text-center">
+                  <div class="text-[8px] font-mono text-zinc-400 uppercase">Nominal IDR</div>
+                  <div class="text-2xl font-bold font-mono text-[#ff5757] font-tabular">Rp 150.000</div>
+                </div>
+                <!-- Quick Account Chips -->
+                <div class="grid grid-cols-4 gap-1 text-[9px] font-mono text-center font-bold">
+                  <div class="bg-[#00e5a3]/20 border border-[#00e5a3] text-[#00e5a3] py-1 rounded">Cash [C]</div>
+                  <div class="bg-zinc-800 text-zinc-300 py-1 rounded">GoPay [G]</div>
+                  <div class="bg-zinc-800 text-zinc-300 py-1 rounded">BNI [B]</div>
+                  <div class="bg-zinc-800 text-zinc-400 py-1 rounded">Lainnya▾</div>
+                </div>
+                <!-- Numpad -->
+                <div class="grid grid-cols-3 gap-1 text-center font-mono font-bold text-sm">
+                  <div class="bg-zinc-800 py-2 rounded">1</div><div class="bg-zinc-800 py-2 rounded">2</div><div class="bg-zinc-800 py-2 rounded">3</div>
+                  <div class="bg-zinc-800 py-2 rounded">4</div><div class="bg-zinc-800 py-2 rounded">5</div><div class="bg-zinc-800 py-2 rounded">6</div>
+                  <div class="bg-zinc-800 py-2 rounded">7</div><div class="bg-zinc-800 py-2 rounded">8</div><div class="bg-zinc-800 py-2 rounded">9</div>
+                  <div class="bg-zinc-800 text-cyan-400 py-2 rounded text-xs flex items-center justify-center">000</div>
+                  <div class="bg-zinc-800 py-2 rounded">0</div>
+                  <div class="bg-zinc-800 text-rose-400 py-2 rounded flex items-center justify-center">⌫</div>
+                </div>
+                <!-- Confirm Button -->
+                <button class="w-full bg-[#00e5a3] text-black font-bold py-2 rounded-xl text-xs">
+                  ✓ Simpan Transaksi (0.8 detik)
+                </button>
+              </div>
+            </div>
+            <div class="home-bar"></div>
+          </div>
+        </div>
+
+        <!-- PC MOCKUP -->
+        <div class="lg:col-span-8">
+          <span class="text-xs font-mono text-zinc-400 mb-2.5 block">💻 Layar Desktop PC — Dual-Pane Rapid Logger Cockpit</span>
+          <div class="desktop-frame bg-[#0b0f19] text-white border border-[#334155]">
+            <div class="window-header bg-[#131b2e] border-b border-[#334155] justify-between">
+              <div class="traffic-lights"><div class="traffic-dot bg-[#ff5f56]"></div><div class="traffic-dot bg-[#ffbd2e]"></div><div class="traffic-dot bg-[#27c93f]"></div></div>
+              <span class="text-xs font-mono text-zinc-300">The Life Project — Dual-Pane Cockpit</span>
+              <span class="text-xs font-mono text-[#00e5a3]">Sub-3s Mode</span>
+            </div>
+            <div class="p-4 grid grid-cols-12 gap-4">
+              <!-- Left Rapid Logger Form (5 cols) -->
+              <div class="col-span-5 bg-[#131b2e] border border-[#334155] rounded-xl p-3 space-y-2">
+                <span class="text-xs font-bold text-white uppercase block">⚡ Input Kilat Transaksi</span>
+                <div class="bg-[#0b0f19] border border-[#334155] p-2 rounded text-center">
+                  <span class="text-[9px] text-zinc-400 block font-mono">NOMINAL TRANSAKSI</span>
+                  <span class="text-xl font-bold font-mono text-[#ff5757] font-tabular">Rp 150.000</span>
+                </div>
+                <div class="grid grid-cols-3 gap-1 text-[10px] font-mono text-center font-bold">
+                  <div class="bg-[#ff5757] text-white p-1 rounded">Pengeluaran</div>
+                  <div class="bg-zinc-800 text-zinc-300 p-1 rounded">Pemasukan</div>
+                  <div class="bg-zinc-800 text-zinc-300 p-1 rounded">Transfer</div>
+                </div>
+                <button class="w-full bg-[#00e5a3] text-black font-bold py-1.5 rounded text-xs mt-2">
+                  Simpan Transaksi [Enter]
+                </button>
+              </div>
+              <!-- Right Ledger Preview (7 cols) -->
+              <div class="col-span-7 bg-[#131b2e] border border-[#334155] rounded-xl p-3 space-y-2">
+                <div class="flex justify-between items-center text-xs">
+                  <span class="font-bold text-white">Saldo Likuid: Rp 48.750.000</span>
+                  <span class="text-emerald-400 font-mono text-[10px]">Net: +8.45M</span>
+                </div>
+                <div class="space-y-1.5 text-[11px] font-mono">
+                  <div class="flex justify-between p-1.5 bg-[#0b0f19] rounded">
+                    <span>🍔 Soto Betawi (GoPay)</span><span class="text-[#ff5757] font-bold font-tabular">-Rp 45.000</span>
+                  </div>
+                  <div class="flex justify-between p-1.5 bg-[#0b0f19] rounded">
+                    <span>⚡ Transfer BNI ke SeaBank</span><span class="text-zinc-300 font-bold font-tabular">Rp 2.500.000</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    function showTab(tabId) {
+      const sections = document.querySelectorAll('.concept-section');
+      const buttons = document.querySelectorAll('.tab-btn');
+
+      // Reset all buttons
+      buttons.forEach(btn => {
+        btn.classList.remove('bg-emerald-500', 'text-zinc-950', 'shadow');
+        btn.classList.add('text-zinc-400', 'bg-zinc-800/80');
+      });
+
+      // Highlight active button
+      const activeBtn = document.getElementById('tab-btn-' + tabId);
+      if (activeBtn) {
+        activeBtn.classList.add('bg-emerald-500', 'text-zinc-950', 'shadow');
+        activeBtn.classList.remove('text-zinc-400', 'bg-zinc-800/80');
+      }
+
+      // Show/Hide sections
+      if (tabId === 'all') {
+        sections.forEach(sec => sec.classList.remove('hidden'));
+      } else {
+        const targetNum = tabId.replace('c', '');
+        sections.forEach((sec, idx) => {
+          if (idx + 1 === parseInt(targetNum)) {
+            sec.classList.remove('hidden');
+          } else {
+            sec.classList.add('hidden');
+          }
+        });
+      }
+    }
+  </script>
+</body>
+</html>

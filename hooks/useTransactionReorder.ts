@@ -4,8 +4,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { FinancialEvent } from "@/lib/types";
 import { getAtomicReorderUnits } from "@/lib/finance";
 
-const HOLD_DELAY_MS = 500;
-const MOVE_THRESHOLD_PX = 8;
+const HOLD_DELAY_MS = 300;
+const TOUCH_MOVE_THRESHOLD_PX = 18;
+const MOUSE_MOVE_THRESHOLD_PX = 8;
 
 export interface UseTransactionReorderOptions {
   events: FinancialEvent[];
@@ -29,7 +30,9 @@ export function useTransactionReorder({
 
   const timerRef = useRef<number | null>(null);
   const startPosRef = useRef<{ x: number; y: number } | null>(null);
+  const pointerTypeRef = useRef<string>("mouse");
   const isDraggingRef = useRef(false);
+  const suppressClickRef = useRef(false);
   const activeUnitIdRef = useRef<string | null>(null);
   const dropTargetUnitIdRef = useRef<string | null>(null);
   const dropPlacementRef = useRef<"above" | "below" | null>(null);
@@ -67,29 +70,85 @@ export function useTransactionReorder({
     }
   }, [cancelHoldTimer]);
 
-  const handlePointerDown = useCallback(
-    (eventId: string, e: React.PointerEvent) => {
-      if (disabled || e.button !== 0) return;
+  const updateDragPosition = useCallback(
+    (clientX: number, clientY: number) => {
+      if (!isDraggingRef.current || !activeUnitIdRef.current) return;
+
+      const elements = document.elementsFromPoint(clientX, clientY);
+      let targetUnitId: string | null = null;
+
+      for (const el of elements) {
+        const matched = el.closest("[data-reorder-unit-id]");
+        if (matched) {
+          const uid = matched.getAttribute("data-reorder-unit-id");
+          if (uid) {
+            targetUnitId = uid;
+            break;
+          }
+        }
+      }
+
+      if (targetUnitId && targetUnitId !== activeUnitIdRef.current) {
+        const activeUnit = units.find((u) => u.id === activeUnitIdRef.current);
+        const targetUnit = units.find((u) => u.id === targetUnitId);
+
+        if (
+          activeUnit &&
+          targetUnit &&
+          activeUnit.primaryEvent.date === targetUnit.primaryEvent.date
+        ) {
+          const allTargetElements = Array.from(
+            document.querySelectorAll(`[data-reorder-unit-id="${targetUnitId}"]`)
+          );
+          let top = Infinity;
+          let bottom = -Infinity;
+          for (const el of allTargetElements) {
+            const rect = el.getBoundingClientRect();
+            if (rect.top < top) top = rect.top;
+            if (rect.bottom > bottom) bottom = rect.bottom;
+          }
+          const mid = (top + bottom) / 2;
+          const placement = clientY < mid ? "above" : "below";
+          setDropTargetUnitId(targetUnitId);
+          setDropPlacement(placement);
+          return;
+        }
+      }
+
+      setDropTargetUnitId(null);
+      setDropPlacement(null);
+    },
+    [units]
+  );
+
+  const startHold = useCallback(
+    (eventId: string, clientX: number, clientY: number, isTouch: boolean) => {
+      if (disabled) return;
 
       const unit = units.find((u) => u.events.some((ev) => ev.id === eventId));
       if (!unit) return;
 
       cancelHoldTimer();
-      startPosRef.current = { x: e.clientX, y: e.clientY };
+      startPosRef.current = { x: clientX, y: clientY };
+      pointerTypeRef.current = isTouch ? "touch" : "mouse";
+      suppressClickRef.current = false;
 
       timerRef.current = window.setTimeout(() => {
+        suppressClickRef.current = true;
         setIsDragging(true);
         isDraggingRef.current = true;
         setActiveUnitId(unit.id);
 
+        // Haptic feedback lift: 40ms subtle vibration
         if (typeof window !== "undefined" && "vibrate" in navigator) {
           try {
-            navigator.vibrate(50);
+            navigator.vibrate(40);
           } catch {
-            // Safe fallback if vibration is not allowed
+            // Safe fallback if vibration is not allowed or supported
           }
         }
 
+        // Lock page scroll once 300ms hold is officially triggered
         if (typeof document !== "undefined") {
           document.body.style.userSelect = "none";
           document.body.style.touchAction = "none";
@@ -99,69 +158,78 @@ export function useTransactionReorder({
     [disabled, units, cancelHoldTimer]
   );
 
+  const handlePointerDown = useCallback(
+    (eventId: string, e: React.PointerEvent) => {
+      if (disabled || e.button !== 0) return;
+      // For non-touch (mouse/pen), start hold via pointerdown
+      if (e.pointerType !== "touch") {
+        startHold(eventId, e.clientX, e.clientY, false);
+      }
+    },
+    [disabled, startHold]
+  );
+
+  const handleTouchStart = useCallback(
+    (eventId: string, e: React.TouchEvent) => {
+      if (disabled) return;
+      if (e.touches.length > 0) {
+        startHold(eventId, e.touches[0].clientX, e.touches[0].clientY, true);
+      }
+    },
+    [disabled, startHold]
+  );
+
+  // Global listeners for movement and release
   useEffect(() => {
     const handleGlobalPointerMove = (e: PointerEvent) => {
-      // If waiting for long-press timer, cancel if moved beyond threshold (enables normal scrolling)
+      if (pointerTypeRef.current === "touch") return; // Touch handled by handleGlobalTouchMove
+
+      // Mouse long-press tremor check
       if (!isDraggingRef.current && timerRef.current !== null && startPosRef.current) {
         const dist = Math.hypot(e.clientX - startPosRef.current.x, e.clientY - startPosRef.current.y);
-        if (dist > MOVE_THRESHOLD_PX) {
+        if (dist > MOUSE_MOVE_THRESHOLD_PX) {
           cancelHoldTimer();
         }
         return;
       }
 
-      // If actively dragging, resolve drop target
-      if (isDraggingRef.current && activeUnitIdRef.current) {
-        const elements = document.elementsFromPoint(e.clientX, e.clientY);
-        let targetUnitId: string | null = null;
+      if (isDraggingRef.current) {
+        updateDragPosition(e.clientX, e.clientY);
+      }
+    };
 
-        for (const el of elements) {
-          const matched = el.closest("[data-reorder-unit-id]");
-          if (matched) {
-            const uid = matched.getAttribute("data-reorder-unit-id");
-            if (uid) {
-              targetUnitId = uid;
-              break;
-            }
-          }
-        }
+    const handleGlobalTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 0) return;
+      const touch = e.touches[0];
 
-        if (targetUnitId && targetUnitId !== activeUnitIdRef.current) {
-          const activeUnit = units.find((u) => u.id === activeUnitIdRef.current);
-          const targetUnit = units.find((u) => u.id === targetUnitId);
+      // Actively dragging on mobile: prevent native scroll so card moves vertically or horizontally
+      if (isDraggingRef.current) {
+        if (e.cancelable) e.preventDefault();
+        updateDragPosition(touch.clientX, touch.clientY);
+        return;
+      }
 
-          if (
-            activeUnit &&
-            targetUnit &&
-            activeUnit.primaryEvent.date === targetUnit.primaryEvent.date
-          ) {
-            const allTargetElements = Array.from(
-              document.querySelectorAll(`[data-reorder-unit-id="${targetUnitId}"]`)
-            );
-            let top = Infinity;
-            let bottom = -Infinity;
-            for (const el of allTargetElements) {
-              const rect = el.getBoundingClientRect();
-              if (rect.top < top) top = rect.top;
-              if (rect.bottom > bottom) bottom = rect.bottom;
-            }
-            const mid = (top + bottom) / 2;
-            const placement = e.clientY < mid ? "above" : "below";
-            setDropTargetUnitId(targetUnitId);
-            setDropPlacement(placement);
-          } else {
-            setDropTargetUnitId(null);
-            setDropPlacement(null);
-          }
+      // If waiting for 300ms hold timer
+      if (timerRef.current !== null && startPosRef.current) {
+        const dist = Math.hypot(touch.clientX - startPosRef.current.x, touch.clientY - startPosRef.current.y);
+        if (dist > TOUCH_MOVE_THRESHOLD_PX) {
+          // Intentional scroll: cancel timer and let page scroll normally
+          cancelHoldTimer();
         } else {
-          setDropTargetUnitId(null);
-          setDropPlacement(null);
+          // Minor thumb jitter <= 18px: prevent scroll from stealing gesture prematurely
+          if (e.cancelable) e.preventDefault();
         }
       }
     };
 
-    const handleGlobalPointerUp = () => {
+    const handleDragEnd = () => {
       if (isDraggingRef.current) {
+        suppressClickRef.current = true;
+        // Keep suppressClick active for 250ms to swallow trailing synthetic click event
+        window.setTimeout(() => {
+          suppressClickRef.current = false;
+        }, 250);
+
         const currentActiveUnitId = activeUnitIdRef.current;
         const currentDropTargetUnitId = dropTargetUnitIdRef.current;
         const currentPlacement = dropPlacementRef.current;
@@ -176,8 +244,6 @@ export function useTransactionReorder({
             activeUnit.id !== targetUnit.id &&
             activeUnit.primaryEvent.date === targetUnit.primaryEvent.date
           ) {
-            // In Card view (DESC), visual "above" means placing after in canonical recording order.
-            // In Ledger view (ASC), visual "above" means placing before in canonical recording order.
             const canonicalPlacement: "before" | "after" =
               viewMode === "card"
                 ? currentPlacement === "above"
@@ -208,20 +274,26 @@ export function useTransactionReorder({
     };
 
     window.addEventListener("pointermove", handleGlobalPointerMove, { passive: true });
-    window.addEventListener("pointerup", handleGlobalPointerUp);
-    window.addEventListener("pointercancel", resetDragState);
+    window.addEventListener("pointerup", handleDragEnd);
+    window.addEventListener("pointercancel", handleDragEnd);
+    window.addEventListener("touchmove", handleGlobalTouchMove, { passive: false });
+    window.addEventListener("touchend", handleDragEnd);
+    window.addEventListener("touchcancel", handleDragEnd);
     window.addEventListener("contextmenu", handleContextMenu);
     window.addEventListener("selectstart", handleSelectStart);
 
     return () => {
       cancelHoldTimer();
       window.removeEventListener("pointermove", handleGlobalPointerMove);
-      window.removeEventListener("pointerup", handleGlobalPointerUp);
-      window.removeEventListener("pointercancel", resetDragState);
+      window.removeEventListener("pointerup", handleDragEnd);
+      window.removeEventListener("pointercancel", handleDragEnd);
+      window.removeEventListener("touchmove", handleGlobalTouchMove);
+      window.removeEventListener("touchend", handleDragEnd);
+      window.removeEventListener("touchcancel", handleDragEnd);
       window.removeEventListener("contextmenu", handleContextMenu);
       window.removeEventListener("selectstart", handleSelectStart);
     };
-  }, [cancelHoldTimer, onReorder, resetDragState, units, viewMode]);
+  }, [cancelHoldTimer, onReorder, resetDragState, units, updateDragPosition, viewMode]);
 
   const isEventActive = useCallback(
     (eventId: string): boolean => {
@@ -241,7 +313,6 @@ export function useTransactionReorder({
       // Handle Expense with Cashback atomicity
       if (targetUnit.type === "expense-with-cashback") {
         if (viewMode === "card") {
-          // Card view is DESC: Cashback is at top (first visual), Expense is at bottom (last visual)
           const cashback = targetUnit.events.find((e) => e.type === "income" && e.category === "Cashback");
           const expense = targetUnit.events.find((e) => e.type === "expense");
           if (position === "above") {
@@ -250,7 +321,6 @@ export function useTransactionReorder({
             return expense ? expense.id === eventId : targetUnit.primaryEvent.id === eventId;
           }
         } else {
-          // Ledger view is ASC: Expense is at top (first visual), Cashback is at bottom (last visual)
           const expense = targetUnit.events.find((e) => e.type === "expense");
           const cashback = targetUnit.events.find((e) => e.type === "income" && e.category === "Cashback");
           if (position === "above") {
@@ -264,7 +334,6 @@ export function useTransactionReorder({
       // Handle Transfer atomicity (2 Ledger rows for 1 FinancialEvent)
       if (targetUnit.type === "transfer" && viewMode === "ledger") {
         if (targetUnit.primaryEvent.id !== eventId) return false;
-        // First visual row is 'out', second visual row is 'in'
         if (position === "above") {
           return ledgerDirection === "out";
         } else {
@@ -283,11 +352,21 @@ export function useTransactionReorder({
       const unit = units.find((u) => u.events.some((e) => e.id === eventId));
       return {
         onPointerDown: (e: React.PointerEvent) => handlePointerDown(eventId, e),
+        onTouchStart: (e: React.TouchEvent) => handleTouchStart(eventId, e),
+        onClickCapture: (e: React.MouseEvent) => {
+          if (suppressClickRef.current || isDraggingRef.current) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+        },
+        style: {
+          touchAction: isDragging ? ("none" as const) : ("pan-y" as const),
+        },
         "data-reorder-event-id": eventId,
         "data-reorder-unit-id": unit?.id ?? "",
       };
     },
-    [handlePointerDown, units]
+    [handlePointerDown, handleTouchStart, isDragging, units]
   );
 
   return {

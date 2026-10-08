@@ -1,0 +1,1548 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Life Project — 20 Handcrafted, Doodle & Warm Paper Concepts</title>
+  
+  <!-- Tailwind CSS Play CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            paper: {
+              rice: '#FAF7EE',
+              cream: '#FBF9F5',
+              linen: '#F5F2EB',
+              kraft: '#EFE5D5',
+              sage: '#E3EBE4',
+              terracotta: '#F5EBE6',
+              bujo: '#F4F0E8',
+              napkin: '#F9F5EC',
+              postit: '#FEF9C3',
+            },
+            ink: {
+              charcoal: '#2C2A26',
+              soft: '#1E1D1B',
+              pencil: '#6B665E',
+              blue: '#2B4C7E',
+              forest: '#2E6F40',
+              rust: '#C25438',
+              stamp: '#DC2626',
+            }
+          },
+          fontFamily: {
+            hand: ['Patrick Hand', 'Caveat', 'cursive'],
+            caveat: ['Caveat', 'cursive'],
+            architect: ['Architects Daughter', 'cursive'],
+            kalam: ['Kalam', 'cursive'],
+            serif: ['Newsreader', 'Georgia', 'serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+            sans: ['Plus Jakarta Sans', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Handwriting & Editorial Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Architects+Daughter&family=Caveat:wght@500;600;700&family=JetBrains+Mono:wght@400;600;700&family=Kalam:wght@400;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&family=Patrick+Hand&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #F5F1E9;
+      color: #2C2A26;
+    }
+
+    /* Wobbly Hand-Drawn Borders (CSS Organic Shapes) */
+    .wobbly-box {
+      border: 2px solid #2C2A26;
+      border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+    }
+    .wobbly-box-sm {
+      border: 1.5px solid #4A463F;
+      border-radius: 180px 10px 160px 12px / 12px 170px 10px 190px;
+    }
+    .wobbly-pill {
+      border: 1.5px solid #2C2A26;
+      border-radius: 9999px 9999px 9999px 9999px / 250px 250px 250px 250px;
+    }
+
+    /* Dot Grid (Bullet Journal Paper) */
+    .bg-dot-grid {
+      background-image: radial-gradient(#C8BFB0 1.2px, transparent 1.2px);
+      background-size: 18px 18px;
+    }
+
+    /* Lined Notebook Paper */
+    .bg-lined-paper {
+      background-image: repeating-linear-gradient(transparent, transparent 25px, #DDE3EA 26px);
+    }
+
+    /* Washi Tape Accent */
+    .washi-tape {
+      background: rgba(254, 240, 138, 0.75);
+      border-left: 2px dashed rgba(202, 138, 4, 0.4);
+      border-right: 2px dashed rgba(202, 138, 4, 0.4);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      transform: rotate(-1.5deg);
+    }
+    .washi-tape-pink {
+      background: rgba(251, 207, 232, 0.75);
+      border-left: 2px dashed rgba(219, 39, 119, 0.3);
+      border-right: 2px dashed rgba(219, 39, 119, 0.3);
+      transform: rotate(2deg);
+    }
+
+    /* Hanko Stamp Effect */
+    .stamp-badge {
+      border: 2px solid #DC2626;
+      color: #DC2626;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      transform: rotate(-8deg);
+      mask-image: radial-gradient(circle, black 70%, rgba(0,0,0,0.6) 100%);
+    }
+
+    /* Realistic Smartphone Frame (Paper Notebook Case) */
+    .phone-mockup-frame {
+      width: 350px;
+      height: 720px;
+      border: 10px solid #3E3830;
+      border-radius: 46px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 20px 40px -10px rgba(60, 50, 40, 0.25), 0 0 0 1px #8C8273;
+      flex-shrink: 0;
+    }
+    .phone-notch-warm {
+      width: 85px;
+      height: 22px;
+      background: #3E3830;
+      border-radius: 16px;
+      position: absolute;
+      top: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 50;
+    }
+    .phone-home-indicator {
+      width: 110px;
+      height: 4px;
+      background: #8C8273;
+      border-radius: 9999px;
+      margin: 6px auto 4px auto;
+    }
+
+    /* Desktop Browser Frame (Craft Wooden Desk Theme) */
+    .desktop-mockup-frame {
+      border: 2px solid #2C2A26;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 6px 8px 0px #2C2A26;
+      background: #FAF7EE;
+      width: 100%;
+    }
+    .desktop-window-bar {
+      background: #EAE3D2;
+      border-bottom: 2px solid #2C2A26;
+      padding: 8px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+  </style>
+</head>
+<body class="min-h-screen pb-32">
+
+  <!-- ============================================== -->
+  <!-- TOP BANNER & FILTER NAVIGATION                 -->
+  <!-- ============================================== -->
+  <header class="sticky top-0 z-50 bg-[#F5F1E9]/95 backdrop-blur-md border-b-2 border-[#2C2A26] px-6 py-4 shadow-sm">
+    <div class="max-w-[1440px] mx-auto flex flex-wrap items-center justify-between gap-4">
+      
+      <!-- Brand & Tagline -->
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-[#2C2A26] text-[#FAF7EE] flex items-center justify-center font-bold text-lg shadow">
+          ✍
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-base font-extrabold tracking-tight text-[#2C2A26]">The Life Project</h1>
+            <span class="washi-tape text-[10px] px-2 py-0.5 font-hand font-bold text-[#854D0E]">100% Handcrafted & Paper</span>
+          </div>
+          <p class="text-xs text-[#6B665E] font-hand text-sm">20 Eksplorasi Visual Layar Nyata (Moleskine, Bujo, Botanical, Scrapbook & Paper Ledgers)</p>
+        </div>
+      </div>
+
+      <!-- Category Filter Pills -->
+      <div class="flex items-center gap-2 overflow-x-auto pb-1 max-w-full font-hand text-sm">
+        <button onclick="filterConcepts('all')" class="filter-pill px-3 py-1 bg-[#2C2A26] text-[#FAF7EE] rounded-full font-bold shadow-sm">
+          Semua (20 Konsep)
+        </button>
+        <button onclick="filterConcepts('journal')" class="filter-pill px-3 py-1 bg-white border border-[#2C2A26] text-[#2C2A26] rounded-full hover:bg-[#EFE5D5]">
+          📓 Notebook & Jurnal (1-5)
+        </button>
+        <button onclick="filterConcepts('sketch')" class="filter-pill px-3 py-1 bg-white border border-[#2C2A26] text-[#2C2A26] rounded-full hover:bg-[#EFE5D5]">
+          📐 Sketsa & Arsitek (6-10)
+        </button>
+        <button onclick="filterConcepts('craft')" class="filter-pill px-3 py-1 bg-white border border-[#2C2A26] text-[#2C2A26] rounded-full hover:bg-[#EFE5D5]">
+          🌿 Organik & Craft (11-15)
+        </button>
+        <button onclick="filterConcepts('art')" class="filter-pill px-3 py-1 bg-white border border-[#2C2A26] text-[#2C2A26] rounded-full hover:bg-[#EFE5D5]">
+          🎨 Artistik & Cat Air (16-20)
+        </button>
+      </div>
+
+      <!-- Quick Switcher Device View -->
+      <div class="flex items-center gap-1 bg-[#EAE3D2] p-1 rounded-xl border border-[#2C2A26] text-xs font-hand font-bold">
+        <button onclick="toggleDeviceView('both')" id="btn-view-both" class="px-2.5 py-1 bg-[#2C2A26] text-white rounded-lg">HP & PC</button>
+        <button onclick="toggleDeviceView('mobile')" id="btn-view-mobile" class="px-2.5 py-1 text-[#6B665E]">HP Saja (375px)</button>
+        <button onclick="toggleDeviceView('desktop')" id="btn-view-desktop" class="px-2.5 py-1 text-[#6B665E]">PC Saja</button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ============================================== -->
+  <!-- MAIN CONTAINER: 20 CONCEPTS SHOWCASE           -->
+  <!-- ============================================== -->
+  <main class="max-w-[1440px] mx-auto px-6 py-10 space-y-24">
+
+    <!-- Concept Template Generator Container handled in loop / structured sections -->
+    
+    <!-- 1. MOLESKINE POCKET LEDGER -->
+    <section class="concept-card journal" data-concept="1">
+      <div class="flex flex-wrap items-center justify-between mb-4 border-b-2 border-dashed border-[#8C8273] pb-2">
+        <div class="flex items-center gap-2">
+          <span class="w-6 h-6 rounded-full bg-[#2C2A26] text-[#FAF7EE] text-xs font-bold flex items-center justify-center font-hand">1</span>
+          <h2 class="text-xl font-bold font-hand text-2xl text-[#2C2A26]">The Moleskine Pocket Ledger</h2>
+          <span class="text-xs font-mono text-[#6B665E]">(Kertas Krem #FAF6EE • Garis Pensil • Dot Grid Halus)</span>
+        </div>
+        <span class="washi-tape px-2 text-xs font-hand">Favorit Mindful Journaling</span>
+      </div>
+      
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <!-- Phone Mockup -->
+        <div class="lg:col-span-4 flex justify-center phone-wrapper">
+          <div class="phone-mockup-frame bg-[#FAF6EE] text-[#2C2A26]">
+            <div class="phone-notch-warm"></div>
+            <div class="pt-3 px-5 pb-2 flex justify-between text-[11px] font-hand font-bold text-[#8C8273]">
+              <span>09:41</span><span>Buku Kas Saku</span>
+            </div>
+            <!-- Phone Body -->
+            <div class="flex-1 overflow-y-auto px-4 pt-1 pb-3 space-y-3 bg-dot-grid">
+              <!-- Moleskine Balance Header -->
+              <div class="wobbly-box bg-[#F5EFE3] p-3.5 shadow-sm text-center relative">
+                <span class="text-[10px] font-hand font-bold tracking-widest text-[#8C8273] uppercase block">Saldo Likuid Dompet</span>
+                <div class="text-2xl font-extrabold font-mono text-[#2C2A26] mt-0.5">Rp 48.750.000</div>
+                <div class="mt-2 pt-1 border-t border-dashed border-[#8C8273] flex justify-between text-[9px] font-hand text-[#6B665E]">
+                  <span>Investasi: 135.4M</span><span>Kekayaan Bersih: 184.2M</span>
+                </div>
+              </div>
+              <!-- Cashflow Note -->
+              <div class="grid grid-cols-2 gap-2 text-center font-hand">
+                <div class="p-2 border border-[#8C8273] rounded-lg bg-[#FAF6EE]">
+                  <span class="text-[10px] text-[#2E6F40]">Masuk Okt (+)</span>
+                  <div class="text-sm font-bold text-[#2E6F40] font-mono">+12.5M</div>
+                </div>
+                <div class="p-2 border border-[#8C8273] rounded-lg bg-[#FAF6EE]">
+                  <span class="text-[10px] text-[#C25438]">Keluar Okt (-)</span>
+                  <div class="text-sm font-bold text-[#C25438] font-mono">-4.05M</div>
+                </div>
+              </div>
+              <!-- Transactions Entries -->
+              <div class="space-y-1.5 font-hand text-sm">
+                <div class="p-2 border-b border-[#D8CFBF] flex justify-between items-center">
+                  <div>
+                    <div class="font-bold text-[#2C2A26]">Makan Siang Soto Betawi</div>
+                    <div class="text-[10px] text-[#8C8273]">GoPay [G] • 12:45</div>
+                  </div>
+                  <div class="font-mono font-bold text-[#C25438] text-xs">-Rp 45.000</div>
+                </div>
+                <div class="p-2 border-b border-[#D8CFBF] flex justify-between items-center">
+                  <div>
+                    <div class="font-bold text-[#2C2A26]">Transfer ke SeaBank</div>
+                    <div class="text-[10px] text-[#8C8273]">BNI [B] → SeaBank (Fee: 2.5rb)</div>
+                  </div>
+                  <div class="font-mono font-bold text-[#2C2A26] text-xs">Rp 2.500.000</div>
+                </div>
+                <div class="p-2 border-b border-[#D8CFBF] flex justify-between items-center">
+                  <div>
+                    <div class="font-bold text-[#2C2A26]">Kopi & Donut Sore</div>
+                    <div class="text-[10px] text-[#2E6F40]">Cash [C] (+Cashback 5rb)</div>
+                  </div>
+                  <div class="font-mono font-bold text-[#C25438] text-xs">-Rp 35.000</div>
+                </div>
+              </div>
+            </div>
+            <!-- Bottom Pen Bar -->
+            <div class="bg-[#F5EFE3] border-t-2 border-[#2C2A26] px-6 py-2 flex justify-between items-center text-xs font-hand font-bold">
+              <span>Halaman Depan</span>
+              <button class="w-8 h-8 rounded-full bg-[#2C2A26] text-white flex items-center justify-center text-base -mt-3 shadow">+✏️</button>
+              <span>Catatan</span>
+            </div>
+            <div class="phone-home-indicator"></div>
+          </div>
+        </div>
+
+        <!-- Desktop Mockup -->
+        <div class="lg:col-span-8 desktop-wrapper">
+          <div class="desktop-mockup-frame bg-[#FAF6EE] text-[#2C2A26]">
+            <div class="desktop-window-bar font-hand text-sm font-bold">
+              <div class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full bg-[#C25438] inline-block"></span>
+                <span class="w-3 h-3 rounded-full bg-[#D97706] inline-block"></span>
+                <span class="w-3 h-3 rounded-full bg-[#2E6F40] inline-block"></span>
+                <span class="ml-2 font-mono text-xs text-[#8C8273]">moleskine-ledger.life/oktober-2026</span>
+              </div>
+              <span>Oktober 2026</span>
+            </div>
+            <div class="p-6 bg-dot-grid space-y-4">
+              <!-- Bento Cards -->
+              <div class="grid grid-cols-3 gap-4">
+                <div class="wobbly-box bg-[#F5EFE3] p-4 text-center">
+                  <span class="text-xs font-hand font-bold text-[#8C8273]">TOTAL SALDO LIKUID</span>
+                  <div class="text-2xl font-mono font-extrabold mt-1">Rp 48.750.000</div>
+                  <span class="text-xs font-hand text-[#2E6F40]">10 Akun Likuid Aktif</span>
+                </div>
+                <div class="wobbly-box bg-[#F5EFE3] p-4 text-center">
+                  <span class="text-xs font-hand font-bold text-[#8C8273]">NET CASHFLOW SURPLUS</span>
+                  <div class="text-2xl font-mono font-extrabold text-[#2E6F40] mt-1">+Rp 8.450.000</div>
+                  <span class="text-xs font-hand text-[#6B665E]">Savings Rate: 67.6%</span>
+                </div>
+                <div class="wobbly-box bg-[#F5EFE3] p-4 text-center">
+                  <span class="text-xs font-hand font-bold text-[#8C8273]">BURN RATE HARIAN</span>
+                  <div class="text-2xl font-mono font-extrabold text-[#C25438] mt-1">Rp 130.645/hr</div>
+                  <span class="text-xs font-hand text-[#6B665E]">Target max: 200rb/hr</span>
+                </div>
+              </div>
+              <!-- Ledger Sheet -->
+              <div class="wobbly-box bg-white p-4">
+                <div class="flex justify-between items-center mb-2 pb-2 border-b-2 border-[#2C2A26] font-hand font-bold">
+                  <span class="text-base">Catatan Pembukuan Harian</span>
+                  <span class="text-xs font-mono text-[#8C8273]">Gunakan pensil / klik untuk edit</span>
+                </div>
+                <div class="space-y-2 text-xs font-hand text-sm">
+                  <div class="flex justify-between p-1.5 border-b border-dashed border-[#D8CFBF]">
+                    <span>🍔 02 Okt — Makan Siang Soto Betawi (GoPay [G])</span>
+                    <span class="font-mono font-bold text-[#C25438]">-Rp 45.000</span>
+                  </div>
+                  <div class="flex justify-between p-1.5 border-b border-dashed border-[#D8CFBF]">
+                    <span>⚡ 02 Okt — Transfer BNI ke SeaBank (Admin Fee: Rp 2.500)</span>
+                    <span class="font-mono font-bold text-[#2C2A26]">Rp 2.500.000</span>
+                  </div>
+                  <div class="flex justify-between p-1.5">
+                    <span>💰 01 Okt — Gaji & Honor Freelance (BNI [B])</span>
+                    <span class="font-mono font-bold text-[#2E6F40]">+Rp 12.500.000</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. BOTANICAL HERBARIUM -->
+    <section class="concept-card craft" data-concept="2">
+      <div class="flex flex-wrap items-center justify-between mb-4 border-b-2 border-dashed border-[#7A9A83] pb-2">
+        <div class="flex items-center gap-2">
+          <span class="w-6 h-6 rounded-full bg-[#7A9A83] text-white text-xs font-bold flex items-center justify-center font-hand">2</span>
+          <h2 class="text-xl font-bold font-hand text-2xl text-[#2E4A35]">Botanical Herbarium</h2>
+          <span class="text-xs font-mono text-[#5A7A65]">(Hijau Sage Cat Air #E3EBE4 • Daun Mini • Katun Organik)</span>
+        </div>
+        <span class="washi-tape px-2 text-xs font-hand bg-[#DCE6DF] text-[#2E4A35]">Tenang & Alami</span>
+      </div>
+      
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div class="lg:col-span-4 flex justify-center phone-wrapper">
+          <div class="phone-mockup-frame bg-[#F4F7F4] text-[#2E4A35] border-[#5A7A65]">
+            <div class="phone-notch-warm bg-[#5A7A65]"></div>
+            <div class="pt-3 px-5 pb-2 flex justify-between text-[11px] font-hand font-bold text-[#5A7A65]">
+              <span>09:41</span><span>🌿 Herbarium Dompet</span>
+            </div>
+            <div class="flex-1 overflow-y-auto px-4 pt-1 pb-3 space-y-3">
+              <div class="wobbly-box bg-[#E6EFE8] border-[#5A7A65] p-3 text-center">
+                <span class="text-[10px] font-hand font-bold text-[#5A7A65]">Saldo Tersimpan Segar</span>
+                <div class="text-2xl font-mono font-extrabold text-[#2E4A35] mt-0.5">Rp 48.750.000</div>
+                <div class="text-[9px] font-hand text-[#5A7A65] mt-1">🌱 10 Akun Likuid Berkembang</div>
+              </div>
+              <div class="p-3 bg-white rounded-2xl border border-[#C5D6C8] shadow-sm space-y-2 font-hand text-sm">
+                <div class="flex justify-between items-center border-b border-[#E3EBE4] pb-1.5">
+                  <span>🍃 Soto Betawi (GoPay)</span>
+                  <span class="font-mono text-[#C25438] font-bold text-xs">-Rp 45.000</span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span>🌾 Gaji Bulanan (BNI)</span>
+                  <span class="font-mono text-[#2E6F40] font-bold text-xs">+Rp 12.500.000</span>
+                </div>
+              </div>
+            </div>
+            <div class="phone-home-indicator bg-[#7A9A83]"></div>
+          </div>
+        </div>
+
+        <div class="lg:col-span-8 desktop-wrapper">
+          <div class="desktop-mockup-frame bg-[#F4F7F4] text-[#2E4A35] border-[#5A7A65]">
+            <div class="desktop-window-bar bg-[#E3EBE4] border-[#5A7A65] font-hand font-bold">
+              <span>🌿 The Herbarium Ledger // Natural Wealth</span>
+              <span>Oktober 2026</span>
+            </div>
+            <div class="p-6 space-y-4">
+              <div class="grid grid-cols-3 gap-4">
+                <div class="wobbly-box bg-[#E6EFE8] border-[#5A7A65] p-4 text-center">
+                  <span class="text-xs font-hand text-[#5A7A65]">SALDO LIKUID</span>
+                  <div class="text-xl font-mono font-extrabold mt-1">Rp 48.750.000</div>
+                </div>
+                <div class="wobbly-box bg-[#E6EFE8] border-[#5A7A65] p-4 text-center">
+                  <span class="text-xs font-hand text-[#5A7A65]">SURPLUS CASHFLOW</span>
+                  <div class="text-xl font-mono font-extrabold text-[#2E6F40] mt-1">+Rp 8.450.000</div>
+                </div>
+                <div class="wobbly-box bg-[#E6EFE8] border-[#5A7A65] p-4 text-center">
+                  <span class="text-xs font-hand text-[#5A7A65]">NET WORTH TOTAL</span>
+                  <div class="text-xl font-mono font-extrabold mt-1">Rp 184.200.000</div>
+                </div>
+              </div>
+              <div class="p-4 bg-white border border-[#C5D6C8] rounded-2xl font-hand text-sm">
+                <span class="font-bold text-base block mb-2">Catatan Keuangan Bertema Botani</span>
+                <p class="text-[#5A7A65] text-xs">Pencatatan keuangan dengan warna sage menenangkan detak jantung saat mengevaluasi pengeluaran bulanan.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. TOKYO TRAVELER'S NOTEBOOK -->
+    <section class="concept-card journal" data-concept="3">
+      <div class="flex flex-wrap items-center justify-between mb-4 border-b-2 border-dashed border-[#A89278] pb-2">
+        <div class="flex items-center gap-2">
+          <span class="w-6 h-6 rounded-full bg-[#8C6D4F] text-white text-xs font-bold flex items-center justify-center font-hand">3</span>
+          <h2 class="text-xl font-bold font-hand text-2xl text-[#4A3825]">Tokyo Traveler's Notebook</h2>
+          <span class="text-xs font-mono text-[#8C6D4F]">(Kertas Kraft #EAE0D0 • Stempel Cap 'Lunas' • Washi Tape)</span>
+        </div>
+        <span class="washi-tape-pink px-2 text-xs font-hand">Passport Stamp Aesthetic</span>
+      </div>
+      
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div class="lg:col-span-4 flex justify-center phone-wrapper">
+          <div class="phone-mockup-frame bg-[#EAE0D0] text-[#4A3825] border-[#8C6D4F]">
+            <div class="phone-notch-warm bg-[#8C6D4F]"></div>
+            <div class="pt-3 px-5 pb-2 flex justify-between text-[11px] font-hand font-bold text-[#8C6D4F]">
+              <span>09:41</span><span>TRAVELER'S CO.</span>
+            </div>
+            <div class="flex-1 overflow-y-auto px-4 pt-1 pb-3 space-y-3">
+              <div class="border-2 border-[#8C6D4F] bg-[#DFD3C0] p-3 rounded-lg relative overflow-hidden">
+                <span class="text-[9px] font-mono tracking-widest text-[#8C6D4F] block">PASSPORT TO WEALTH</span>
+                <div class="text-2xl font-mono font-bold text-[#4A3825]">Rp 48.750.000</div>
+                <div class="stamp-badge absolute right-2 top-2 w-12 h-12 text-[9px]">LUNAS</div>
+              </div>
+              <div class="space-y-1.5 font-hand text-sm">
+                <div class="p-2 bg-[#F2EAE0] border border-[#C5B39A] rounded flex justify-between items-center">
+                  <span>🍱 Ramen & Soto (GoPay)</span>
+                  <span class="font-mono text-[#C25438] text-xs font-bold">-Rp 45.000</span>
+                </div>
+                <div class="p-2 bg-[#F2EAE0] border border-[#C5B39A] rounded flex justify-between items-center">
+                  <span>🚅 Shinkansen / Kereta</span>
+                  <span class="font-mono text-[#4A3825] text-xs font-bold">Rp 2.500.000</span>
+                </div>
+              </div>
+            </div>
+            <div class="phone-home-indicator bg-[#8C6D4F]"></div>
+          </div>
+        </div>
+
+        <div class="lg:col-span-8 desktop-wrapper">
+          <div class="desktop-mockup-frame bg-[#EAE0D0] text-[#4A3825] border-[#8C6D4F]">
+            <div class="desktop-window-bar bg-[#DFD3C0] border-[#8C6D4F] font-hand font-bold">
+              <span>TRAVELER'S NOTEBOOK // MIDORI EDITION</span>
+              <span>STAMP: 2026.10</span>
+            </div>
+            <div class="p-6 space-y-4">
+              <div class="grid grid-cols-3 gap-4 font-mono">
+                <div class="border-2 border-[#8C6D4F] bg-[#DFD3C0] p-4 text-center rounded">
+                  <span class="text-xs text-[#8C6D4F]">LIQUID FUNDS</span>
+                  <div class="text-xl font-bold mt-1">Rp 48.750.000</div>
+                </div>
+                <div class="border-2 border-[#8C6D4F] bg-[#DFD3C0] p-4 text-center rounded">
+                  <span class="text-xs text-[#8C6D4F]">NET SURPLUS</span>
+                  <div class="text-xl font-bold text-[#2E6F40] mt-1">+Rp 8.450.000</div>
+                </div>
+                <div class="border-2 border-[#8C6D4F] bg-[#DFD3C0] p-4 text-center rounded">
+                  <span class="text-xs text-[#8C6D4F]">NET WORTH</span>
+                  <div class="text-xl font-bold mt-1">Rp 184.200.000</div>
+                </div>
+              </div>
+              <div class="p-4 bg-[#F2EAE0] border-2 border-dashed border-[#8C6D4F] rounded">
+                <span class="font-hand font-bold text-base block mb-1">Catatan Perjalanan Finansial Harian</span>
+                <p class="font-hand text-xs text-[#6B553E]">Setiap lembar buku kas terasa seperti stempel paspor berharga di atas kertas kraft tebal.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. THE COFFEE SHOP NAPKIN -->
+    <section class="concept-card journal" data-concept="4">
+      <div class="flex flex-wrap items-center justify-between mb-4 border-b-2 border-dashed border-[#D2B48C] pb-2">
+        <div class="flex items-center gap-2">
+          <span class="w-6 h-6 rounded-full bg-[#6F4E37] text-white text-xs font-bold flex items-center justify-center font-hand">4</span>
+          <h2 class="text-xl font-bold font-hand text-2xl text-[#3E2723]">The Coffee Shop Napkin</h2>
+          <span class="text-xs font-mono text-[#6F4E37]">(Kertas Serbet #F9F5EC • Tinta Pulpen Biru #2B4C7E • Noda Kopi Samar)</span>
+        </div>
+        <span class="washi-tape px-2 text-xs font-hand">Casual Quick Note</span>
+      </div>
+      
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div class="lg:col-span-4 flex justify-center phone-wrapper">
+          <div class="phone-mockup-frame bg-[#F9F5EC] text-[#2B4C7E] border-[#6F4E37]">
+            <div class="phone-notch-warm bg-[#6F4E37]"></div>
+            <div class="pt-3 px-5 pb-2 flex justify-between text-[11px] font-hand font-bold text-[#6F4E37]">
+              <span>09:41</span><span>☕ Catatan di Serbet</span>
+            </div>
+            <div class="flex-1 overflow-y-auto px-4 pt-1 pb-3 space-y-3">
+              <div class="wobbly-box-sm bg-white p-3 text-center border-[#2B4C7E] shadow-sm">
+                <span class="text-[10px] font-hand text-[#6F4E37] block">Sisa Saldo Kas Bersih</span>
+                <div class="text-2xl font-mono font-extrabold text-[#2B4C7E]">Rp 48.750.000</div>
+              </div>
+              <div class="space-y-1.5 font-hand text-sm text-[#2B4C7E]">
+                <div class="p-2 border-b border-dashed border-[#D2B48C] flex justify-between">
+                  <span>☕ 2x Espresso & Croissant</span>
+                  <span class="font-mono font-bold">-Rp 65.000</span>
+                </div>
+                <div class="p-2 border-b border-dashed border-[#D2B48C] flex justify-between">
+                  <span>🍱 Soto Betawi Siang</span>
+                  <span class="font-mono font-bold">-Rp 45.000</span>
+                </div>
+              </div>
+            </div>
+            <div class="phone-home-indicator bg-[#6F4E37]"></div>
+          </div>
+        </div>
+
+        <div class="lg:col-span-8 desktop-wrapper">
+          <div class="desktop-mockup-frame bg-[#F9F5EC] text-[#2B4C7E] border-[#6F4E37]">
+            <div class="desktop-window-bar bg-[#F0E6D2] border-[#6F4E37] font-hand font-bold text-[#6F4E37]">
+              <span>☕ The Coffee Napkin // Quick Expense Record</span>
+              <span>Kedai Kopi Pagi</span>
+            </div>
+            <div class="p-6 space-y-4">
+              <div class="grid grid-cols-3 gap-4">
+                <div class="wobbly-box-sm bg-white p-4 text-center border-[#2B4C7E]">
+                  <span class="text-xs font-hand text-[#6F4E37]">SALDO DOMPET</span>
+                  <div class="text-xl font-mono font-bold mt-1 text-[#2B4C7E]">Rp 48.750.000</div>
+                </div>
+                <div class="wobbly-box-sm bg-white p-4 text-center border-[#2B4C7E]">
+                  <span class="text-xs font-hand text-[#6F4E37]">SURPLUS OKT</span>
+                  <div class="text-xl font-mono font-bold text-[#2E6F40] mt-1">+Rp 8.450.000</div>
+                </div>
+                <div class="wobbly-box-sm bg-white p-4 text-center border-[#2B4C7E]">
+                  <span class="text-xs font-hand text-[#6F4E37]">TOTAL ASET</span>
+                  <div class="text-xl font-mono font-bold mt-1 text-[#2B4C7E]">Rp 184.200.000</div>
+                </div>
+              </div>
+              <div class="p-4 bg-white border border-[#D2B48C] rounded-xl font-hand text-sm">
+                <span class="font-bold text-base block mb-1">Coretan Cepat Bebas Stres</span>
+                <p class="text-[#6F4E37] text-xs">Pencatatan yang terasa seperti coretan santai pulpen biru di atas serbet kopi sebelum memulai hari.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. RETRO 90S SCHOOL NOTEBOOK -->
+    <section class="concept-card journal" data-concept="5">
+      <div class="flex flex-wrap items-center justify-between mb-4 border-b-2 border-dashed border-[#93C5FD] pb-2">
+        <div class="flex items-center gap-2">
+          <span class="w-6 h-6 rounded-full bg-[#1D4ED8] text-white text-xs font-bold flex items-center justify-center font-hand">5</span>
+          <h2 class="text-xl font-bold font-hand text-2xl text-[#1E3A8A]">Retro 90s School Notebook</h2>
+          <span class="text-xs font-mono text-[#1D4ED8]">(Garis Biru Buku Tulis • Margin Merah di Kiri • Stabilo Kuning)</span>
+        </div>
+        <span class="washi-tape px-2 text-xs font-hand">Nostalgia Sekolah 90an</span>
+      </div>
+      
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div class="lg:col-span-4 flex justify-center phone-wrapper">
+          <div class="phone-mockup-frame bg-white text-[#1E3A8A] border-[#1D4ED8]">
+            <div class="phone-notch-warm bg-[#1D4ED8]"></div>
+            <div class="pt-3 px-5 pb-2 flex justify-between text-[11px] font-hand font-bold text-[#1D4ED8]">
+              <span>09:41</span><span>Buku Tulis Keuangan</span>
+            </div>
+            <div class="flex-1 overflow-y-auto pl-7 pr-3 pt-1 pb-3 space-y-3 bg-lined-paper relative" style="border-left: 2px solid #EF4444; margin-left: 14px;">
+              <div class="bg-[#FEF08A] px-2 py-1 inline-block font-hand font-bold text-xs rounded">
+                TOTAL SALDO LIKUID: Rp 48.750.000
+              </div>
+              <div class="space-y-2 font-hand text-sm text-[#1E3A8A]">
+                <div>1. Makan Soto Betawi (GoPay): -Rp 45.000</div>
+                <div>2. Transfer SeaBank: Rp 2.500.000</div>
+                <div>3. Kopi & Roti: -Rp 35.000</div>
+                <div class="text-[#2E6F40] font-bold">4. Gaji Freelance: +Rp 12.500.000</div>
+              </div>
+            </div>
+            <div class="phone-home-indicator bg-[#1D4ED8]"></div>
+          </div>
+        </div>
+
+        <div class="lg:col-span-8 desktop-wrapper">
+          <div class="desktop-mockup-frame bg-white text-[#1E3A8A] border-[#1D4ED8]">
+            <div class="desktop-window-bar bg-[#EFF6FF] border-[#1D4ED8] font-hand font-bold text-[#1D4ED8]">
+              <span>BUKU TULIS KAS SISWA // KELAS KEUANGAN</span>
+              <span>OKTOBER 2026</span>
+            </div>
+            <div class="p-6 bg-lined-paper space-y-4" style="border-left: 4px solid #EF4444;">
+              <div class="flex gap-4">
+                <span class="bg-[#FEF08A] px-3 py-1 font-hand font-bold text-sm">LIKUID: Rp 48.750.000</span>
+                <span class="bg-[#DCFCE7] px-3 py-1 font-hand font-bold text-sm text-[#166534]">SURPLUS: +Rp 8.450.000</span>
+                <span class="bg-[#DBEAFE] px-3 py-1 font-hand font-bold text-sm text-[#1E40AF]">NET WORTH: Rp 184.200.000</span>
+              </div>
+              <p class="font-hand text-sm text-[#374151]">Garis buku tulis klasik dengan margin merah yang membawa memori disiplin mencatat uang saku semasa sekolah.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. ARCHITECT'S SKETCHBOOK -->
+    <section class="concept-card sketch" data-concept="6">
+      <div class="flex flex-wrap items-center justify-between mb-4 border-b-2 border-dashed border-[#4B5563] pb-2">
+        <div class="flex items-center gap-2">
+          <span class="w-6 h-6 rounded-full bg-[#111827] text-white text-xs font-bold flex items-center justify-center font-hand">6</span>
+          <h2 class="text-xl font-bold font-hand text-2xl text-[#111827]">Architect's Sketchbook</h2>
+          <span class="text-xs font-mono text-[#4B5563]">(Font Blueprint • Grid Milimeter Block • Garis Presisi Tangan)</span>
+        </div>
+        <span class="washi-tape px-2 text-xs font-hand">Blueprint Precision</span>
+      </div>
+      
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div class="lg:col-span-4 flex justify-center phone-wrapper">
+          <div class="phone-mockup-frame bg-[#F3F4F6] text-[#111827] border-[#111827]">
+            <div class="phone-notch-warm bg-[#111827]"></div>
+            <div class="pt-3 px-5 pb-2 flex justify-between text-[11px] font-architect font-bold">
+              <span>09:41</span><span>SCALE 1:1</span>
+            </div>
+            <div class="flex-1 overflow-y-auto px-4 pt-1 pb-3 space-y-3 bg-dot-grid">
+              <div class="border-2 border-[#111827] p-3 bg-white font-architect">
+                <span class="text-[9px] uppercase tracking-wider block">LIQUID ASSET PLAN</span>
+                <div class="text-2xl font-bold font-mono">Rp 48.750.000</div>
+              </div>
+              <div class="space-y-1.5 font-architect text-xs">
+                <div class="p-2 border border-[#111827] bg-white flex justify-between">
+                  <span>[01] SOTO BETAWI</span>
+                  <span class="font-mono text-[#DC2626] font-bold">-45.000</span>
+                </div>
+                <div class="p-2 border border-[#111827] bg-white flex justify-between">
+                  <span>[02] TRANSFER SEABANK</span>
+                  <span class="font-mono font-bold">2.500.000</span>
+                </div>
+              </div>
+            </div>
+            <div class="phone-home-indicator bg-[#111827]"></div>
+          </div>
+        </div>
+
+        <div class="lg:col-span-8 desktop-wrapper">
+          <div class="desktop-mockup-frame bg-[#F3F4F6] text-[#111827] border-[#111827]">
+            <div class="desktop-window-bar bg-[#E5E7EB] border-[#111827] font-architect font-bold">
+              <span>ARCHITECTURAL LEDGER // DWG 2026</span>
+              <span>OCTOBER SPEC</span>
+            </div>
+            <div class="p-6 bg-dot-grid space-y-4 font-architect">
+              <div class="grid grid-cols-3 gap-4">
+                <div class="border-2 border-[#111827] bg-white p-4 text-center">
+                  <span class="text-xs">LIQUID CAPITAL</span>
+                  <div class="text-xl font-mono font-bold mt-1">Rp 48.750.000</div>
+                </div>
+                <div class="border-2 border-[#111827] bg-white p-4 text-center">
+                  <span class="text-xs">NET CASHFLOW</span>
+                  <div class="text-xl font-mono font-bold text-[#166534] mt-1">+Rp 8.450.000</div>
+                </div>
+                <div class="border-2 border-[#111827] bg-white p-4 text-center">
+                  <span class="text-xs">TOTAL STRUCTURE</span>
+                  <div class="text-xl font-mono font-bold mt-1">Rp 184.200.000</div>
+                </div>
+              </div>
+              <div class="border-2 border-[#111827] bg-white p-4">
+                <p class="text-xs text-[#374151]">Gaya tipografi arsitek yang tegas, teratur, dan fungsional tanpa ornamen berlebih.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7. PLAYFUL SCRAPBOOK & STICKERS -->
+    <section class="concept-card craft" data-concept="7">
+      <div class="flex flex-wrap items-center justify-between mb-4 border-b-2 border-dashed border-[#F472B6] pb-2">
+        <div class="flex items-center gap-2">
+          <span class="w-6 h-6 rounded-full bg-[#DB2777] text-white text-xs font-bold flex items-center justify-center font-hand">7</span>
+          <h2 class="text-xl font-bold font-hand text-2xl text-[#831843]">Playful Scrapbook & Stickers</h2>
+          <span class="text-xs font-mono text-[#DB2777]">(Card Miring Organik • Stiker Badge Lucu • Washi Tape)</span>
+        </div>
+        <span class="washi-tape-pink px-2 text-xs font-hand">Sticker & Craft Fun</span>
+      </div>
+      
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div class="lg:col-span-4 flex justify-center phone-wrapper">
+          <div class="phone-mockup-frame bg-[#FFFDF9] text-[#831843] border-[#DB2777]">
+            <div class="phone-notch-warm bg-[#DB2777]"></div>
+            <div class="pt-3 px-5 pb-2 flex justify-between text-[11px] font-hand font-bold text-[#DB2777]">
+              <span>09:41</span><span>✨ My Scrapbook</span>
+            </div>
+            <div class="flex-1 overflow-y-auto px-4 pt-1 pb-3 space-y-3">
+              <div class="wobbly-box bg-[#FCE7F3] p-3 text-center transform -rotate-1 shadow-sm">
+                <span class="text-[10px] font-hand font-bold text-[#DB2777]">Saldo Dompet Tersedia</span>
+                <div class="text-2xl font-mono font-bold text-[#831843]">Rp 48.750.000</div>
+              </div>
+              <div class="space-y-2 font-hand text-sm">
+                <div class="p-2 bg-white border border-[#FBCFE8] rounded-xl transform rotate-1 shadow-sm flex justify-between">
+                  <span>🍔 Stiker Makan Soto (GoPay)</span>
+                  <span class="font-mono text-[#E11D48] font-bold text-xs">-45.000</span>
+                </div>
+                <div class="p-2 bg-white border border-[#FBCFE8] rounded-xl transform -rotate-1 shadow-sm flex justify-between">
+                  <span>⚡ Stiker Pindah Dana BNI->SEA</span>
+                  <span class="font-mono font-bold text-xs">2.500.000</span>
+                </div>
+              </div>
+            </div>
+            <div class="phone-home-indicator bg-[#DB2777]"></div>
+          </div>
+        </div>
+
+        <div class="lg:col-span-8 desktop-wrapper">
+          <div class="desktop-mockup-frame bg-[#FFFDF9] text-[#831843] border-[#DB2777]">
+            <div class="desktop-window-bar bg-[#FCE7F3] border-[#DB2777] font-hand font-bold text-[#831843]">
+              <span>✨ The Financial Scrapbook Edition</span>
+              <span>Cute & Organized</span>
+            </div>
+            <div class="p-6 space-y-4">
+              <div class="grid grid-cols-3 gap-4">
+                <div class="wobbly-box bg-[#FCE7F3] p-4 text-center transform -rotate-1">
+                  <span class="text-xs font-hand font-bold text-[#DB2777]">SALDO LIKUID</span>
+                  <div class="text-xl font-mono font-bold mt-1 text-[#831843]">Rp 48.750.000</div>
+                </div>
+                <div class="wobbly-box bg-[#DCFCE7] p-4 text-center transform rotate-1">
+                  <span class="text-xs font-hand font-bold text-[#166534]">CASHFLOW SURPLUS</span>
+                  <div class="text-xl font-mono font-bold text-[#166534] mt-1">+Rp 8.450.000</div>
+                </div>
+                <div class="wobbly-box bg-[#FEF08A] p-4 text-center transform -rotate-1">
+                  <span class="text-xs font-hand font-bold text-[#854D0E]">NET WORTH</span>
+                  <div class="text-xl font-mono font-bold mt-1 text-[#854D0E]">Rp 184.200.000</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 8. STUDIO GHIBLI COTTAGECORE -->
+    <section class="concept-card craft" data-concept="8">
+      <div class="flex flex-wrap items-center justify-between mb-4 border-b-2 border-dashed border-[#B45309] pb-2">
+        <div class="flex items-center gap-2">
+          <span class="w-6 h-6 rounded-full bg-[#B45309] text-white text-xs font-bold flex items-center justify-center font-hand">8</span>
+          <h2 class="text-xl font-bold font-hand text-2xl text-[#78350F]">Studio Ghibli Cottagecore</h2>
+          <span class="text-xs font-mono text-[#B45309]">(Terracotta #C86D51 • Hijau Zaitun #606C38 • Hangat Nostalgik)</span>
+        </div>
+        <span class="washi-tape px-2 text-xs font-hand">Ghibli Warmth</span>
+      </div>
+      
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div class="lg:col-span-4 flex justify-center phone-wrapper">
+          <div class="phone-mockup-frame bg-[#FDFBF7] text-[#78350F] border-[#B45309]">
+            <div class="phone-notch-warm bg-[#B45309]"></div>
+            <div class="pt-3 px-5 pb-2 flex justify-between text-[11px] font-hand font-bold text-[#B45309]">
+              <span>09:41</span><span>🌾 Catatan Pondok</span>
+            </div>
+            <div class="flex-1 overflow-y-auto px-4 pt-1 pb-3 space-y-3">
+              <div class="wobbly-box bg-[#FBEFEA] border-[#C86D51] p-3 text-center">
+                <span class="text-[10px] font-hand font-bold text-[#C86D51]">Pundi-Pundi Emas</span>
+                <div class="text-2xl font-mono font-bold text-[#78350F]">Rp 48.750.000</div>
+              </div>
+              <div class="space-y-1.5 font-hand text-sm">
+                <div class="p-2 border-b border-[#E7D6C4] flex justify-between">
+                  <span>🍞 Roti Gandum & Kopi</span>
+                  <span class="font-mono text-[#C86D51] font-bold text-xs">-45.000</span>
+                </div>
+              </div>
+            </div>
+            <div class="phone-home-indicator bg-[#B45309]"></div>
+          </div>
+        </div>
+
+        <div class="lg:col-span-8 desktop-wrapper">
+          <div class="desktop-mockup-frame bg-[#FDFBF7] text-[#78350F] border-[#B45309]">
+            <div class="desktop-window-bar bg-[#F5EBE1] border-[#B45309] font-hand font-bold">
+              <span>🌾 Cottagecore Ledger // Peaceful Hearth</span>
+              <span>Musim Gugur 2026</span>
+            </div>
+            <div class="p-6 space-y-4">
+              <div class="grid grid-cols-3 gap-4">
+                <div class="wobbly-box bg-[#FBEFEA] border-[#C86D51] p-4 text-center">
+                  <span class="text-xs font-hand text-[#C86D51]">SALDO SIMPANAN</span>
+                  <div class="text-xl font-mono font-bold mt-1">Rp 48.750.000</div>
+                </div>
+                <div class="wobbly-box bg-[#EFF4E8] border-[#606C38] p-4 text-center">
+                  <span class="text-xs font-hand text-[#606C38]">SURPLUS MUSIM INI</span>
+                  <div class="text-xl font-mono font-bold mt-1 text-[#606C38]">+Rp 8.450.000</div>
+                </div>
+                <div class="wobbly-box bg-[#FBEFEA] border-[#C86D51] p-4 text-center">
+                  <span class="text-xs font-hand text-[#C86D51]">KEKAYAAN KELUARGA</span>
+                  <div class="text-xl font-mono font-bold mt-1">Rp 184.200.000</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 9. KINFOLK PAPER EDITORIAL -->
+    <section class="concept-card sketch" data-concept="9">
+      <div class="flex flex-wrap items-center justify-between mb-4 border-b-2 border-dashed border-[#71717A] pb-2">
+        <div class="flex items-center gap-2">
+          <span class="w-6 h-6 rounded-full bg-[#18181B] text-white text-xs font-bold flex items-center justify-center font-hand">9</span>
+          <h2 class="text-xl font-bold font-hand text-2xl text-[#18181B]">Kinfolk Paper Editorial</h2>
+          <span class="text-xs font-mono text-[#71717A]">(Kertas Katun Mewah #F9F6F0 • Tipografi Serif • Coretan Halus Margin)</span>
+        </div>
+        <span class="washi-tape px-2 text-xs font-hand">Artisanal Editorial</span>
+      </div>
+      
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div class="lg:col-span-4 flex justify-center phone-wrapper">
+          <div class="phone-mockup-frame bg-[#F9F6F0] text-[#18181B] border-[#27272A]">
+            <div class="phone-notch-warm bg-[#27272A]"></div>
+            <div class="pt-3 px-5 pb-2 flex justify-between text-[11px] font-serif italic text-[#71717A]">
+              <span>09:41</span><span>KINFOLK VOL. IV</span>
+            </div>
+            <div class="flex-1 overflow-y-auto px-4 pt-1 pb-3 space-y-3 font-serif">
+              <div class="border-b border-[#D4D4D8] pb-3 text-center">
+                <span class="text-[9px] uppercase tracking-widest text-[#71717A] font-sans">AVAILABLE LIQUID FUNDS</span>
+                <div class="text-2xl font-bold italic mt-1">Rp 48.750.000</div>
+              </div>
+              <div class="space-y-2 text-xs">
+                <div class="flex justify-between border-b border-[#E4E4E7] pb-1">
+                  <span>Makan Siang (GoPay)</span><span class="font-mono text-xs">-Rp 45.000</span>
+                </div>
+              </div>
+            </div>
+            <div class="phone-home-indicator bg-[#27272A]"></div>
+          </div>
+        </div>
+
+        <div class="lg:col-span-8 desktop-wrapper">
+          <div class="desktop-mockup-frame bg-[#F9F6F0] text-[#18181B] border-[#27272A]">
+            <div class="desktop-window-bar bg-[#EFECE6] border-[#27272A] font-serif italic">
+              <span>KINFOLK // THE FINANCIAL JOURNAL</span>
+              <span class="font-sans text-xs">AUTUMN ISSUE</span>
+            </div>
+            <div class="p-6 font-serif space-y-4">
+              <div class="grid grid-cols-3 gap-6 border-b border-[#D4D4D8] pb-4">
+                <div><span class="text-xs uppercase font-sans text-[#71717A]">LIQUID</span><div class="text-2xl font-bold italic">Rp 48.750.000</div></div>
+                <div><span class="text-xs uppercase font-sans text-[#71717A]">SURPLUS</span><div class="text-2xl font-bold italic text-[#2E6F40]">+Rp 8.450.000</div></div>
+                <div><span class="text-xs uppercase font-sans text-[#71717A]">NET WORTH</span><div class="text-2xl font-bold italic">Rp 184.200.000</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 10. HANKO STAMP & BENTO -->
+    <section class="concept-card craft" data-concept="10">
+      <div class="flex flex-wrap items-center justify-between mb-4 border-b-2 border-dashed border-[#DC2626] pb-2">
+        <div class="flex items-center gap-2">
+          <span class="w-6 h-6 rounded-full bg-[#DC2626] text-white text-xs font-bold flex items-center justify-center font-hand">10</span>
+          <h2 class="text-xl font-bold font-hand text-2xl text-[#1E1D1B]">Hanko Stamp & Bento</h2>
+          <span class="text-xs font-mono text-[#DC2626]">(Stempel Cap Merah 'PAID' • Kayu Bento Halus • Sudut Melengkung)</span>
+        </div>
+        <span class="stamp-badge w-14 h-6 text-[9px]">PAID</span>
+      </div>
+      
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div class="lg:col-span-4 flex justify-center phone-wrapper">
+          <div class="phone-mockup-frame bg-[#FBF9F5] text-[#1E1D1B] border-[#DC2626]">
+            <div class="phone-notch-warm bg-[#DC2626]"></div>
+            <div class="pt-3 px-5 pb-2 flex justify-between text-[11px] font-hand font-bold text-[#DC2626]">
+              <span>09:41</span><span>BENTO LEDGER</span>
+            </div>
+            <div class="flex-1 overflow-y-auto px-4 pt-1 pb-3 space-y-3">
+              <div class="wobbly-box bg-[#F5EBE1] border-[#DC2626] p-3 text-center relative">
+                <span class="text-[9px] font-hand text-[#8C6D4F]">SALDO DOMPET LIKUID</span>
+                <div class="text-2xl font-mono font-bold">Rp 48.750.000</div>
+                <div class="stamp-badge absolute right-2 top-2 w-10 h-10 text-[8px]">済</div>
+              </div>
+              <div class="p-2 border border-[#E7D6C4] bg-white rounded-xl space-y-1 font-hand text-xs">
+                <div class="flex justify-between items-center">
+                  <span>🍱 Bento Siang (GoPay)</span>
+                  <span class="font-mono text-[#DC2626] font-bold">-45.000</span>
+                </div>
+              </div>
+            </div>
+            <div class="phone-home-indicator bg-[#DC2626]"></div>
+          </div>
+        </div>
+
+        <div class="lg:col-span-8 desktop-wrapper">
+          <div class="desktop-mockup-frame bg-[#FBF9F5] text-[#1E1D1B] border-[#DC2626]">
+            <div class="desktop-window-bar bg-[#F5EBE1] border-[#DC2626] font-hand font-bold text-[#DC2626]">
+              <span>JAPANESE BENTO GRID // HANKO CERTIFIED</span>
+              <span>100% IDR</span>
+            </div>
+            <div class="p-6 space-y-4">
+              <div class="grid grid-cols-3 gap-4 font-mono">
+                <div class="wobbly-box bg-[#F5EBE1] border-[#DC2626] p-4 text-center">
+                  <span class="text-xs text-[#8C6D4F]">LIQUID BALANCE</span>
+                  <div class="text-xl font-bold mt-1">Rp 48.750.000</div>
+                </div>
+                <div class="wobbly-box bg-[#F5EBE1] border-[#DC2626] p-4 text-center">
+                  <span class="text-xs text-[#8C6D4F]">SURPLUS</span>
+                  <div class="text-xl font-bold text-[#2E6F40] mt-1">+Rp 8.450.000</div>
+                </div>
+                <div class="wobbly-box bg-[#F5EBE1] border-[#DC2626] p-4 text-center">
+                  <span class="text-xs text-[#8C6D4F]">NET WORTH</span>
+                  <div class="text-xl font-bold mt-1">Rp 184.200.000</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 11. BULLET JOURNAL (BUJO) HABIT -->
+    <section class="concept-card journal" data-concept="11">
+      <div class="flex flex-wrap items-center justify-between mb-4 border-b-2 border-dashed border-[#8C8273] pb-2">
+        <div class="flex items-center gap-2">
+          <span class="w-6 h-6 rounded-full bg-[#3F3B35] text-white text-xs font-bold flex items-center justify-center font-hand">11</span>
+          <h2 class="text-xl font-bold font-hand text-2xl text-[#3F3B35]">Bullet Journal (BuJo) Habit</h2>
+          <span class="text-xs font-mono text-[#8C8273]">(Matrix Dot-Grid 5mm • Checkbox Arsir Pensil • Brush Lettering)</span>
+        </div>
+        <span class="washi-tape px-2 text-xs font-hand">BuJo Habit Tracker</span>
+      </div>
+      
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div class="lg:col-span-4 flex justify-center phone-wrapper">
+          <div class="phone-mockup-frame bg-[#F4F0E8] text-[#3F3B35] border-[#3F3B35]">
+            <div class="phone-notch-warm bg-[#3F3B35]"></div>
+            <div class="pt-3 px-5 pb-2 flex justify-between text-[11px] font-hand font-bold text-[#8C8273]">
+              <span>09:41</span><span>BuJo Monthly Spread</span>
+            </div>
+            <div class="flex-1 overflow-y-auto px-4 pt-1 pb-3 space-y-3 bg-dot-grid font-hand">
+              <div class="border-2 border-[#3F3B35] bg-[#EBE5DA] p-3 text-center">
+                <span class="text-[10px] tracking-widest text-[#8C8273]">LIQUID CASH INDEX</span>
+                <div class="text-2xl font-bold font-mono">Rp 48.750.000</div>
+              </div>
+              <div class="space-y-1 text-xs">
+                <div class="flex items-center gap-2"><span class="w-4 h-4 border border-[#3F3B35] bg-zinc-300 inline-block text-[9px] text-center">✓</span><span>Catat Pengeluaran Harian</span></div>
+                <div class="flex items-center gap-2"><span class="w-4 h-4 border border-[#3F3B35] bg-zinc-300 inline-block text-[9px] text-center">✓</span><span>Transfer SeaBank (Rp 2.5M)</span></div>
+                <div class="flex items-center gap-2"><span class="w-4 h-4 border border-[#3F3B35] inline-block"></span><span>Target Tabungan 67%</span></div>
+              </div>
+            </div>
+            <div class="phone-home-indicator bg-[#3F3B35]"></div>
+          </div>
+        </div>
+
+        <div class="lg:col-span-8 desktop-wrapper">
+          <div class="desktop-mockup-frame bg-[#F4F0E8] text-[#3F3B35] border-[#3F3B35]">
+            <div class="desktop-window-bar bg-[#EBE5DA] border-[#3F3B35] font-hand font-bold">
+              <span>BULLET JOURNAL // 2026 FINANCIAL HABIT SPREAD</span>
+              <span>OCTOBER INDEX</span>
+            </div>
+            <div class="p-6 bg-dot-grid space-y-4 font-hand">
+              <div class="grid grid-cols-3 gap-4">
+                <div class="border-2 border-[#3F3B35] bg-[#EBE5DA] p-4 text-center">
+                  <span class="text-xs">SALDO LIKUID</span>
+                  <div class="text-xl font-mono font-bold mt-1">Rp 48.750.000</div>
+                </div>
+                <div class="border-2 border-[#3F3B35] bg-[#EBE5DA] p-4 text-center">
+                  <span class="text-xs">NET CASHFLOW</span>
+                  <div class="text-xl font-mono font-bold text-[#2E6F40] mt-1">+Rp 8.450.000</div>
+                </div>
+                <div class="border-2 border-[#3F3B35] bg-[#EBE5DA] p-4 text-center">
+                  <span class="text-xs">NET WORTH</span>
+                  <div class="text-xl font-mono font-bold mt-1">Rp 184.200.000</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 12. ROUGH.JS HAND-WIRED -->
+    <section class="concept-card sketch" data-concept="12">
+      <div class="flex flex-wrap items-center justify-between mb-4 border-b-2 border-dashed border-[#18181B] pb-2">
+        <div class="flex items-center gap-2">
+          <span class="w-6 h-6 rounded-full bg-[#18181B] text-white text-xs font-bold flex items-center justify-center font-hand">12</span>
+          <h2 class="text-xl font-bold font-hand text-2xl text-[#18181B]">Rough.js Hand-Wired</h2>
+          <span class="text-xs font-mono text-[#71717A]">(Garis Pinggir Wobbly • Arsiran Diagonal Sketsa • Rough Aesthetics)</span>
+        </div>
+        <span class="washi-tape px-2 text-xs font-hand">Pure Hand-Drawn</span>
+      </div>
+      
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div class="lg:col-span-4 flex justify-center phone-wrapper">
+          <div class="phone-mockup-frame bg-[#FAF7EE] text-[#18181B] border-[#18181B]">
+            <div class="phone-notch-warm bg-[#18181B]"></div>
+            <div class="pt-3 px-5 pb-2 flex justify-between text-[11px] font-hand font-bold">
+              <span>09:41</span><span>Rough Sketch UI</span>
+            </div>
+            <div class="flex-1 overflow-y-auto px-4 pt-1 pb-3 space-y-3 font-hand">
+              <div class="wobbly-box bg-white p-3 text-center">
+                <span class="text-[10px] text-[#71717A]">TOTAL SALDO LIKUID</span>
+                <div class="text-2xl font-mono font-bold">Rp 48.750.000</div>
+              </div>
+              <div class="wobbly-box bg-white p-2.5 space-y-1 text-xs">
+                <div class="flex justify-between"><span>Soto Betawi</span><span class="font-mono text-rose-600 font-bold">-45.000</span></div>
+                <div class="flex justify-between"><span>SeaBank Trf</span><span class="font-mono font-bold">2.500.000</span></div>
+              </div>
+            </div>
+            <div class="phone-home-indicator bg-[#18181B]"></div>
+          </div>
+        </div>
+
+        <div class="lg:col-span-8 desktop-wrapper">
+          <div class="desktop-mockup-frame bg-[#FAF7EE] text-[#18181B] border-[#18181B]">
+            <div class="desktop-window-bar bg-[#EAE3D2] border-[#18181B] font-hand font-bold">
+              <span>ROUGH.JS WIRED // SKETCHPAD DESKTOP</span>
+              <span>100% IDR</span>
+            </div>
+            <div class="p-6 space-y-4 font-hand">
+              <div class="grid grid-cols-3 gap-4">
+                <div class="wobbly-box bg-white p-4 text-center">
+                  <span class="text-xs">SALDO LIKUID</span>
+                  <div class="text-xl font-mono font-bold mt-1">Rp 48.750.000</div>
+                </div>
+                <div class="wobbly-box bg-white p-4 text-center">
+                  <span class="text-xs">CASHFLOW</span>
+                  <div class="text-xl font-mono font-bold text-[#2E6F40] mt-1">+Rp 8.450.000</div>
+                </div>
+                <div class="wobbly-box bg-white p-4 text-center">
+                  <span class="text-xs">NET WORTH</span>
+                  <div class="text-xl font-mono font-bold mt-1">Rp 184.200.000</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 13. CERAMIC & CLAY CRAFT -->
+    <section class="concept-card craft" data-concept="13">
+      <div class="flex flex-wrap items-center justify-between mb-4 border-b-2 border-dashed border-[#D97A53] pb-2">
+        <div class="flex items-center gap-2">
+          <span class="w-6 h-6 rounded-full bg-[#D97A53] text-white text-xs font-bold flex items-center justify-center font-hand">13</span>
+          <h2 class="text-xl font-bold font-hand text-2xl text-[#7C2D12]">Ceramic & Clay Craft</h2>
+          <span class="text-xs font-mono text-[#D97A53]">(Tembikar Terracotta #D97A53 • Pasir Kuarsa #F4EAD4 • Lengkungan Bebas)</span>
+        </div>
+        <span class="washi-tape px-2 text-xs font-hand bg-[#F4EAD4] text-[#7C2D12]">Handmade Pottery</span>
+      </div>
+      
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div class="lg:col-span-4 flex justify-center phone-wrapper">
+          <div class="phone-mockup-frame bg-[#FBF7F0] text-[#7C2D12] border-[#D97A53]">
+            <div class="phone-notch-warm bg-[#D97A53]"></div>
+            <div class="pt-3 px-5 pb-2 flex justify-between text-[11px] font-hand font-bold text-[#D97A53]">
+              <span>09:41</span><span>🏺 Clay Ledger</span>
+            </div>
+            <div class="flex-1 overflow-y-auto px-4 pt-1 pb-3 space-y-3 font-hand">
+              <div class="p-3 bg-[#F4EAD4] rounded-3xl border border-[#D97A53] text-center">
+                <span class="text-[9px] uppercase font-bold text-[#D97A53]">SALDO TEMBIKAR</span>
+                <div class="text-2xl font-mono font-bold text-[#7C2D12]">Rp 48.750.000</div>
+              </div>
+            </div>
+            <div class="phone-home-indicator bg-[#D97A53]"></div>
+          </div>
+        </div>
+
+        <div class="lg:col-span-8 desktop-wrapper">
+          <div class="desktop-mockup-frame bg-[#FBF7F0] text-[#7C2D12] border-[#D97A53]">
+            <div class="desktop-window-bar bg-[#F4EAD4] border-[#D97A53] font-hand font-bold text-[#7C2D12]">
+              <span>🏺 THE POTTERY STUDIO // CLAY ACCOUNT</span>
+              <span>EARTHEN WARE</span>
+            </div>
+            <div class="p-6 space-y-4">
+              <div class="grid grid-cols-3 gap-4 font-mono">
+                <div class="p-4 bg-[#F4EAD4] rounded-3xl border border-[#D97A53] text-center">
+                  <span class="text-xs text-[#D97A53]">LIKUID</span>
+                  <div class="text-xl font-bold mt-1">Rp 48.750.000</div>
+                </div>
+                <div class="p-4 bg-[#F4EAD4] rounded-3xl border border-[#D97A53] text-center">
+                  <span class="text-xs text-[#D97A53]">SURPLUS</span>
+                  <div class="text-xl font-bold text-[#2E6F40] mt-1">+Rp 8.450.000</div>
+                </div>
+                <div class="p-4 bg-[#F4EAD4] rounded-3xl border border-[#D97A53] text-center">
+                  <span class="text-xs text-[#D97A53]">NET WORTH</span>
+                  <div class="text-xl font-bold mt-1">Rp 184.200.000</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 14. VINTAGE FRENCH RECIPE BOOK -->
+    <section class="concept-card journal" data-concept="14">
+      <div class="flex flex-wrap items-center justify-between mb-4 border-b-2 border-dashed border-[#854D0E] pb-2">
+        <div class="flex items-center gap-2">
+          <span class="w-6 h-6 rounded-full bg-[#854D0E] text-white text-xs font-bold flex items-center justify-center font-hand">14</span>
+          <h2 class="text-xl font-bold font-hand text-2xl text-[#451A03]">Vintage French Recipe Book</h2>
+          <span class="text-xs font-mono text-[#854D0E]">(Kartu Resep Kuno #FDFBF7 • Tinta Sepia #3E2F20 • Klasik)</span>
+        </div>
+        <span class="washi-tape px-2 text-xs font-hand">French Recipe Antique</span>
+      </div>
+      
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div class="lg:col-span-4 flex justify-center phone-wrapper">
+          <div class="phone-mockup-frame bg-[#FDFBF7] text-[#451A03] border-[#854D0E]">
+            <div class="phone-notch-warm bg-[#854D0E]"></div>
+            <div class="pt-3 px-5 pb-2 flex justify-between text-[11px] font-serif italic text-[#854D0E]">
+              <span>09:41</span><span>Livre de Comptes</span>
+            </div>
+            <div class="flex-1 overflow-y-auto px-4 pt-1 pb-3 space-y-3 font-serif">
+              <div class="border-2 border-double border-[#854D0E] p-3 text-center bg-[#FAF5EB]">
+                <span class="text-[9px] uppercase tracking-widest text-[#854D0E]">SOLDE DISPONIBLE</span>
+                <div class="text-2xl font-bold mt-0.5">Rp 48.750.000</div>
+              </div>
+            </div>
+            <div class="phone-home-indicator bg-[#854D0E]"></div>
+          </div>
+        </div>
+
+        <div class="lg:col-span-8 desktop-wrapper">
+          <div class="desktop-mockup-frame bg-[#FDFBF7] text-[#451A03] border-[#854D0E]">
+            <div class="desktop-window-bar bg-[#FAF5EB] border-[#854D0E] font-serif italic text-[#854D0E]">
+              <span>LIVRE DE RECETTES & FINANCES // PARIS 2026</span>
+              <span>OCTOBRE</span>
+            </div>
+            <div class="p-6 font-serif space-y-4">
+              <div class="grid grid-cols-3 gap-4">
+                <div class="border-2 border-double border-[#854D0E] p-4 text-center bg-[#FAF5EB]">
+                  <span class="text-xs uppercase text-[#854D0E]">LIQUIDE</span>
+                  <div class="text-xl font-bold mt-1">Rp 48.750.000</div>
+                </div>
+                <div class="border-2 border-double border-[#854D0E] p-4 text-center bg-[#FAF5EB]">
+                  <span class="text-xs uppercase text-[#854D0E]">SURPLUS</span>
+                  <div class="text-xl font-bold text-[#2E6F40] mt-1">+Rp 8.450.000</div>
+                </div>
+                <div class="border-2 border-double border-[#854D0E] p-4 text-center bg-[#FAF5EB]">
+                  <span class="text-xs uppercase text-[#854D0E]">PATRIMOINE</span>
+                  <div class="text-xl font-bold mt-1">Rp 184.200.000</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 15. FIELD NOTES EXPLORER -->
+    <section class="concept-card sketch" data-concept="15">
+      <div class="flex flex-wrap items-center justify-between mb-4 border-b-2 border-dashed border-[#78350F] pb-2">
+        <div class="flex items-center gap-2">
+          <span class="w-6 h-6 rounded-full bg-[#78350F] text-white text-xs font-bold flex items-center justify-center font-hand">15</span>
+          <h2 class="text-xl font-bold font-hand text-2xl text-[#451A03]">Field Notes Explorer</h2>
+          <span class="text-xs font-mono text-[#78350F]">(Cokelat Kraft Utilitarian #C9B097 • Staples Tembaga • Huruf Petualang)</span>
+        </div>
+        <span class="washi-tape px-2 text-xs font-hand">Field Notes Rugged</span>
+      </div>
+      
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div class="lg:col-span-4 flex justify-center phone-wrapper">
+          <div class="phone-mockup-frame bg-[#C9B097] text-[#3E2723] border-[#78350F]">
+            <div class="phone-notch-warm bg-[#78350F]"></div>
+            <div class="pt-3 px-5 pb-2 flex justify-between text-[11px] font-mono font-bold text-[#451A03]">
+              <span>09:41</span><span>FIELD NOTES</span>
+            </div>
+            <div class="flex-1 overflow-y-auto px-4 pt-1 pb-3 space-y-3 font-mono">
+              <div class="border-2 border-[#78350F] bg-[#BFA388] p-3 text-center">
+                <span class="text-[9px] uppercase tracking-wider block">LIQUID RESERVE</span>
+                <div class="text-2xl font-bold mt-0.5">Rp 48.750.000</div>
+              </div>
+            </div>
+            <div class="phone-home-indicator bg-[#78350F]"></div>
+          </div>
+        </div>
+
+        <div class="lg:col-span-8 desktop-wrapper">
+          <div class="desktop-mockup-frame bg-[#C9B097] text-[#3E2723] border-[#78350F]">
+            <div class="desktop-window-bar bg-[#BFA388] border-[#78350F] font-mono font-bold text-[#451A03]">
+              <span>FIELD NOTES BRAND // FINANCIAL EXPEDITION</span>
+              <span>OCT 2026</span>
+            </div>
+            <div class="p-6 font-mono space-y-4">
+              <div class="grid grid-cols-3 gap-4">
+                <div class="border-2 border-[#78350F] bg-[#BFA388] p-4 text-center">
+                  <span class="text-xs">LIQUID FUNDS</span>
+                  <div class="text-xl font-bold mt-1">Rp 48.750.000</div>
+                </div>
+                <div class="border-2 border-[#78350F] bg-[#BFA388] p-4 text-center">
+                  <span class="text-xs">SURPLUS</span>
+                  <div class="text-xl font-bold text-[#166534] mt-1">+Rp 8.450.000</div>
+                </div>
+                <div class="border-2 border-[#78350F] bg-[#BFA388] p-4 text-center">
+                  <span class="text-xs">NET WORTH</span>
+                  <div class="text-xl font-bold mt-1">Rp 184.200.000</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 16. PASTEL CRAYON & MARKER -->
+    <section class="concept-card art" data-concept="16">
+      <div class="flex flex-wrap items-center justify-between mb-4 border-b-2 border-dashed border-[#F59E0B] pb-2">
+        <div class="flex items-center gap-2">
+          <span class="w-6 h-6 rounded-full bg-[#F59E0B] text-white text-xs font-bold flex items-center justify-center font-hand">16</span>
+          <h2 class="text-xl font-bold font-hand text-2xl text-[#78350F]">Pastel Crayon & Marker</h2>
+          <span class="text-xs font-mono text-[#F59E0B]">(Highlighter Krayon • Peach, Mint, Lemon • Lembut)</span>
+        </div>
+        <span class="washi-tape px-2 text-xs font-hand">Crayon Highlighter</span>
+      </div>
+      
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div class="lg:col-span-4 flex justify-center phone-wrapper">
+          <div class="phone-mockup-frame bg-[#FFFBEB] text-[#78350F] border-[#F59E0B]">
+            <div class="phone-notch-warm bg-[#F59E0B]"></div>
+            <div class="pt-3 px-5 pb-2 flex justify-between text-[11px] font-hand font-bold text-[#B45309]">
+              <span>09:41</span><span>🖍 Pastel Marker</span>
+            </div>
+            <div class="flex-1 overflow-y-auto px-4 pt-1 pb-3 space-y-3 font-hand">
+              <div class="bg-[#FEF08A] p-3 rounded-2xl text-center shadow-sm">
+                <span class="text-[10px] text-[#854D0E] font-bold">TOTAL SALDO LIKUID</span>
+                <div class="text-2xl font-mono font-bold text-[#78350F]">Rp 48.750.000</div>
+              </div>
+            </div>
+            <div class="phone-home-indicator bg-[#F59E0B]"></div>
+          </div>
+        </div>
+
+        <div class="lg:col-span-8 desktop-wrapper">
+          <div class="desktop-mockup-frame bg-[#FFFBEB] text-[#78350F] border-[#F59E0B]">
+            <div class="desktop-window-bar bg-[#FEF3C7] border-[#F59E0B] font-hand font-bold text-[#78350F]">
+              <span>🖍 CRAYON & PASTEL MARKERS // ART JOURNAL</span>
+              <span>OCTOBER 2026</span>
+            </div>
+            <div class="p-6 space-y-4 font-hand">
+              <div class="grid grid-cols-3 gap-4">
+                <div class="bg-[#FEF08A] p-4 rounded-2xl text-center">
+                  <span class="text-xs text-[#854D0E]">SALDO LIKUID</span>
+                  <div class="text-xl font-mono font-bold mt-1">Rp 48.750.000</div>
+                </div>
+                <div class="bg-[#DCFCE7] p-4 rounded-2xl text-center">
+                  <span class="text-xs text-[#166534]">SURPLUS</span>
+                  <div class="text-xl font-mono font-bold mt-1 text-[#166534]">+Rp 8.450.000</div>
+                </div>
+                <div class="bg-[#FCE7F3] p-4 rounded-2xl text-center">
+                  <span class="text-xs text-[#9D174D]">NET WORTH</span>
+                  <div class="text-xl font-mono font-bold mt-1 text-[#9D174D]">Rp 184.200.000</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 17. RISOGRAPH INDIE ZINE -->
+    <section class="concept-card art" data-concept="17">
+      <div class="flex flex-wrap items-center justify-between mb-4 border-b-2 border-dashed border-[#FF6B6B] pb-2">
+        <div class="flex items-center gap-2">
+          <span class="w-6 h-6 rounded-full bg-[#FF6B6B] text-white text-xs font-bold flex items-center justify-center font-hand">17</span>
+          <h2 class="text-xl font-bold font-hand text-2xl text-[#2D6A4F]">Risograph Indie Zine</h2>
+          <span class="text-xs font-mono text-[#FF6B6B]">(Cetak 2 Warna Tinta Riso: Coral #FF6B6B & Hunter Green #2D6A4F • Halftone Grain)</span>
+        </div>
+        <span class="washi-tape-pink px-2 text-xs font-hand">Riso Print 2-Color</span>
+      </div>
+      
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div class="lg:col-span-4 flex justify-center phone-wrapper">
+          <div class="phone-mockup-frame bg-[#FFF8F0] text-[#2D6A4F] border-[#FF6B6B]">
+            <div class="phone-notch-warm bg-[#FF6B6B]"></div>
+            <div class="pt-3 px-5 pb-2 flex justify-between text-[11px] font-mono font-bold text-[#FF6B6B]">
+              <span>09:41</span><span>RISO ZINE</span>
+            </div>
+            <div class="flex-1 overflow-y-auto px-4 pt-1 pb-3 space-y-3 font-mono">
+              <div class="border-2 border-[#2D6A4F] bg-[#FFE8E8] p-3 text-center">
+                <span class="text-[9px] uppercase text-[#FF6B6B] font-bold">LIQUID RESERVE</span>
+                <div class="text-2xl font-bold text-[#2D6A4F]">Rp 48.750.000</div>
+              </div>
+            </div>
+            <div class="phone-home-indicator bg-[#FF6B6B]"></div>
+          </div>
+        </div>
+
+        <div class="lg:col-span-8 desktop-wrapper">
+          <div class="desktop-mockup-frame bg-[#FFF8F0] text-[#2D6A4F] border-[#FF6B6B]">
+            <div class="desktop-window-bar bg-[#FFE8E8] border-[#FF6B6B] font-mono font-bold text-[#2D6A4F]">
+              <span>RISOGRAPH PRESS // ISSUE 10</span>
+              <span>CORAL & HUNTER GREEN</span>
+            </div>
+            <div class="p-6 font-mono space-y-4">
+              <div class="grid grid-cols-3 gap-4">
+                <div class="border-2 border-[#2D6A4F] bg-[#FFE8E8] p-4 text-center">
+                  <span class="text-xs text-[#FF6B6B]">LIQUID</span>
+                  <div class="text-xl font-bold mt-1">Rp 48.750.000</div>
+                </div>
+                <div class="border-2 border-[#2D6A4F] bg-[#FFE8E8] p-4 text-center">
+                  <span class="text-xs text-[#2D6A4F]">SURPLUS</span>
+                  <div class="text-xl font-bold mt-1">+Rp 8.450.000</div>
+                </div>
+                <div class="border-2 border-[#2D6A4F] bg-[#FFE8E8] p-4 text-center">
+                  <span class="text-xs text-[#FF6B6B]">NET WORTH</span>
+                  <div class="text-xl font-bold mt-1">Rp 184.200.000</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 18. GOUACHE & PALETTE -->
+    <section class="concept-card art" data-concept="18">
+      <div class="flex flex-wrap items-center justify-between mb-4 border-b-2 border-dashed border-[#059669] pb-2">
+        <div class="flex items-center gap-2">
+          <span class="w-6 h-6 rounded-full bg-[#059669] text-white text-xs font-bold flex items-center justify-center font-hand">18</span>
+          <h2 class="text-xl font-bold font-hand text-2xl text-[#064E3B]">Gouache & Palette</h2>
+          <span class="text-xs font-mono text-[#059669]">(Sapuan Kuas Cat Air • Tekstur Cat Basah Menenangkan • Artistik)</span>
+        </div>
+        <span class="washi-tape px-2 text-xs font-hand">Gouache Brush Strokes</span>
+      </div>
+      
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div class="lg:col-span-4 flex justify-center phone-wrapper">
+          <div class="phone-mockup-frame bg-[#F2FBF7] text-[#064E3B] border-[#059669]">
+            <div class="phone-notch-warm bg-[#059669]"></div>
+            <div class="pt-3 px-5 pb-2 flex justify-between text-[11px] font-hand font-bold text-[#059669]">
+              <span>09:41</span><span>🎨 Cat Air Gouache</span>
+            </div>
+            <div class="flex-1 overflow-y-auto px-4 pt-1 pb-3 space-y-3 font-hand">
+              <div class="bg-[#D1FAE5] p-3 rounded-2xl text-center shadow">
+                <span class="text-[10px] text-[#065F46] font-bold">SALDO LIKUID DOMPET</span>
+                <div class="text-2xl font-mono font-bold text-[#064E3B]">Rp 48.750.000</div>
+              </div>
+            </div>
+            <div class="phone-home-indicator bg-[#059669]"></div>
+          </div>
+        </div>
+
+        <div class="lg:col-span-8 desktop-wrapper">
+          <div class="desktop-mockup-frame bg-[#F2FBF7] text-[#064E3B] border-[#059669]">
+            <div class="desktop-window-bar bg-[#D1FAE5] border-[#059669] font-hand font-bold text-[#064E3B]">
+              <span>🎨 GOUACHE ARTIST PALETTE // OCTOBER EXHIBITION</span>
+              <span>CALM WATERCOLOR</span>
+            </div>
+            <div class="p-6 font-hand space-y-4">
+              <div class="grid grid-cols-3 gap-4">
+                <div class="bg-[#D1FAE5] p-4 rounded-2xl text-center shadow">
+                  <span class="text-xs text-[#065F46]">SALDO LIKUID</span>
+                  <div class="text-xl font-mono font-bold mt-1">Rp 48.750.000</div>
+                </div>
+                <div class="bg-[#D1FAE5] p-4 rounded-2xl text-center shadow">
+                  <span class="text-xs text-[#065F46]">SURPLUS BULANAN</span>
+                  <div class="text-xl font-mono font-bold mt-1">+Rp 8.450.000</div>
+                </div>
+                <div class="bg-[#D1FAE5] p-4 rounded-2xl text-center shadow">
+                  <span class="text-xs text-[#065F46]">NET WORTH</span>
+                  <div class="text-xl font-mono font-bold mt-1">Rp 184.200.000</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 19. STICKY NOTES DESK -->
+    <section class="concept-card art" data-concept="19">
+      <div class="flex flex-wrap items-center justify-between mb-4 border-b-2 border-dashed border-[#CA8A04] pb-2">
+        <div class="flex items-center gap-2">
+          <span class="w-6 h-6 rounded-full bg-[#CA8A04] text-white text-xs font-bold flex items-center justify-center font-hand">19</span>
+          <h2 class="text-xl font-bold font-hand text-2xl text-[#713F12]">Sticky Notes Desk</h2>
+          <span class="text-xs font-mono text-[#CA8A04]">(Post-it Kuning & Pastel • Tertata Alami di Meja Linen • Selotip Bening)</span>
+        </div>
+        <span class="washi-tape px-2 text-xs font-hand">Sticky Post-It Desk</span>
+      </div>
+      
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div class="lg:col-span-4 flex justify-center phone-wrapper">
+          <div class="phone-mockup-frame bg-[#FAF7EE] text-[#713F12] border-[#CA8A04]">
+            <div class="phone-notch-warm bg-[#CA8A04]"></div>
+            <div class="pt-3 px-5 pb-2 flex justify-between text-[11px] font-hand font-bold text-[#CA8A04]">
+              <span>09:41</span><span>📝 Sticky Board</span>
+            </div>
+            <div class="flex-1 overflow-y-auto px-4 pt-1 pb-3 space-y-3 font-hand">
+              <!-- Yellow Post-It -->
+              <div class="bg-[#FEF08A] p-3 shadow-md transform -rotate-1 border border-yellow-300">
+                <span class="text-[9px] font-bold text-[#854D0E] block">SALDO UTAMA DI MEJA</span>
+                <div class="text-2xl font-mono font-bold text-[#713F12]">Rp 48.750.000</div>
+              </div>
+              <!-- Green Post-It -->
+              <div class="bg-[#DCFCE7] p-2.5 shadow-md transform rotate-1 border border-green-300 text-xs text-[#14532D]">
+                <div class="font-bold">Pengeluaran Hari Ini:</div>
+                <div>🍔 Soto Betawi (-45rb)</div>
+                <div>⚡ Transfer SeaBank (2.5jt)</div>
+              </div>
+            </div>
+            <div class="phone-home-indicator bg-[#CA8A04]"></div>
+          </div>
+        </div>
+
+        <div class="lg:col-span-8 desktop-wrapper">
+          <div class="desktop-mockup-frame bg-[#FAF7EE] text-[#713F12] border-[#CA8A04]">
+            <div class="desktop-window-bar bg-[#FEF08A] border-[#CA8A04] font-hand font-bold text-[#713F12]">
+              <span>📝 STICKY NOTES DESKTOP // ORGANIZE YOUR LIFE</span>
+              <span>OCTOBER DESK</span>
+            </div>
+            <div class="p-6 space-y-4 font-hand">
+              <div class="grid grid-cols-3 gap-4">
+                <div class="bg-[#FEF08A] p-4 shadow-md transform -rotate-1 border border-yellow-300 text-center">
+                  <span class="text-xs text-[#854D0E]">SALDO LIKUID</span>
+                  <div class="text-xl font-mono font-bold mt-1">Rp 48.750.000</div>
+                </div>
+                <div class="bg-[#DCFCE7] p-4 shadow-md transform rotate-1 border border-green-300 text-center">
+                  <span class="text-xs text-[#14532D]">SURPLUS</span>
+                  <div class="text-xl font-mono font-bold mt-1 text-[#14532D]">+Rp 8.450.000</div>
+                </div>
+                <div class="bg-[#FCE7F3] p-4 shadow-md transform -rotate-1 border border-pink-300 text-center">
+                  <span class="text-xs text-[#831843]">NET WORTH</span>
+                  <div class="text-xl font-mono font-bold mt-1 text-[#831843]">Rp 184.200.000</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 20. NORDIC HYGGE WARMTH -->
+    <section class="concept-card craft" data-concept="20">
+      <div class="flex flex-wrap items-center justify-between mb-4 border-b-2 border-dashed border-[#57534E] pb-2">
+        <div class="flex items-center gap-2">
+          <span class="w-6 h-6 rounded-full bg-[#57534E] text-white text-xs font-bold flex items-center justify-center font-hand">20</span>
+          <h2 class="text-xl font-bold font-hand text-2xl text-[#292524]">Nordic Hygge Warmth</h2>
+          <span class="text-xs font-mono text-[#57534E]">(Kayu Birch Terang #F5EFE6 • Sketsa Minimalis Super Tenang • Oatmeal #EFE9E0)</span>
+        </div>
+        <span class="washi-tape px-2 text-xs font-hand">Nordic Hygge Calm</span>
+      </div>
+      
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div class="lg:col-span-4 flex justify-center phone-wrapper">
+          <div class="phone-mockup-frame bg-[#F5EFE6] text-[#292524] border-[#57534E]">
+            <div class="phone-notch-warm bg-[#57534E]"></div>
+            <div class="pt-3 px-5 pb-2 flex justify-between text-[11px] font-hand font-bold text-[#57534E]">
+              <span>09:41</span><span>☕ Hygge Balance</span>
+            </div>
+            <div class="flex-1 overflow-y-auto px-4 pt-1 pb-3 space-y-3 font-hand">
+              <div class="p-4 bg-[#EFE9E0] rounded-3xl border border-[#D6CEC2] text-center">
+                <span class="text-[9px] uppercase font-bold text-[#78716C]">SALDO TENANG LIKUID</span>
+                <div class="text-2xl font-mono font-bold text-[#292524]">Rp 48.750.000</div>
+                <div class="text-[9px] text-[#78716C] mt-1">Ketenangan Pikiran Finansial</div>
+              </div>
+            </div>
+            <div class="phone-home-indicator bg-[#57534E]"></div>
+          </div>
+        </div>
+
+        <div class="lg:col-span-8 desktop-wrapper">
+          <div class="desktop-mockup-frame bg-[#F5EFE6] text-[#292524] border-[#57534E]">
+            <div class="desktop-window-bar bg-[#EFE9E0] border-[#57534E] font-hand font-bold text-[#292524]">
+              <span>HYGGE NORDIC RETREAT // PEACEFUL ACCOUNTS</span>
+              <span>CALM BIRCH WOOD</span>
+            </div>
+            <div class="p-6 space-y-4">
+              <div class="grid grid-cols-3 gap-4 font-mono">
+                <div class="p-4 bg-[#EFE9E0] rounded-3xl border border-[#D6CEC2] text-center">
+                  <span class="text-xs text-[#78716C]">LIKUID</span>
+                  <div class="text-xl font-bold mt-1">Rp 48.750.000</div>
+                </div>
+                <div class="p-4 bg-[#EFE9E0] rounded-3xl border border-[#D6CEC2] text-center">
+                  <span class="text-xs text-[#78716C]">SURPLUS</span>
+                  <div class="text-xl font-bold text-[#2E6F40] mt-1">+Rp 8.450.000</div>
+                </div>
+                <div class="p-4 bg-[#EFE9E0] rounded-3xl border border-[#D6CEC2] text-center">
+                  <span class="text-xs text-[#78716C]">NET WORTH</span>
+                  <div class="text-xl font-bold mt-1">Rp 184.200.000</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // Filter by concept category
+    function filterConcepts(category) {
+      const cards = document.querySelectorAll('.concept-card');
+      const pills = document.querySelectorAll('.filter-pill');
+
+      // Update active pill
+      pills.forEach(p => {
+        p.classList.remove('bg-[#2C2A26]', 'text-[#FAF7EE]');
+        p.classList.add('bg-white', 'text-[#2C2A26]');
+      });
+      event.target.classList.remove('bg-white', 'text-[#2C2A26]');
+      event.target.classList.add('bg-[#2C2A26]', 'text-[#FAF7EE]');
+
+      cards.forEach(card => {
+        if (category === 'all' || card.classList.contains(category)) {
+          card.classList.remove('hidden');
+        } else {
+          card.classList.add('hidden');
+        }
+      });
+    }
+
+    // Toggle Mobile / Desktop View
+    function toggleDeviceView(viewMode) {
+      const phoneWrappers = document.querySelectorAll('.phone-wrapper');
+      const desktopWrappers = document.querySelectorAll('.desktop-wrapper');
+      const btnBoth = document.getElementById('btn-view-both');
+      const btnMobile = document.getElementById('btn-view-mobile');
+      const btnDesktop = document.getElementById('btn-view-desktop');
+
+      [btnBoth, btnMobile, btnDesktop].forEach(b => {
+        b.classList.remove('bg-[#2C2A26]', 'text-white');
+        b.classList.add('text-[#6B665E]');
+      });
+
+      if (viewMode === 'both') {
+        phoneWrappers.forEach(el => el.classList.remove('hidden'));
+        desktopWrappers.forEach(el => el.classList.remove('hidden'));
+        btnBoth.classList.add('bg-[#2C2A26]', 'text-white');
+      } else if (viewMode === 'mobile') {
+        phoneWrappers.forEach(el => el.classList.remove('hidden'));
+        desktopWrappers.forEach(el => el.classList.add('hidden'));
+        btnMobile.classList.add('bg-[#2C2A26]', 'text-white');
+      } else if (viewMode === 'desktop') {
+        phoneWrappers.forEach(el => el.classList.add('hidden'));
+        desktopWrappers.forEach(el => el.classList.remove('hidden'));
+        btnDesktop.classList.add('bg-[#2C2A26]', 'text-white');
+      }
+    }
+  </script>
+</body>
+</html>

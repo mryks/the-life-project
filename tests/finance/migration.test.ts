@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { isPrototypeSeedEvent, parseStoredEvents } from '@/lib/finance';
-import { OPENING_BALANCE_DATE } from '@/lib/types';
 
-describe('Opening Balance Migration & Legacy Compatibility (Rule I)', () => {
+describe('Legacy Compatibility & Migration', () => {
   it('seeds 17 ordinary IncomeEvents when storage is empty (null)', () => {
     const parsed = parseStoredEvents(null);
     expect(parsed.shouldPersist).toBe(true);
@@ -13,7 +12,6 @@ describe('Opening Balance Migration & Legacy Compatibility (Rule I)', () => {
 
     for (const event of parsed.events) {
       expect(event.type).toBe('income');
-      expect(event.date).toBe(OPENING_BALANCE_DATE);
       expect(event.amount).toBe(50_000);
       expect(event.description).toBe('Initial balance');
       if (event.type === 'income') {
@@ -49,7 +47,7 @@ describe('Opening Balance Migration & Legacy Compatibility (Rule I)', () => {
     expect(isPrototypeSeedEvent(normalIncome)).toBe(false);
   });
 
-  it('migrates legacy prototype seed from Income to OpeningBalanceEvent while preserving original ID', () => {
+  it('migrates legacy stored items with opening-balance to standard Income events', () => {
     const v1Storage = JSON.stringify({
       version: 1,
       events: [
@@ -58,9 +56,8 @@ describe('Opening Balance Migration & Legacy Compatibility (Rule I)', () => {
           date: '2026-09-28',
           description: 'initial balance',
           amount: 18_565_800,
-          type: 'income',
+          type: 'opening-balance',
           accountId: 'g',
-          category: 'Others',
         },
       ],
     });
@@ -70,14 +67,12 @@ describe('Opening Balance Migration & Legacy Compatibility (Rule I)', () => {
     expect(parsed.events).toHaveLength(1);
 
     const migrated = parsed.events[0];
-    expect(migrated.type).toBe('opening-balance');
-    expect(migrated.id).toBe('prototype-initial-balance'); // ID preserved
+    expect(migrated.type).toBe('income');
+    expect(migrated.id).toBe('prototype-initial-balance');
     expect(migrated.amount).toBe(18_565_800);
-    expect(migrated.date).toBe(OPENING_BALANCE_DATE);
   });
 
   it('explicitly migrates legacy stored IncomeEvent with category "Other" to "Others"', () => {
-    // Legacy stored unversioned array with "Other"
     const legacyArray = JSON.stringify([
       {
         id: 'legacy-inc-other',
@@ -86,7 +81,7 @@ describe('Opening Balance Migration & Legacy Compatibility (Rule I)', () => {
         amount: 500_000,
         type: 'income',
         accountId: 'b',
-        category: 'Other', // Legacy string
+        category: 'Other',
       },
     ]);
 
@@ -96,7 +91,7 @@ describe('Opening Balance Migration & Legacy Compatibility (Rule I)', () => {
     const event = parsed.events[0];
     expect(event.type).toBe('income');
     if (event.type === 'income') {
-      expect(event.category).toBe('Others'); // Normalized to 'Others'
+      expect(event.category).toBe('Others');
     }
   });
 

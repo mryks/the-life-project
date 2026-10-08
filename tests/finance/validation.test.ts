@@ -4,7 +4,6 @@ import type { FinancialEvent } from '@/lib/types';
 import {
   createExpense,
   createIncome,
-  createOpeningBalance,
   createRefund,
   createTransfer,
 } from './helpers/fixtures';
@@ -62,12 +61,21 @@ describe('Event Validation (Rule A)', () => {
       expect(parseEvent(invalidMonth)).toBeNull();
     });
 
-    it('accepts all valid current IncomeCategory values: Salary, Investment, Allowance, Others', () => {
-      for (const category of ['Salary', 'Investment', 'Allowance', 'Others'] as const) {
+    it('accepts all valid current IncomeCategory values: Salary, Allowance, Others', () => {
+      for (const category of ['Salary', 'Allowance', 'Others'] as const) {
         const event = createIncome({ category });
         expect(parseEvent(event)).not.toBeNull();
         expect(validateFinancialEvents([event])).toBe(true);
       }
+    });
+
+    it('rejects NEW IncomeEvent with legacy category "Investment"', () => {
+      const legacyInvestment = {
+        ...createIncome(),
+        category: 'Investment',
+      } as unknown as FinancialEvent;
+      expect(parseEvent(legacyInvestment)).toBeNull();
+      expect(validateFinancialEvents([legacyInvestment])).toBe(false);
     });
 
     it('rejects NEW IncomeEvent with legacy category "Other"', () => {
@@ -201,48 +209,11 @@ describe('Event Validation (Rule A)', () => {
     });
   });
 
-  describe('Opening Balance Validation', () => {
-    it('accepts opening balance with fixed date 2026-09-30 and positive amount', () => {
-      const event = createOpeningBalance({ amount: 18_565_800 });
-      expect(parseEvent(event)).not.toBeNull();
-      expect(validateFinancialEvents([event])).toBe(true);
-    });
-
-    it('accepts opening balance with zero amount', () => {
-      const event = createOpeningBalance({ amount: 0 });
-      expect(parseEvent(event)).not.toBeNull();
-      expect(validateFinancialEvents([event])).toBe(true);
-    });
-
-    it('accepts opening balance with negative amount (overdraft / debt)', () => {
-      const event = createOpeningBalance({ amount: -500_000 });
-      expect(parseEvent(event)).not.toBeNull();
-      expect(validateFinancialEvents([event])).toBe(true);
-    });
-
-    it('rejects opening balance on any date other than 2026-09-30', () => {
-      const badDate = { ...createOpeningBalance(), date: '2026-10-01' } as unknown as FinancialEvent;
-      expect(parseEvent(badDate)).toBeNull();
-      expect(validateFinancialEvents([badDate])).toBe(false);
-    });
-
-    it('rejects decimal amount for opening balance', () => {
-      const decimalEvent = { ...createOpeningBalance(), amount: 1000.5 } as unknown as FinancialEvent;
-      expect(parseEvent(decimalEvent)).toBeNull();
-      expect(validateFinancialEvents([decimalEvent])).toBe(false);
-    });
-
-    it('rejects multiple opening balances for the same account', () => {
-      const op1 = createOpeningBalance({ id: 'op-1', accountId: 'g', amount: 100_000 });
-      const op2 = createOpeningBalance({ id: 'op-2', accountId: 'g', amount: 200_000 });
-      expect(validateFinancialEvents([op1, op2])).toBe(false);
-    });
-
-    it('forbids category, relatedEventId, and transfer fields on opening balance', () => {
-      expect(parseEvent({ ...createOpeningBalance(), category: 'Other' } as unknown as FinancialEvent)).toBeNull();
-      expect(parseEvent({ ...createOpeningBalance(), relatedEventId: 'some-id' } as unknown as FinancialEvent)).toBeNull();
-      expect(parseEvent({ ...createOpeningBalance(), sourceAccountId: 'g' } as unknown as FinancialEvent)).toBeNull();
-      expect(parseEvent({ ...createOpeningBalance(), destinationAccountId: 's' } as unknown as FinancialEvent)).toBeNull();
+  describe('General Invariants', () => {
+    it('rejects events with unknown or legacy event types', () => {
+      const legacyOp = { id: 'op-1', date: '2026-09-30', description: 'op', amount: 100_000, type: 'opening-balance', accountId: 'g' } as unknown as FinancialEvent;
+      expect(parseEvent(legacyOp)).toBeNull();
+      expect(validateFinancialEvents([legacyOp])).toBe(false);
     });
   });
 });

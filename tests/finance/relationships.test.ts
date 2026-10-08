@@ -5,7 +5,6 @@ import {
   createCashback,
   createExpense,
   createIncome,
-  createOpeningBalance,
   createRefund,
   createTransfer,
 } from './helpers/fixtures';
@@ -30,11 +29,6 @@ describe('Relationship Integrity (Rule B)', () => {
       expect(validateFinancialEvents([transfer, cashback])).toBe(false);
     });
 
-    it('rejects cashback pointing to an opening balance event', () => {
-      const opening = createOpeningBalance({ id: 'op-1', accountId: 'g' });
-      const cashback = createCashback({ id: 'cb-1', relatedEventId: 'op-1', accountId: 'g' });
-      expect(validateFinancialEvents([opening, cashback])).toBe(false);
-    });
 
     it('rejects orphan cashback when parent expense does not exist', () => {
       const cashback = createCashback({ id: 'cb-1', relatedEventId: 'non-existent-exp', accountId: 'g' });
@@ -83,11 +77,6 @@ describe('Relationship Integrity (Rule B)', () => {
       expect(validateFinancialEvents([transfer, refund])).toBe(false);
     });
 
-    it('rejects refund pointing to an opening balance event', () => {
-      const opening = createOpeningBalance({ id: 'op-1', accountId: 'g' });
-      const refund = createRefund({ id: 'ref-1', relatedEventId: 'op-1', accountId: 'g' });
-      expect(validateFinancialEvents([opening, refund])).toBe(false);
-    });
 
     it('rejects orphan refund when parent expense does not exist', () => {
       const refund = createRefund({ id: 'ref-1', relatedEventId: 'non-existent-exp', accountId: 'g' });

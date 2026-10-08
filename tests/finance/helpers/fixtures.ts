@@ -1,11 +1,9 @@
 import type {
   ExpenseEvent,
   IncomeEvent,
-  OpeningBalanceEvent,
   RefundEvent,
   TransferEvent,
 } from '@/lib/types';
-import { OPENING_BALANCE_DATE } from '@/lib/types';
 
 export const createIncome = (overrides?: Partial<IncomeEvent>): IncomeEvent => ({
   id: 'inc-test-1',
@@ -63,12 +61,13 @@ export const createCashback = (overrides?: Partial<IncomeEvent>): IncomeEvent =>
   ...overrides,
 });
 
-export const createOpeningBalance = (overrides?: Partial<OpeningBalanceEvent>): OpeningBalanceEvent => ({
-  id: 'op-test-1',
-  date: OPENING_BALANCE_DATE,
-  description: 'Opening balance',
+export const createInitialBalance = (overrides?: Partial<IncomeEvent>): IncomeEvent => ({
+  id: 'init-test-1',
+  date: '2026-09-30',
+  description: 'Initial balance',
   amount: 1_000_000,
-  type: 'opening-balance',
+  type: 'income',
   accountId: 'g',
+  category: 'Others',
   ...overrides,
 });

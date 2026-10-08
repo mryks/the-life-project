@@ -18,7 +18,6 @@ import {
   createCashback,
   createExpense,
   createIncome,
-  createOpeningBalance,
   createRefund,
   createTransfer,
 } from './helpers/fixtures';
@@ -60,18 +59,16 @@ describe('P1.3 Backup, Export and Restore', () => {
     const refund = createRefund({ id: 'ref-1', relatedEventId: 'exp-1' });
     const income = createIncome({ id: 'inc-1' });
     const transfer = createTransfer({ id: 'trf-1' });
-    const opening = createOpeningBalance({ id: 'op-1', accountId: 'b' });
 
-    const events: FinancialEvent[] = [opening, expense, cashback, refund, income, transfer];
+    const events: FinancialEvent[] = [expense, cashback, refund, income, transfer];
     const envelope = createBackupEnvelope(events);
 
-    expect(envelope.events).toHaveLength(6);
+    expect(envelope.events).toHaveLength(5);
     const types = envelope.events.map((e) => e.type);
     expect(types).toContain('income');
     expect(types).toContain('expense');
     expect(types).toContain('transfer');
     expect(types).toContain('refund');
-    expect(types).toContain('opening-balance');
   });
 
   // 3. Export preserves event IDs.
@@ -112,15 +109,16 @@ describe('P1.3 Backup, Export and Restore', () => {
     }
   });
 
-  // 6. Export preserves Opening Balance.
-  it('6. export preserves Opening Balance amounts, account, and date', () => {
-    const opening = createOpeningBalance({
-      id: 'op-b',
+  // 6. Export preserves Income amounts, account, and date.
+  it('6. export preserves Income amounts, account, and date', () => {
+    const income = createIncome({
+      id: 'inc-b',
       accountId: 'b',
-      amount: -350_000,
+      amount: 350_000,
+      date: '2026-05-10',
     });
-    const envelope = createBackupEnvelope([opening]);
-    expect(envelope.events[0]).toEqual(opening);
+    const envelope = createBackupEnvelope([income]);
+    expect(envelope.events[0]).toEqual(income);
   });
 
   // 7. Export does not include derived ledger entries.
@@ -316,14 +314,11 @@ describe('P1.3 Backup, Export and Restore', () => {
     expect(result.success).toBe(false);
   });
 
-  // 19. Invalid Opening Balance is rejected safely.
-  it('19. invalid Opening Balance (multiple for same account) is rejected safely', () => {
-    const op1 = createOpeningBalance({ id: 'op-1', accountId: 'g', amount: 100_000 });
-    const op2 = createOpeningBalance({ id: 'op-2', accountId: 'g', amount: 200_000 });
-
+  // 19. Invalid event type is rejected safely.
+  it('19. invalid event type is rejected safely', () => {
     const json = JSON.stringify({
       version: 2,
-      events: [op1, op2],
+      events: [{ id: 'bad-1', date: '2026-10-02', description: 'bad', amount: 100_000, type: 'unknown-type', accountId: 'g' }],
     });
     const result = parseAndValidateBackup(json);
     expect(result.success).toBe(false);
@@ -456,7 +451,7 @@ describe('P1.3 Backup, Export and Restore', () => {
   // 25. Imported derived data is NOT persisted as a second source of truth.
   it('25. restored state only persists { version: 2, events } in localStorage', () => {
     const events: FinancialEvent[] = [
-      createOpeningBalance({ id: 'op-g', accountId: 'g', amount: 1_000_000 }),
+      createIncome({ id: 'inc-g', accountId: 'g', amount: 1_000_000 }),
       createExpense({ id: 'exp-1', amount: 200_000 }),
     ];
     const backup = serializeBackup(events);
@@ -480,8 +475,7 @@ describe('P1.3 Backup, Export and Restore', () => {
   // 26. Successful restore reconstructs balances/reports from imported events.
   it('26. successful restore reconstructs balances and reports deterministically', () => {
     const events: FinancialEvent[] = [
-      createOpeningBalance({ id: 'op-g', accountId: 'g', amount: 2_000_000 }),
-      createIncome({ id: 'inc-1', accountId: 'g', amount: 1_000_000, date: '2026-10-02' }),
+      createIncome({ id: 'inc-1', accountId: 'g', amount: 3_000_000, date: '2026-10-02' }),
       createExpense({ id: 'exp-1', accountId: 'g', amount: 500_000, date: '2026-10-03' }),
     ];
     const backup = serializeBackup(events);
@@ -497,17 +491,17 @@ describe('P1.3 Backup, Export and Restore', () => {
 
     const stats = calculateFinanceStats(restoredEvents, '2026-10-05');
     expect(stats.totalBalance).toBe(2_500_000);
-    expect(stats.monthlyIncome).toBe(1_000_000);
+    expect(stats.monthlyIncome).toBe(3_000_000);
     expect(stats.monthlyExpense).toBe(500_000);
 
     const ledger = deriveLedgerEntries(restoredEvents);
-    expect(ledger).toHaveLength(3);
+    expect(ledger).toHaveLength(2);
   });
 
   // 27. Exporting after restore produces an equivalent financial dataset.
   it('27. exporting after restore produces an equivalent financial dataset', () => {
     const originalEvents: FinancialEvent[] = [
-      createOpeningBalance({ id: 'op-1', accountId: 'g', amount: 10_000_000 }),
+      createIncome({ id: 'inc-1', accountId: 'g', amount: 10_000_000 }),
       createExpense({ id: 'exp-1', accountId: 'g', amount: 200_000 }),
       createCashback({ id: 'cb-1', accountId: 'g', amount: 20_000, relatedEventId: 'exp-1' }),
       createTransfer({ id: 'trf-1', sourceAccountId: 'g', destinationAccountId: 's', amount: 500_000 }),

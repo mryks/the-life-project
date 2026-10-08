@@ -4,7 +4,6 @@ import {
   createCashback,
   createExpense,
   createIncome,
-  createOpeningBalance,
   createRefund,
   createTransfer,
 } from './helpers/fixtures';
@@ -28,7 +27,7 @@ describe('Ledger Derivation (Rule E)', () => {
   });
 
   it('derives exactly one entry for Expense with direction "out"', () => {
-    const expense = createExpense({ id: 'exp-1', accountId: 's', amount: 150_000, category: 'Food & Drinks' });
+    const expense = createExpense({ id: 'exp-1', accountId: 'g', amount: 250_000, category: 'Food & Drinks' });
     const ledger = deriveLedgerEntries([expense]);
 
     expect(ledger).toHaveLength(1);
@@ -36,60 +35,58 @@ describe('Ledger Derivation (Rule E)', () => {
       eventId: 'exp-1',
       date: expense.date,
       description: expense.description,
-      accountId: 's',
-      amount: 150_000,
+      accountId: 'g',
+      amount: 250_000,
       direction: 'out',
       eventType: 'expense',
       category: 'Food & Drinks',
     });
   });
 
-  it('derives exactly two entries for Transfer sharing the same eventId with net zero system effect', () => {
+  it('derives exactly two entries for Transfer: one "out" from source, one "in" to destination', () => {
     const transfer = createTransfer({
       id: 'trf-1',
       sourceAccountId: 'g',
       destinationAccountId: 's',
-      amount: 300_000,
-      description: 'Transfer G to S',
+      amount: 100_000,
     });
     const ledger = deriveLedgerEntries([transfer]);
 
     expect(ledger).toHaveLength(2);
 
-    const outLeg = ledger.find((e) => e.direction === 'out');
-    const inLeg = ledger.find((e) => e.direction === 'in');
+    const sourceEntry = ledger.find((e) => e.accountId === 'g');
+    expect(sourceEntry).toBeDefined();
+    expect(sourceEntry).toMatchObject({
+      eventId: 'trf-1',
+      direction: 'out',
+      amount: 100_000,
+      eventType: 'transfer',
+      counterpartyAccountId: 's',
+    });
 
-    expect(outLeg).toBeDefined();
-    expect(outLeg!.accountId).toBe('g');
-    expect(outLeg!.counterpartyAccountId).toBe('s');
-    expect(outLeg!.amount).toBe(300_000);
-    expect(outLeg!.eventId).toBe('trf-1');
-
-    expect(inLeg).toBeDefined();
-    expect(inLeg!.accountId).toBe('s');
-    expect(inLeg!.counterpartyAccountId).toBe('g');
-    expect(inLeg!.amount).toBe(300_000);
-    expect(inLeg!.eventId).toBe('trf-1');
-
-    // Net balance effect across system is 0
-    const netEffect = ledger.reduce((sum, e) => sum + (e.direction === 'in' ? e.amount : -e.amount), 0);
-    expect(netEffect).toBe(0);
+    const destEntry = ledger.find((e) => e.accountId === 's');
+    expect(destEntry).toBeDefined();
+    expect(destEntry).toMatchObject({
+      eventId: 'trf-1',
+      direction: 'in',
+      amount: 100_000,
+      eventType: 'transfer',
+      counterpartyAccountId: 'g',
+    });
   });
 
-  it('derives one inflow entry for Cashback that contributes positively to balance', () => {
-    const expense = createExpense({ id: 'exp-1', accountId: 'g', amount: 200_000 });
-    const cashback = createCashback({ id: 'cb-1', relatedEventId: 'exp-1', accountId: 'g', amount: 20_000 });
+  it('derives one outflow entry for Expense, and one inflow entry for Cashback', () => {
+    const expense = createExpense({ id: 'exp-1', accountId: 'g', amount: 100_000 });
+    const cashback = createCashback({ id: 'cb-1', relatedEventId: 'exp-1', accountId: 'g', amount: 10_000 });
     const ledger = deriveLedgerEntries([expense, cashback]);
 
-    const cbEntry = ledger.find((e) => e.eventId === 'cb-1');
-    expect(cbEntry).toBeDefined();
-    expect(cbEntry!.direction).toBe('in');
-    expect(cbEntry!.amount).toBe(20_000);
-    expect(cbEntry!.accountId).toBe('g');
+    expect(ledger).toHaveLength(2);
+    expect(ledger[0]).toMatchObject({ eventId: 'exp-1', direction: 'out', amount: 100_000 });
+    expect(ledger[1]).toMatchObject({ eventId: 'cb-1', direction: 'in', amount: 10_000, category: 'Cashback' });
   });
 
   it('derives one inflow entry for Refund attributed to the original Expense category', () => {
-    const expense = createExpense({ id: 'exp-1', accountId: 'g', amount: 150_000, category: 'Shopping' });
+    const expense = createExpense({ id: 'exp-1', accountId: 'g', amount: 150_000, category: 'Personal Care' });
     const refund = createRefund({ id: 'ref-1', relatedEventId: 'exp-1', accountId: 'g', amount: 50_000 });
     const ledger = deriveLedgerEntries([expense, refund]);
 
@@ -97,54 +94,10 @@ describe('Ledger Derivation (Rule E)', () => {
     expect(refEntry).toBeDefined();
     expect(refEntry!.direction).toBe('in');
     expect(refEntry!.amount).toBe(50_000);
-    expect(refEntry!.category).toBe('Shopping');
-  });
-
-  describe('Opening Balance ledger derivation', () => {
-    it('derives inflow entry with positive amount for positive opening balance', () => {
-      const op = createOpeningBalance({ id: 'op-1', accountId: 'g', amount: 5_000_000 });
-      const ledger = deriveLedgerEntries([op]);
-
-      expect(ledger).toHaveLength(1);
-      expect(ledger[0].direction).toBe('in');
-      expect(ledger[0].amount).toBe(5_000_000);
-    });
-
-    it('derives inflow entry with amount 0 for zero opening balance', () => {
-      const op = createOpeningBalance({ id: 'op-zero', accountId: 'b', amount: 0 });
-      const ledger = deriveLedgerEntries([op]);
-
-      expect(ledger).toHaveLength(1);
-      expect(ledger[0].direction).toBe('in');
-      expect(ledger[0].amount).toBe(0);
-    });
-
-    it('derives outflow entry with absolute amount for negative opening balance', () => {
-      const op = createOpeningBalance({ id: 'op-neg', accountId: 's', amount: -750_000 });
-      const ledger = deriveLedgerEntries([op]);
-
-      expect(ledger).toHaveLength(1);
-      expect(ledger[0].direction).toBe('out');
-      expect(ledger[0].amount).toBe(750_000); // Positive absolute amount
-    });
+    expect(refEntry!.category).toBe('Personal Care');
   });
 
   describe('Ledger Entry Ordering', () => {
-    it('orders entries in ascending recording order with opening balances as starting balances', () => {
-      const e1 = createIncome({ id: 'event-a', date: '2026-10-01' });
-      const e2 = createExpense({ id: 'event-b', date: '2026-10-05' });
-      const e3 = createIncome({ id: 'event-c', date: '2026-10-05' });
-      const op = createOpeningBalance({ id: 'op-1', accountId: 'g' });
-
-      const ledger = deriveLedgerEntries([e1, op, e2, e3]);
-      expect(ledger).toHaveLength(4);
-      expect(ledger[0].eventId).toBe('op-1');
-      expect(ledger[0].eventType).toBe('opening-balance');
-      expect(ledger[1].eventId).toBe('event-a');
-      expect(ledger[2].eventId).toBe('event-b');
-      expect(ledger[3].eventId).toBe('event-c');
-    });
-
     it('orders entries primarily by date ASC and secondarily by recording order ASC within equal dates', () => {
       const oct5First = createIncome({ id: 'oct-5-first', date: '2026-10-05' });
       const oct1First = createExpense({ id: 'oct-1-first', date: '2026-10-01' });
