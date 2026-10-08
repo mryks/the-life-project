@@ -325,6 +325,37 @@ export default function FinancePage() {
   const [undoSnapshot, setUndoSnapshot] = useState<FinancialEvent[] | null>(null);
   const [undoToast, setUndoToast] = useState<string | null>(null);
 
+  // Modal Scroll Lock State
+  const isAnyModalOpen = Boolean(
+    actionMenuOpen ||
+    showForm ||
+    showSyncModal ||
+    showRefundModal ||
+    showBackupModal ||
+    pendingDeleteEventId ||
+    showCashbackAccountWarning
+  );
+
+  // Lock background scrolling when any modal is open
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    if (isAnyModalOpen) {
+      const originalOverflow = document.body.style.overflow;
+      const originalPaddingRight = document.body.style.paddingRight;
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+
+      if (scrollbarWidth > 0) {
+        document.body.style.paddingRight = `${scrollbarWidth}px`;
+      }
+      document.body.style.overflow = 'hidden';
+
+      return () => {
+        document.body.style.overflow = originalOverflow;
+        document.body.style.paddingRight = originalPaddingRight;
+      };
+    }
+  }, [isAnyModalOpen]);
+
   // Month navigation handlers
   const handlePrevMonth = () => {
     const [year, month] = selectedMonth.split('-').map(Number);
@@ -2069,11 +2100,16 @@ export default function FinancePage() {
       {/* ================= ACTION CONTEXT MENU MODAL ================= */}
       {actionMenuOpen && activeEvent && (
         <div 
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 backdrop-blur-xs p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 backdrop-blur-xs p-4 touch-none overscroll-contain select-none"
           onClick={() => { setActionMenuOpen(false); setActiveTransactionId(null); }}
+          onTouchMove={(e) => {
+            if (e.target === e.currentTarget) {
+              e.preventDefault();
+            }
+          }}
         >
           <div 
-            className="bg-white border-2 border-stone-200 border-b-4 border-b-stone-300 w-full max-w-sm rounded-3xl p-5 shadow-2xl space-y-3"
+            className="bg-white border-2 border-stone-200 border-b-4 border-b-stone-300 w-full max-w-sm rounded-3xl p-5 shadow-2xl space-y-3 touch-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="border-b border-stone-100 pb-2.5">
