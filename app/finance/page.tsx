@@ -1972,21 +1972,41 @@ export default function FinancePage() {
               </h3>
             </div>
 
-            {/* Type Switcher Tactile Tabs */}
-            <div className="flex bg-stone-100 p-1.5 rounded-2xl gap-1.5 mb-4 border border-stone-200/80">
+            {/* Type Switcher Fluid Spring Indicator Tabs (Expense, Income, Transfer) */}
+            <div className="relative flex bg-stone-100 p-1.5 rounded-2xl mb-4 border border-stone-200/90 select-none overflow-hidden">
+              {/* Sliding Spring Pill Indicator */}
+              <div
+                className={`absolute top-1.5 bottom-1.5 rounded-xl transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] shadow-xs ${
+                  formType === 'expense'
+                    ? 'bg-rose-500 border-b-2 border-rose-700'
+                    : formType === 'income'
+                    ? 'bg-emerald-500 border-b-2 border-emerald-700'
+                    : 'bg-blue-600 border-b-2 border-blue-800'
+                }`}
+                style={{
+                  width: 'calc((100% - 12px) / 3)',
+                  left:
+                    formType === 'expense'
+                      ? '6px'
+                      : formType === 'income'
+                      ? 'calc(6px + (100% - 12px) / 3)'
+                      : 'calc(6px + (100% - 12px) * 2 / 3)',
+                }}
+              />
+
               <button
                 type="button"
                 onClick={() => {
                   setFormType('expense');
                   if (!editingEventId) setSelectedCategory(null);
                 }}
-                className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                className={`flex-1 py-2 rounded-xl text-xs font-bold relative z-10 transition-colors duration-200 cursor-pointer flex items-center justify-center gap-1.5 ${
                   formType === 'expense'
-                    ? 'btn-tactile-rose shadow-xs'
+                    ? 'text-white'
                     : 'text-stone-600 hover:text-stone-900'
                 }`}
               >
-                <ArrowDownLeft className="w-3.5 h-3.5" />
+                <ArrowDownLeft className="w-3.5 h-3.5 stroke-[2.5]" />
                 <span>Expense</span>
               </button>
               <button
@@ -1995,13 +2015,13 @@ export default function FinancePage() {
                   setFormType('income');
                   if (!editingEventId) setSelectedCategory(null);
                 }}
-                className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                className={`flex-1 py-2 rounded-xl text-xs font-bold relative z-10 transition-colors duration-200 cursor-pointer flex items-center justify-center gap-1.5 ${
                   formType === 'income'
-                    ? 'btn-tactile-primary shadow-xs'
+                    ? 'text-white'
                     : 'text-stone-600 hover:text-stone-900'
                 }`}
               >
-                <ArrowUpRight className="w-3.5 h-3.5" />
+                <ArrowUpRight className="w-3.5 h-3.5 stroke-[2.5]" />
                 <span>Income</span>
               </button>
               <button
@@ -2010,13 +2030,13 @@ export default function FinancePage() {
                   setFormType('transfer');
                   if (!editingEventId) setSelectedCategory(null);
                 }}
-                className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                className={`flex-1 py-2 rounded-xl text-xs font-bold relative z-10 transition-colors duration-200 cursor-pointer flex items-center justify-center gap-1.5 ${
                   formType === 'transfer'
-                    ? 'btn-tactile-blue shadow-xs'
+                    ? 'text-white'
                     : 'text-stone-600 hover:text-stone-900'
                 }`}
               >
-                <ArrowRightLeft className="w-3.5 h-3.5" />
+                <ArrowRightLeft className="w-3.5 h-3.5 stroke-[2.5]" />
                 <span>Transfer</span>
               </button>
             </div>

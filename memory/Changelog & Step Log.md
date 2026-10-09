@@ -6,6 +6,13 @@
 
 ## 📜 Sprint & Evolution Log
 
+### Langkah 20: Fluid Spring Indicator Tabs for Transaction Record Form
+- **Fluid Spring Indicator Tabs (`showForm`)**:
+  - Upgraded Type Switcher in `app/finance/page.tsx` to fluid spring sliding pill (`cubic-bezier(0.16, 1, 0.3, 1)`).
+  - Maintained strictly 3 transaction types: Expense (Rose), Income (Emerald), and Transfer (Blue).
+  - Preserved all vector icons (`ArrowDownLeft`, `ArrowUpRight`, `ArrowRightLeft`) layered crisply on top of the sliding indicator with active white typography and tactile bottom borders.
+- **Verification**: 194/194 Vitest tests passing, `next build` 100% green.
+
 ### Langkah 19: Premium Gooey Menu PC Scrollbar & EasyUI Interactive Preview (Phone + Desktop)
 - **Gooey Menu PC Scrollbar (`.gooey-scrollbar`)**:
   - Replaced native boxy browser scrollbar with a sleek, minimalist dark gray thumb (`#52525b`, zinc-600) with rounded-full pill styling and transparent track in `app/globals.css` and `components/ui/GooeyMenu.tsx`.
