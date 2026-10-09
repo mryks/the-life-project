@@ -287,7 +287,7 @@
           </div>
           <p class="text-xs text-stone-600">The active background pill glides with an elastic spring animation when changing tabs.</p>
 
-          <!-- Interactive Tab Strip -->
+          <!-- Interactive Tab Strip (Record Transaction: 3 Types Only) -->
           <div class="bg-stone-100 p-1.5 rounded-2xl border border-stone-200/90 relative flex items-center justify-between">
             <!-- Sliding Spring Indicator -->
             <div id="fluidTabIndicator" class="absolute top-1.5 bottom-1.5 rounded-xl bg-rose-500 shadow-sm transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"></div>
@@ -300,9 +300,6 @@
             </button>
             <button onclick="switchTab(2, 'transfer', 'bg-blue-600')" class="fluid-tab-btn flex-1 py-2 text-xs font-bold text-stone-600 hover:text-stone-900 relative z-10 text-center transition cursor-pointer">
               Transfer
-            </button>
-            <button onclick="switchTab(3, 'refund', 'bg-violet-600')" class="fluid-tab-btn flex-1 py-2 text-xs font-bold text-stone-600 hover:text-stone-900 relative z-10 text-center transition cursor-pointer">
-              Refund
             </button>
           </div>
 
@@ -554,6 +551,14 @@
 
               <h3 class="text-base font-black text-stone-900 tracking-tight">Record Transaction</h3>
 
+              <!-- Fluid Tabs inside Record Transaction Drawer (Expense, Income, Transfer only) -->
+              <div class="bg-stone-100 p-1 rounded-xl relative flex items-center justify-between text-xs mt-2 border border-stone-200">
+                <div id="drawerFluidTabIndicator" class="absolute top-1 bottom-1 rounded-lg bg-rose-500 shadow-sm transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"></div>
+                <button type="button" onclick="switchDrawerTab(0, 'bg-rose-500')" class="drawer-fluid-tab flex-1 py-1.5 font-bold text-white relative z-10 text-center cursor-pointer">Expense</button>
+                <button type="button" onclick="switchDrawerTab(1, 'bg-emerald-500')" class="drawer-fluid-tab flex-1 py-1.5 font-bold text-stone-600 relative z-10 text-center cursor-pointer">Income</button>
+                <button type="button" onclick="switchDrawerTab(2, 'bg-blue-600')" class="drawer-fluid-tab flex-1 py-1.5 font-bold text-stone-600 relative z-10 text-center cursor-pointer">Transfer</button>
+              </div>
+
               <div class="space-y-3 mt-3">
                 <div>
                   <label class="text-[10px] font-bold text-stone-500 uppercase block mb-1">Amount</label>
@@ -649,8 +654,8 @@
       const buttons = document.querySelectorAll('.fluid-tab-btn');
       const desc = document.getElementById('tabDescription');
 
-      // Update indicator position & width
-      const widthPct = 25;
+      // Update indicator position & width (3 tabs: Expense, Income, Transfer)
+      const widthPct = 33.333;
       indicator.style.left = `calc(${index * widthPct}% + 4px)`;
       indicator.style.width = `calc(${widthPct}% - 8px)`;
       indicator.className = `absolute top-1.5 bottom-1.5 rounded-xl ${colorClass} shadow-sm transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]`;
@@ -670,9 +675,10 @@
     window.addEventListener('load', () => {
       switchTab(0, 'expense', 'bg-rose-500');
       switchPhoneTab(0, 'bg-rose-500');
+      switchDrawerTab(0, 'bg-rose-500');
     });
 
-    // Fluid Tabs Logic (Phone)
+    // Fluid Tabs Logic (Phone Filter)
     function switchPhoneTab(index, colorClass) {
       const indicator = document.getElementById('phoneFluidTabIndicator');
       const buttons = document.querySelectorAll('.phone-fluid-tab');
@@ -683,9 +689,28 @@
 
       buttons.forEach((b, i) => {
         if (i === index) {
-          b.className = 'phone-fluid-tab flex-1 py-1.5 font-bold text-white relative z-10 text-center';
+          b.className = 'phone-fluid-tab flex-1 py-1.5 font-bold text-white relative z-10 text-center cursor-pointer';
         } else {
-          b.className = 'phone-fluid-tab flex-1 py-1.5 font-bold text-stone-600 relative z-10 text-center';
+          b.className = 'phone-fluid-tab flex-1 py-1.5 font-bold text-stone-600 relative z-10 text-center cursor-pointer';
+        }
+      });
+    }
+
+    // Fluid Tabs Logic (Record Transaction Drawer)
+    function switchDrawerTab(index, colorClass) {
+      const indicator = document.getElementById('drawerFluidTabIndicator');
+      const buttons = document.querySelectorAll('.drawer-fluid-tab');
+      if (!indicator || !buttons.length) return;
+      const widthPct = 33.333;
+      indicator.style.left = `calc(${index * widthPct}% + 2px)`;
+      indicator.style.width = `calc(${widthPct}% - 4px)`;
+      indicator.className = `absolute top-1 bottom-1 rounded-lg ${colorClass} shadow-sm transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]`;
+
+      buttons.forEach((b, i) => {
+        if (i === index) {
+          b.className = 'drawer-fluid-tab flex-1 py-1.5 font-bold text-white relative z-10 text-center cursor-pointer';
+        } else {
+          b.className = 'drawer-fluid-tab flex-1 py-1.5 font-bold text-stone-600 relative z-10 text-center cursor-pointer';
         }
       });
     }
