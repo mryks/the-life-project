@@ -1,18 +1,15 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
 import { 
   MagnifyingGlass, 
   X, 
   Stack, 
   TrendDown, 
   TrendUp, 
-  ArrowsLeftRight, 
-  ArrowCounterClockwise,
-  Faders,
-  CaretDown,
-  Check
+  ArrowsLeftRight,
+  ArrowCounterClockwise
 } from "@phosphor-icons/react";
+import GooeyMenu from "../ui/GooeyMenu";
 
 interface TransactionFiltersProps {
   searchQuery: string;
@@ -41,35 +38,6 @@ export default function TransactionFilters({
   onResetAll,
   isFiltered,
 }: TransactionFiltersProps) {
-  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!isCategoryOpen) return;
-
-    function handleClickOutside(event: MouseEvent | TouchEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsCategoryOpen(false);
-      }
-    }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setIsCategoryOpen(false);
-      }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside);
-    document.addEventListener("touchstart", handleClickOutside);
-    document.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("touchstart", handleClickOutside);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [isCategoryOpen]);
-
   const types = [
     { id: 'all' as const, label: 'All', icon: Stack, activeColor: 'bg-stone-900 text-white border-b-2 border-stone-950' },
     { id: 'expense' as const, label: 'Expenses', icon: TrendDown, activeColor: 'bg-rose-500 text-white border-b-2 border-rose-700' },
@@ -102,7 +70,7 @@ export default function TransactionFilters({
         )}
       </div>
 
-      {/* Filter Row: Type Segmented Pills & Category Dropdown */}
+      {/* Filter Row: Type Segmented Pills & EasyUI Gooey Category Menu */}
       <div className="flex flex-wrap items-center justify-between gap-2.5 pt-0.5">
         {/* Type Filter Chips */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
@@ -127,82 +95,15 @@ export default function TransactionFilters({
           })}
         </div>
 
-        {/* Custom Category Dropdown */}
-        <div className="relative" ref={dropdownRef}>
-          <button
-            type="button"
-            onClick={() => setIsCategoryOpen((prev) => !prev)}
-            aria-haspopup="listbox"
-            aria-expanded={isCategoryOpen}
-            aria-label="Filter by category"
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer shadow-2xs active:scale-95 select-none ${
-              categoryFilter !== 'all'
-                ? 'bg-amber-100/90 border-amber-300 text-amber-950 shadow-xs'
-                : 'bg-stone-50 hover:bg-stone-100/90 border-stone-200 text-stone-700 hover:text-stone-900'
-            }`}
-          >
-            <Faders className={`w-3.5 h-3.5 ${categoryFilter !== 'all' ? 'text-amber-700' : 'text-stone-400'}`} weight="bold" />
-            <span className="max-w-[120px] sm:max-w-[160px] truncate">
-              {categoryFilter === 'all' ? 'All Categories' : categoryFilter}
-            </span>
-            <CaretDown
-              className={`w-3 h-3 text-stone-400 transition-transform duration-200 ${
-                isCategoryOpen ? 'rotate-180 text-stone-700' : ''
-              }`}
-              weight="bold"
-            />
-          </button>
-
-          {isCategoryOpen && (
-            <div
-              role="listbox"
-              className="absolute right-0 top-full mt-1.5 z-40 min-w-[190px] max-w-[260px] w-max bg-white border-2 border-stone-200 border-b-4 border-b-stone-300 rounded-2xl p-1.5 shadow-xl max-h-60 overflow-y-auto overscroll-contain space-y-0.5 animate-in fade-in duration-100"
-            >
-              <button
-                type="button"
-                role="option"
-                aria-selected={categoryFilter === 'all'}
-                onClick={() => {
-                  onCategoryFilterChange('all');
-                  setIsCategoryOpen(false);
-                }}
-                className={`w-full text-left px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center justify-between cursor-pointer ${
-                  categoryFilter === 'all'
-                    ? 'bg-stone-900 text-white shadow-xs'
-                    : 'text-stone-700 hover:bg-stone-100 active:bg-stone-200'
-                }`}
-              >
-                <span>All Categories</span>
-                {categoryFilter === 'all' && <Check className="w-3.5 h-3.5 text-white shrink-0" weight="bold" />}
-              </button>
-
-              {availableCategories.length > 0 && <div className="h-px bg-stone-100 my-1 mx-1" />}
-
-              {availableCategories.map((c) => {
-                const isSelected = categoryFilter === c;
-                return (
-                  <button
-                    key={c}
-                    type="button"
-                    role="option"
-                    aria-selected={isSelected}
-                    onClick={() => {
-                      onCategoryFilterChange(c);
-                      setIsCategoryOpen(false);
-                    }}
-                    className={`w-full text-left px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center justify-between cursor-pointer gap-2 ${
-                      isSelected
-                        ? 'bg-stone-900 text-white shadow-xs'
-                        : 'text-stone-700 hover:bg-stone-100 active:bg-stone-200'
-                    }`}
-                  >
-                    <span className="truncate">{c}</span>
-                    {isSelected && <Check className="w-3.5 h-3.5 text-white shrink-0" weight="bold" />}
-                  </button>
-                );
-              })}
-            </div>
-          )}
+        {/* EasyUI Gooey Category Menu */}
+        <div className="shrink-0 z-20">
+          <GooeyMenu
+            options={availableCategories}
+            value={categoryFilter}
+            onSelect={onCategoryFilterChange}
+            placeholder="All Categories"
+            width={185}
+          />
         </div>
       </div>
 

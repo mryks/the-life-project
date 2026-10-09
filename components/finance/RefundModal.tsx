@@ -85,14 +85,31 @@ function RefundModalInner({
     });
   };
 
+  const dismissKeyboard = () => {
+    if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
+      if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+        document.activeElement.blur();
+      }
+    }
+  };
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4"
       onClick={onClose}
+      onTouchStart={dismissKeyboard}
     >
       <div
         className="bg-white border border-zinc-200/80 w-full max-w-md rounded-3xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
+        onScroll={dismissKeyboard}
+        onTouchMove={dismissKeyboard}
+        onPointerDown={(e) => {
+          const target = e.target as HTMLElement | null;
+          if (target && !['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) {
+            dismissKeyboard();
+          }
+        }}
       >
         <button
           onClick={onClose}
@@ -188,10 +205,12 @@ function RefundModalInner({
 
           <div>
             <label className="text-xs font-semibold text-zinc-700 uppercase tracking-wider mb-1 block">
-              Description / Notes
+              Description
             </label>
             <input
               type="text"
+              autoCapitalize="none"
+              autoCorrect="off"
               value={desc}
               onChange={(e) => setDesc(e.target.value)}
               placeholder="e.g. Returned item, order cancellation"

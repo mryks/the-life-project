@@ -808,6 +808,21 @@ export default function FinancePage() {
     setCashbackAmount(Number(raw).toLocaleString('id-ID'));
   };
 
+  const dismissKeyboard = () => {
+    if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
+      if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+        document.activeElement.blur();
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (!showForm) return;
+    const handleScroll = () => dismissKeyboard();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [showForm]);
+
   const formatDateDisplay = (dateStr: string) => {
     if (!dateStr || !isDateOnly(dateStr)) return dateStr;
     const [year, month, day] = dateStr.split('-').map(Number);
@@ -1925,10 +1940,19 @@ export default function FinancePage() {
         <div 
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 backdrop-blur-xs p-4"
           onClick={() => setShowForm(false)}
+          onTouchStart={dismissKeyboard}
         >
           <div 
             className="bg-white border-2 border-stone-200 border-b-4 border-b-stone-300 w-full max-w-lg rounded-3xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
+            onScroll={dismissKeyboard}
+            onTouchMove={dismissKeyboard}
+            onPointerDown={(e) => {
+              const target = e.target as HTMLElement | null;
+              if (target && !['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) {
+                dismissKeyboard();
+              }
+            }}
           >
             <button
               onClick={() => setShowForm(false)}
@@ -2048,6 +2072,8 @@ export default function FinancePage() {
                   </label>
                   <input
                     type="text"
+                    autoCapitalize="none"
+                    autoCorrect="off"
                     value={desc}
                     onChange={(e) => setDesc(e.target.value)}
                     placeholder="e.g. Morning Coffee, Team Lunch, Client Invoice"

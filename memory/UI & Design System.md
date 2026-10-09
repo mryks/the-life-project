@@ -31,5 +31,8 @@ Consistent visual language across creation forms, transaction cards, and activit
 Custom CSS utilities in `app/globals.css`:
 - `.btn-tactile-*`: Subtle 1px border with a soft bottom border drop (e.g. `border-b-[3px]`), depressing smoothly on `:active` (`translate-y-[2px]`).
 - **Modal Background Scroll Locking**: Whenever any modal (Transaction Options, Record Form, Refund Modal, Pin Lock) opens, `document.body.style.overflow = 'hidden'` is applied to prevent background card scrolling.
-- **Custom Dropdowns**: Native browser select elements replaced with custom tactile dropdown menus featuring smooth animations and checkmark indicators.
-- **Mobile First Touch Targets**: Minimum 44px touch targets on mobile devices with `-webkit-tap-highlight-color: transparent`.
+- **Custom Dropdowns & Gooey Menus**: Native browser select elements replaced with custom tactile dropdown menus. Category filtering in Activity area utilizes EasyUI-inspired `GooeyMenu.tsx` featuring liquid SVG metaballs (`#_easyui_goo`), spring transitions, and crisp layered typography.
+- **Mobile First Touch Targets & Keyboard Hygiene**:
+  - Minimum 44px touch targets on mobile devices with `-webkit-tap-highlight-color: transparent`.
+  - Automatic virtual keyboard dismissal (`blur()`) on scroll (`onScroll`, `onTouchMove`, and window scroll) or outside taps (`onPointerDown` on non-inputs) across amount, description, admin fee, cashback, and refund forms.
+  - Lowercase mobile keyboard trigger (`autoCapitalize="none"`, `autoCorrect="off"`) for description input fields.

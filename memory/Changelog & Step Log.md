@@ -6,6 +6,18 @@
 
 ## 📜 Sprint & Evolution Log
 
+### Langkah 18: EasyUI Gooey Menu, Mobile Keyboard Auto-Dismiss & Lowercase Triggers
+- **EasyUI Gooey Menu (`GooeyMenu.tsx`)**:
+  - Implemented liquid metaball SVG filter (`feGaussianBlur` + `feColorMatrix`) with pure CSS spring physics (`cubic-bezier(0.16, 1, 0.3, 1)`).
+  - Integrated into `TransactionFilters.tsx` as the Category selector in the Activity area with dynamic pill sizing, active amber highlight, crisp overlay text, and full keyboard/click-outside accessibility.
+- **Mobile Keyboard Auto-Dismiss**:
+  - Attached `dismissKeyboard` to modal `onScroll`, `onTouchMove`, and `onPointerDown` (for non-input taps), plus window `scroll` listener.
+  - Automatically blurs focused inputs (amount, description, admin fee, cashback) whenever the user scrolls or touches elsewhere.
+  - Mirrored behavior to `RefundModal.tsx`.
+- **Lowercase Keyboard Trigger**:
+  - Configured `autoCapitalize="none"` and `autoCorrect="off"` on Description inputs in both transaction modal and refund modal so the mobile keyboard immediately displays lowercase letters.
+- **Verification**: 194/194 Vitest tests passing, `next build` 100% green.
+
 ### Langkah 17: Direct Force Upload to Cloud, Backup Auto-Push & Architecture Clarification
 - **Force Upload to Cloud (`forceUploadAllToCloud`)**:
   - Implemented direct bulk upsert in `lib/sync.ts` that pushes all active events to Supabase with `{ onConflict: 'id' }`.
