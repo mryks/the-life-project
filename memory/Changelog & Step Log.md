@@ -14,7 +14,7 @@
   - Interactive demos for:
     1. `animated-number` (Rolling Odometer for Hero Vault & KPIs)
     2. `drawer` / bottom-sheet (Mobile bottom drawer with drag handle)
-    3. `animated-tabs` (Fluid spring indicator pill across Expense, Income, Transfer, Refund)
+    3. `animated-tabs` (Fluid spring indicator pill across Expense, Income, Transfer - strictly 3 types for record form)
     4. `drag-to-confirm` (Slide-to-confirm gesture for delete/transfer actions)
     5. `spotlight-card` (Cursor follower radial glow for accounts)
     6. `undo-toast` (Tactile pill with live countdown timer and instant Undo)
