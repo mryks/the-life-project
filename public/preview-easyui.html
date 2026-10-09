@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EasyUI Component Previews — The Life Project</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+            sora: ['"Sora"', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              emerald: '#10B981',
+              dark: '#1C1917',
+              canvas: '#FBF9F4',
+              stone: '#78716C',
+              amber: '#D97706',
+              rose: '#F43F5E',
+              blue: '#2563EB',
+              violet: '#7C3AED',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body {
+      background-color: #F4F1EA;
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      color: #1C1917;
+      margin: 0;
+      padding: 0;
+    }
+    .font-mono-numbers {
+      font-family: 'JetBrains Mono', monospace;
+      font-feature-settings: "tnum" 1;
+      font-variant-numeric: tabular-nums;
+    }
+    .font-sora {
+      font-family: 'Sora', sans-serif;
+    }
+
+    /* Custom Sleek Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #78716C;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #57534E;
+    }
+
+    /* Tactile 3D Buttons */
+    .btn-tactile-primary {
+      background-color: #10B981;
+      color: #FFFFFF;
+      border-bottom: 4px solid #047857;
+      border-radius: 0.875rem;
+      font-weight: 700;
+      transition: all 0.08s ease-in-out;
+    }
+    .btn-tactile-primary:active {
+      border-bottom-width: 0px;
+      transform: translateY(4px);
+    }
+
+    .btn-tactile-danger {
+      background-color: #F43F5E;
+      color: #FFFFFF;
+      border-bottom: 4px solid #BE123C;
+      border-radius: 0.875rem;
+      font-weight: 700;
+      transition: all 0.08s ease-in-out;
+    }
+    .btn-tactile-danger:active {
+      border-bottom-width: 0px;
+      transform: translateY(4px);
+    }
+
+    /* Phone Mockup Frame */
+    .phone-chassis {
+      width: 390px;
+      height: 820px;
+      border-radius: 54px;
+      background: #1C1917;
+      padding: 12px;
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.4), 0 0 0 4px #44403C, 0 0 0 6px #1C1917;
+      position: relative;
+    }
+    .phone-screen {
+      width: 100%;
+      height: 100%;
+      border-radius: 42px;
+      background: #FBF9F4;
+      overflow-y: auto;
+      overflow-x: hidden;
+      position: relative;
+    }
+    .dynamic-island {
+      width: 110px;
+      height: 28px;
+      background: #000000;
+      border-radius: 20px;
+      position: sticky;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 50;
+    }
+    .home-bar {
+      width: 130px;
+      height: 5px;
+      background: #1C1917;
+      border-radius: 9999px;
+      position: sticky;
+      bottom: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      opacity: 0.6;
+      z-index: 50;
+      pointer-events: none;
+    }
+
+    /* Odometer Digit Animation */
+    .odometer-digit-box {
+      display: inline-block;
+      height: 2.2rem;
+      line-height: 2.2rem;
+      overflow: hidden;
+      vertical-align: bottom;
+    }
+    .odometer-column {
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* Spotlight Card */
+    .spotlight-card {
+      position: relative;
+      overflow: hidden;
+    }
+    .spotlight-glow {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.25s ease;
+      background: radial-gradient(350px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(245, 158, 11, 0.18), transparent 70%);
+    }
+    .spotlight-card:hover .spotlight-glow {
+      opacity: 1;
+    }
+
+    /* Swipe to Confirm */
+    .slider-track {
+      touch-action: none;
+      user-select: none;
+    }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <!-- Top Global Navigation & View Switcher Bar -->
+  <header class="sticky top-0 z-40 bg-stone-900 text-white px-4 sm:px-6 py-3.5 border-b border-stone-800 shadow-md">
+    <div class="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-xl bg-emerald-500 flex items-center justify-center font-black text-stone-900 text-base shadow-sm">
+          LP
+        </div>
+        <div>
+          <h1 class="text-sm sm:text-base font-bold tracking-tight text-white flex items-center gap-2">
+            <span>EasyUI Interactive Component Sandbox</span>
+            <span class="text-[11px] font-semibold bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-500/40">The Life Project</span>
+          </h1>
+          <p class="text-xs text-stone-400 hidden sm:block">Interactive live demonstration for the 6 curated EasyUI recommendations</p>
+        </div>
+      </div>
+
+      <!-- View Mode Segmented Controls -->
+      <div class="flex items-center bg-stone-800 p-1 rounded-2xl border border-stone-700">
+        <button 
+          id="btnModeDesktop" 
+          onclick="setViewMode('desktop')" 
+          class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2 bg-white text-stone-900 shadow-xs cursor-pointer"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+          <span>Desktop View</span>
+        </button>
+        <button 
+          id="btnModePhone" 
+          onclick="setViewMode('phone')" 
+          class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2 text-stone-400 hover:text-white cursor-pointer"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+          <span>Phone Mode (Mockup)</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="py-8 px-4 sm:px-6">
+
+    <!-- DESKTOP VIEW CONTAINER -->
+    <div id="desktopView" class="max-w-6xl mx-auto space-y-8 transition-all">
+
+      <!-- Intro banner -->
+      <div class="bg-white p-5 rounded-3xl border border-stone-200/90 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div>
+          <span class="text-xs font-bold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200">Interactive Prototype</span>
+          <h2 class="text-xl font-black text-stone-900 mt-1">Try the 6 EasyUI Candidates Below</h2>
+          <p class="text-xs text-stone-600 mt-0.5">Click and interact with each component to test animations, gestures, and tactile responsiveness.</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="setViewMode('phone')" class="bg-stone-900 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-stone-800 transition flex items-center gap-1.5 shadow-sm">
+            <span>Switch to Phone Frame</span>
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Grid of 6 Component Demonstrations -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        <!-- ================= COMPONENT 1: ANIMATED NUMBER ================= -->
+        <section class="bg-white rounded-3xl p-6 border-2 border-stone-200 border-b-4 border-b-stone-300 shadow-sm space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <span class="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">EasyUI: animated-number</span>
+              <h3 class="text-lg font-black text-stone-900 mt-1">1. Rolling Odometer Numbers</h3>
+            </div>
+            <span class="text-xs font-bold text-stone-400 font-mono">Hero Vault & KPIs</span>
+          </div>
+          <p class="text-xs text-stone-600">Smooth digit spinning transition when balances, incomes, or expenses update.</p>
+
+          <!-- The Live Animated Vault Card -->
+          <div class="bg-stone-900 text-white p-5 rounded-2xl border border-stone-800 shadow-inner space-y-2">
+            <span class="text-xs font-semibold text-stone-400">Total Liquid Vault</span>
+            <div class="flex items-baseline gap-1 text-3xl font-black text-white font-mono-numbers">
+              <span class="text-emerald-400 text-xl font-sans">Rp</span>
+              <span id="odometerDisplay" class="tracking-tight">48.250.000</span>
+            </div>
+            <p class="text-[11px] text-stone-400">Updated across 17 accounts in IDR</p>
+          </div>
+
+          <!-- Interactive Trigger Buttons -->
+          <div class="flex flex-wrap gap-2 pt-1">
+            <button onclick="updateOdometer(1500000)" class="bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-xl text-xs font-bold transition">
+              + Rp 1.500.000 (Salary)
+            </button>
+            <button onclick="updateOdometer(-45000)" class="bg-rose-50 text-rose-800 hover:bg-rose-100 border border-rose-200 px-3 py-1.5 rounded-xl text-xs font-bold transition">
+              - Rp 45.000 (Coffee)
+            </button>
+            <button onclick="resetOdometer()" class="bg-stone-100 text-stone-700 hover:bg-stone-200 px-3 py-1.5 rounded-xl text-xs font-bold transition">
+              Reset (Rp 48.250.000)
+            </button>
+          </div>
+        </section>
+
+        <!-- ================= COMPONENT 2: ANIMATED TABS ================= -->
+        <section class="bg-white rounded-3xl p-6 border-2 border-stone-200 border-b-4 border-b-stone-300 shadow-sm space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <span class="text-[11px] font-bold text-blue-800 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200">EasyUI: animated-tabs</span>
+              <h3 class="text-lg font-black text-stone-900 mt-1">2. Fluid Spring Indicator Tabs</h3>
+            </div>
+            <span class="text-xs font-bold text-stone-400 font-mono">Type Switcher</span>
+          </div>
+          <p class="text-xs text-stone-600">The active background pill glides with an elastic spring animation when changing tabs.</p>
+
+          <!-- Interactive Tab Strip -->
+          <div class="bg-stone-100 p-1.5 rounded-2xl border border-stone-200/90 relative flex items-center justify-between">
+            <!-- Sliding Spring Indicator -->
+            <div id="fluidTabIndicator" class="absolute top-1.5 bottom-1.5 rounded-xl bg-rose-500 shadow-sm transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"></div>
+            
+            <button onclick="switchTab(0, 'expense', 'bg-rose-500')" class="fluid-tab-btn flex-1 py-2 text-xs font-bold text-white relative z-10 text-center transition cursor-pointer">
+              Expense
+            </button>
+            <button onclick="switchTab(1, 'income', 'bg-emerald-500')" class="fluid-tab-btn flex-1 py-2 text-xs font-bold text-stone-600 hover:text-stone-900 relative z-10 text-center transition cursor-pointer">
+              Income
+            </button>
+            <button onclick="switchTab(2, 'transfer', 'bg-blue-600')" class="fluid-tab-btn flex-1 py-2 text-xs font-bold text-stone-600 hover:text-stone-900 relative z-10 text-center transition cursor-pointer">
+              Transfer
+            </button>
+            <button onclick="switchTab(3, 'refund', 'bg-violet-600')" class="fluid-tab-btn flex-1 py-2 text-xs font-bold text-stone-600 hover:text-stone-900 relative z-10 text-center transition cursor-pointer">
+              Refund
+            </button>
+          </div>
+
+          <div id="tabDescription" class="p-3 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium text-stone-700">
+            Active: <strong>Expense</strong> mode (Theme: Rose Red)
+          </div>
+        </section>
+
+        <!-- ================= COMPONENT 3: DRAG TO CONFIRM ================= -->
+        <section class="bg-white rounded-3xl p-6 border-2 border-stone-200 border-b-4 border-b-stone-300 shadow-sm space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <span class="text-[11px] font-bold text-rose-800 bg-rose-50 px-2.5 py-0.5 rounded-full border border-rose-200">EasyUI: drag-to-confirm</span>
+              <h3 class="text-lg font-black text-stone-900 mt-1">3. Slide-to-Confirm Gesture</h3>
+            </div>
+            <span class="text-xs font-bold text-stone-400 font-mono">Delete & Transfer</span>
+          </div>
+          <p class="text-xs text-stone-600">Prevents accidental taps on high-stakes actions like deleting a transaction or sending money.</p>
+
+          <!-- Interactive Slide Bar -->
+          <div id="swipeContainer" class="relative w-full h-14 bg-stone-100 rounded-2xl border-2 border-stone-200 overflow-hidden flex items-center p-1 select-none slider-track">
+            <!-- Dynamic fill background -->
+            <div id="swipeFill" class="absolute left-0 top-0 bottom-0 bg-rose-500 transition-none w-0 opacity-80"></div>
+            
+            <!-- Centered track label -->
+            <span id="swipeLabel" class="absolute inset-0 flex items-center justify-center text-xs font-bold text-stone-500 pointer-events-none transition">
+              Slide to Delete Transaction →
+            </span>
+
+            <!-- Draggable knob -->
+            <div id="swipeKnob" class="w-12 h-12 bg-white rounded-xl shadow-md border border-stone-300 flex items-center justify-center cursor-grab active:cursor-grabbing text-rose-600 font-black relative z-10 transition-transform">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            </div>
+          </div>
+
+          <div id="swipeResult" class="hidden p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 font-bold flex items-center justify-between">
+            <span>Transaction #TX-902 deleted safely!</span>
+            <button onclick="resetSwipe()" class="underline text-emerald-950 cursor-pointer">Reset</button>
+          </div>
+        </section>
+
+        <!-- ================= COMPONENT 4: SPOTLIGHT CARD ================= -->
+        <section class="bg-white rounded-3xl p-6 border-2 border-stone-200 border-b-4 border-b-stone-300 shadow-sm space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <span class="text-[11px] font-bold text-amber-800 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200">EasyUI: spotlight-card</span>
+              <h3 class="text-lg font-black text-stone-900 mt-1">4. Radial Spotlight Glow</h3>
+            </div>
+            <span class="text-xs font-bold text-stone-400 font-mono">Desktop Card Hover</span>
+          </div>
+          <p class="text-xs text-stone-600">Move your mouse over the card below to see the subtle amber spotlight highlight follow your cursor.</p>
+
+          <!-- Spotlight Card Implementation -->
+          <div id="spotlightTarget" class="spotlight-card bg-stone-900 text-white p-5 rounded-2xl border-2 border-stone-800 shadow-lg cursor-pointer">
+            <div class="spotlight-glow"></div>
+            <div class="relative z-10 space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-amber-400">BCA Main Checking</span>
+                <span class="text-[10px] bg-stone-800 text-stone-300 px-2 py-0.5 rounded-full font-mono">**** 9012</span>
+              </div>
+              <div class="text-2xl font-black font-mono-numbers text-white">
+                Rp 24.810.000
+              </div>
+              <div class="flex items-center justify-between pt-2 border-t border-stone-800 text-xs text-stone-400 font-medium">
+                <span>Monthly Inflow: +Rp 15.000.000</span>
+                <span class="text-emerald-400">Active</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= COMPONENT 5: UNDO TOAST ================= -->
+        <section class="bg-white rounded-3xl p-6 border-2 border-stone-200 border-b-4 border-b-stone-300 shadow-sm space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <span class="text-[11px] font-bold text-zinc-800 bg-zinc-100 px-2.5 py-0.5 rounded-full border border-zinc-200">EasyUI: undo-toast</span>
+              <h3 class="text-lg font-black text-stone-900 mt-1">5. Tactile Undo Toast with Progress Bar</h3>
+            </div>
+            <span class="text-xs font-bold text-stone-400 font-mono">Action Feedback</span>
+          </div>
+          <p class="text-xs text-stone-600">A floating notification with an active countdown progress ring and one-tap instant Undo.</p>
+
+          <button onclick="triggerUndoToast()" class="btn-tactile-primary px-4 py-2.5 text-xs font-bold cursor-pointer">
+            Simulate "Delete Transaction"
+          </button>
+
+          <!-- The Live Toast Container -->
+          <div id="undoToastContainer" class="hidden bg-stone-900 text-white p-3.5 rounded-2xl shadow-xl border border-stone-800 flex items-center justify-between gap-3 relative overflow-hidden">
+            <!-- Countdown Progress Bar at Bottom -->
+            <div id="undoProgressBar" class="absolute left-0 bottom-0 h-1 bg-amber-400 w-full transition-all linear"></div>
+            
+            <div class="flex items-center gap-2.5 min-w-0">
+              <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+              <span class="text-xs font-semibold truncate">Transaction "Morning Coffee" deleted</span>
+            </div>
+            <button onclick="clickUndo()" class="bg-white text-stone-900 hover:bg-stone-100 px-3 py-1 rounded-xl text-xs font-bold transition shadow-xs cursor-pointer shrink-0">
+              Undo
+            </button>
+          </div>
+        </section>
+
+        <!-- ================= COMPONENT 6: MOBILE DRAWER (DESKTOP LAUNCHER) ================= -->
+        <section class="bg-white rounded-3xl p-6 border-2 border-stone-200 border-b-4 border-b-stone-300 shadow-sm space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <span class="text-[11px] font-bold text-purple-800 bg-purple-50 px-2.5 py-0.5 rounded-full border border-purple-200">EasyUI: drawer / bottom-sheet</span>
+              <h3 class="text-lg font-black text-stone-900 mt-1">6. Native iOS Bottom Sheet Drawer</h3>
+            </div>
+            <span class="text-xs font-bold text-stone-400 font-mono">Mobile Input</span>
+          </div>
+          <p class="text-xs text-stone-600">Replaces desktop popups on smartphone screens with a smooth drag-to-dismiss bottom sheet.</p>
+
+          <div class="p-4 bg-stone-50 rounded-2xl border border-stone-200 text-xs text-stone-600 space-y-2">
+            <p>💡 <strong>Best experienced in Phone Mode</strong>: Switch to Phone Mode using the top bar to test the touch drag-down gesture directly inside the iPhone frame!</p>
+            <button onclick="openDrawerGlobal()" class="btn-tactile-primary w-full py-2.5 text-xs cursor-pointer flex items-center justify-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              <span>Test Drawer Right Here</span>
+            </button>
+          </div>
+        </section>
+
+      </div>
+    </div>
+
+    <!-- PHONE MODE MOCKUP CONTAINER -->
+    <div id="phoneView" class="hidden flex flex-col items-center justify-center py-4">
+      <div class="text-center mb-4">
+        <span class="text-xs font-bold text-stone-500 uppercase tracking-wider">Simulated Smartphone Viewport</span>
+        <h2 class="text-xl font-black text-stone-900">Experience The Life Project as a Mobile App</h2>
+        <p class="text-xs text-stone-500 mt-0.5">Interact with the bottom sheet, fluid tabs, and swipe gestures inside the iPhone frame.</p>
+      </div>
+
+      <!-- The iPhone Device Frame -->
+      <div class="phone-chassis">
+        <div class="phone-screen flex flex-col justify-between">
+          
+          <!-- Phone Status Bar -->
+          <div class="px-6 pt-3 pb-1 flex items-center justify-between text-xs font-bold text-stone-800 select-none">
+            <span>09:41</span>
+            <div class="dynamic-island"></div>
+            <div class="flex items-center gap-1.5">
+              <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L4.35 19H19.65l-.62-1.39C20.26 16.07 21 14.12 21 12c0-4.97-4.03-9-9-9z"/></svg>
+              <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M16 4h-2V2h-4v2H8C6.9 4 6 4.9 6 6v14c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2z"/></svg>
+            </div>
+          </div>
+
+          <!-- Inside Phone App Scrollable Body -->
+          <div class="flex-1 overflow-y-auto px-4 py-3 space-y-4">
+            
+            <!-- App Header in Phone -->
+            <div class="flex items-center justify-between">
+              <div>
+                <span class="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">October 2026</span>
+                <h3 class="text-lg font-black text-stone-900 mt-0.5">The Life Project</h3>
+              </div>
+              <button onclick="openDrawerPhone()" class="w-9 h-9 rounded-full bg-emerald-500 text-white font-bold flex items-center justify-center shadow-md border-b-2 border-emerald-700 active:border-b-0 cursor-pointer">
+                +
+              </button>
+            </div>
+
+            <!-- Rolling Odometer in Phone Hero Card -->
+            <div class="bg-stone-900 text-white p-4 rounded-3xl border border-stone-800 shadow-md space-y-1.5">
+              <div class="flex justify-between items-center text-xs text-stone-400">
+                <span>Net Liquid Balance</span>
+                <span class="text-emerald-400 font-bold">● Synced</span>
+              </div>
+              <div class="text-2xl font-black font-mono-numbers text-white flex items-baseline gap-1">
+                <span class="text-emerald-400 text-base font-sans">Rp</span>
+                <span id="phoneOdometerDisplay">48.250.000</span>
+              </div>
+              <div class="grid grid-cols-2 gap-2 pt-2 border-t border-stone-800 text-[11px]">
+                <div>
+                  <span class="text-stone-400 block">Expenses:</span>
+                  <span class="font-bold text-rose-400 font-mono-numbers">-Rp 7.850.000</span>
+                </div>
+                <div>
+                  <span class="text-stone-400 block">Income:</span>
+                  <span class="font-bold text-emerald-400 font-mono-numbers">+Rp 22.500.000</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Fluid Tabs in Phone Filter -->
+            <div class="space-y-1.5">
+              <span class="text-[11px] font-bold text-stone-500 uppercase">Activity Filter</span>
+              <div class="bg-stone-200/80 p-1 rounded-2xl relative flex items-center justify-between text-[11px]">
+                <div id="phoneFluidTabIndicator" class="absolute top-1 bottom-1 rounded-xl bg-rose-500 shadow-sm transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"></div>
+                <button onclick="switchPhoneTab(0, 'bg-rose-500')" class="phone-fluid-tab flex-1 py-1.5 font-bold text-white relative z-10 text-center">Expense</button>
+                <button onclick="switchPhoneTab(1, 'bg-emerald-500')" class="phone-fluid-tab flex-1 py-1.5 font-bold text-stone-600 relative z-10 text-center">Income</button>
+                <button onclick="switchPhoneTab(2, 'bg-blue-600')" class="phone-fluid-tab flex-1 py-1.5 font-bold text-stone-600 relative z-10 text-center">Transfer</button>
+              </div>
+            </div>
+
+            <!-- Sample Transaction Card with Swipe Action -->
+            <div class="space-y-1.5">
+              <span class="text-[11px] font-bold text-stone-500 uppercase">Recent Transaction</span>
+              <div class="bg-white p-3.5 rounded-2xl border border-stone-200 shadow-xs space-y-2.5">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <h4 class="text-xs font-bold text-stone-900">Weekend Grocery & Essentials</h4>
+                    <span class="text-[10px] text-stone-400">BCA Main • Food & Groceries</span>
+                  </div>
+                  <span class="text-xs font-black text-rose-600 font-mono-numbers">-Rp 385.000</span>
+                </div>
+
+                <!-- Embedded Slide-to-Delete for mobile card -->
+                <div class="pt-1">
+                  <span class="text-[10px] text-stone-400 block mb-1">Slide to delete without modal popup:</span>
+                  <div id="phoneSwipeContainer" class="relative w-full h-10 bg-stone-100 rounded-xl border border-stone-200 overflow-hidden flex items-center p-1 select-none slider-track">
+                    <div id="phoneSwipeFill" class="absolute left-0 top-0 bottom-0 bg-rose-500 transition-none w-0 opacity-80"></div>
+                    <span id="phoneSwipeLabel" class="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-stone-400 pointer-events-none">
+                      Slide to Delete →
+                    </span>
+                    <div id="phoneSwipeKnob" class="w-8 h-8 bg-white rounded-lg shadow-sm border border-stone-300 flex items-center justify-center cursor-grab active:cursor-grabbing text-rose-600 font-black relative z-10">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Bottom Floating Action Trigger -->
+            <div class="pt-2">
+              <button onclick="openDrawerPhone()" class="btn-tactile-primary w-full py-2.5 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer">
+                <span>+ Tap to Record Transaction</span>
+              </button>
+            </div>
+
+          </div>
+
+          <!-- Phone Home Indicator Bar -->
+          <div class="home-bar"></div>
+
+          <!-- ================= PHONE BOTTOM SHEET DRAWER ================= -->
+          <div id="phoneDrawerOverlay" class="absolute inset-0 bg-black/50 backdrop-blur-xs z-50 opacity-0 pointer-events-none transition-opacity duration-300" onclick="closeDrawerPhone()">
+            <!-- Drawer Card -->
+            <div 
+              id="phoneDrawerCard" 
+              class="absolute left-0 right-0 bottom-0 bg-white rounded-t-[32px] p-5 shadow-2xl transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] translate-y-full border-t border-stone-200"
+              onclick="event.stopPropagation()"
+            >
+              <!-- Drag Handle Bar -->
+              <div class="w-12 h-1.5 bg-stone-300 rounded-full mx-auto mb-3 cursor-grab"></div>
+
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">Mobile Bottom Sheet</span>
+                <button onclick="closeDrawerPhone()" class="text-stone-400 hover:text-stone-700 text-xs font-bold p-1">✕</button>
+              </div>
+
+              <h3 class="text-base font-black text-stone-900 tracking-tight">Record Transaction</h3>
+
+              <div class="space-y-3 mt-3">
+                <div>
+                  <label class="text-[10px] font-bold text-stone-500 uppercase block mb-1">Amount</label>
+                  <div class="relative">
+                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 font-bold text-xs">Rp</span>
+                    <input type="text" placeholder="0" class="w-full bg-stone-50 border border-stone-200 rounded-xl pl-8 pr-3 py-2 text-sm font-black font-mono-numbers outline-none focus:border-stone-400">
+                  </div>
+                </div>
+
+                <div>
+                  <label class="text-[10px] font-bold text-stone-500 uppercase block mb-1">Description</label>
+                  <input type="text" autocapitalize="none" placeholder="e.g. coffee, lunch" class="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-stone-400">
+                </div>
+
+                <div class="flex gap-2 pt-2">
+                  <button onclick="closeDrawerPhone()" class="flex-1 bg-stone-100 text-stone-700 py-2 rounded-xl text-xs font-bold">Cancel</button>
+                  <button onclick="saveFromPhoneDrawer()" class="btn-tactile-primary flex-[2] py-2 text-xs font-bold">Save Transaction</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Global Drawer for Desktop view testing -->
+  <div id="globalDrawerOverlay" class="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 opacity-0 pointer-events-none transition-opacity duration-300 flex items-end justify-center" onclick="closeDrawerGlobal()">
+    <div 
+      id="globalDrawerCard" 
+      class="bg-white w-full max-w-lg rounded-t-[36px] p-6 shadow-2xl transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] translate-y-full border-t border-stone-200"
+      onclick="event.stopPropagation()"
+    >
+      <div class="w-12 h-1.5 bg-stone-300 rounded-full mx-auto mb-4 cursor-grab"></div>
+      <div class="flex justify-between items-center mb-2">
+        <span class="text-xs font-bold text-purple-700 bg-purple-50 px-2.5 py-0.5 rounded-full border border-purple-200">EasyUI: drawer / bottom-sheet</span>
+        <button onclick="closeDrawerGlobal()" class="text-stone-400 hover:text-stone-700 font-bold text-sm">✕</button>
+      </div>
+      <h3 class="text-lg font-black text-stone-900">Mobile Bottom Sheet Preview</h3>
+      <p class="text-xs text-stone-600 mt-1">On mobile screens, this sheet glides in from the bottom with native spring physics and smooth drag-down dismissal.</p>
+      
+      <div class="mt-4 pt-3 border-t border-stone-100 flex justify-end gap-2">
+        <button onclick="closeDrawerGlobal()" class="px-4 py-2 rounded-xl bg-stone-100 text-stone-700 font-bold text-xs">Dismiss Sheet</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT LOGIC & INTERACTIVE COMPONENT BEHAVIORS -->
+  <script>
+    // 1. View Mode Switcher (Desktop vs Phone)
+    function setViewMode(mode) {
+      const desktopView = document.getElementById('desktopView');
+      const phoneView = document.getElementById('phoneView');
+      const btnDesktop = document.getElementById('btnModeDesktop');
+      const btnPhone = document.getElementById('btnModePhone');
+
+      if (mode === 'desktop') {
+        desktopView.classList.remove('hidden');
+        phoneView.classList.add('hidden');
+        btnDesktop.className = 'px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2 bg-white text-stone-900 shadow-xs cursor-pointer';
+        btnPhone.className = 'px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2 text-stone-400 hover:text-white cursor-pointer';
+      } else {
+        desktopView.classList.add('hidden');
+        phoneView.classList.remove('hidden');
+        btnPhone.className = 'px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2 bg-white text-stone-900 shadow-xs cursor-pointer';
+        btnDesktop.className = 'px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2 text-stone-400 hover:text-white cursor-pointer';
+      }
+    }
+
+    // 2. Animated Number / Odometer Logic
+    let currentBalance = 48250000;
+    function updateOdometer(delta) {
+      currentBalance += delta;
+      renderOdometer(currentBalance);
+    }
+    function resetOdometer() {
+      currentBalance = 48250000;
+      renderOdometer(currentBalance);
+    }
+    function renderOdometer(val) {
+      const formatted = val.toLocaleString('id-ID');
+      const el = document.getElementById('odometerDisplay');
+      const phoneEl = document.getElementById('phoneOdometerDisplay');
+      if (el) el.textContent = formatted;
+      if (phoneEl) phoneEl.textContent = formatted;
+    }
+
+    // 3. Fluid Tabs Logic (Desktop)
+    function switchTab(index, name, colorClass) {
+      const indicator = document.getElementById('fluidTabIndicator');
+      const buttons = document.querySelectorAll('.fluid-tab-btn');
+      const desc = document.getElementById('tabDescription');
+
+      // Update indicator position & width
+      const widthPct = 25;
+      indicator.style.left = `calc(${index * widthPct}% + 4px)`;
+      indicator.style.width = `calc(${widthPct}% - 8px)`;
+      indicator.className = `absolute top-1.5 bottom-1.5 rounded-xl ${colorClass} shadow-sm transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]`;
+
+      buttons.forEach((b, i) => {
+        if (i === index) {
+          b.className = 'fluid-tab-btn flex-1 py-2 text-xs font-bold text-white relative z-10 text-center transition cursor-pointer';
+        } else {
+          b.className = 'fluid-tab-btn flex-1 py-2 text-xs font-bold text-stone-600 hover:text-stone-900 relative z-10 text-center transition cursor-pointer';
+        }
+      });
+
+      desc.innerHTML = `Active: <strong class="capitalize">${name}</strong> mode (Color: ${colorClass.replace('bg-', '')})`;
+    }
+
+    // Initialize fluid tab width
+    window.addEventListener('load', () => {
+      switchTab(0, 'expense', 'bg-rose-500');
+      switchPhoneTab(0, 'bg-rose-500');
+    });
+
+    // Fluid Tabs Logic (Phone)
+    function switchPhoneTab(index, colorClass) {
+      const indicator = document.getElementById('phoneFluidTabIndicator');
+      const buttons = document.querySelectorAll('.phone-fluid-tab');
+      const widthPct = 33.333;
+      indicator.style.left = `calc(${index * widthPct}% + 3px)`;
+      indicator.style.width = `calc(${widthPct}% - 6px)`;
+      indicator.className = `absolute top-1 bottom-1 rounded-xl ${colorClass} shadow-sm transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]`;
+
+      buttons.forEach((b, i) => {
+        if (i === index) {
+          b.className = 'phone-fluid-tab flex-1 py-1.5 font-bold text-white relative z-10 text-center';
+        } else {
+          b.className = 'phone-fluid-tab flex-1 py-1.5 font-bold text-stone-600 relative z-10 text-center';
+        }
+      });
+    }
+
+    // 4. Slide to Confirm Gesture Logic
+    function setupSwipeSlider(containerId, knobId, fillId, labelId, onConfirm) {
+      const container = document.getElementById(containerId);
+      const knob = document.getElementById(knobId);
+      const fill = document.getElementById(fillId);
+      const label = document.getElementById(labelId);
+      if (!container || !knob) return;
+
+      let isDragging = false;
+      let startX = 0;
+      let currentX = 0;
+
+      const getMaxSlide = () => container.clientWidth - knob.clientWidth - 8;
+
+      const onPointerDown = (e) => {
+        isDragging = true;
+        startX = e.clientX || (e.touches && e.touches[0].clientX) || 0;
+        knob.style.transition = 'none';
+        fill.style.transition = 'none';
+      };
+
+      const onPointerMove = (e) => {
+        if (!isDragging) return;
+        const clientX = e.clientX || (e.touches && e.touches[0].clientX) || 0;
+        const delta = clientX - startX;
+        const max = getMaxSlide();
+        currentX = Math.max(0, Math.min(delta, max));
+        knob.style.transform = `translateX(${currentX}px)`;
+        fill.style.width = `${currentX + knob.clientWidth / 2}px`;
+        const pct = currentX / max;
+        label.style.opacity = `${1 - pct * 1.5}`;
+      };
+
+      const onPointerUp = () => {
+        if (!isDragging) return;
+        isDragging = false;
+        const max = getMaxSlide();
+        if (currentX >= max * 0.85) {
+          // Confirmed!
+          knob.style.transition = 'transform 0.2s ease';
+          knob.style.transform = `translateX(${max}px)`;
+          fill.style.transition = 'width 0.2s ease';
+          fill.style.width = '100%';
+          onConfirm();
+        } else {
+          // Snap back with spring
+          knob.style.transition = 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)';
+          knob.style.transform = 'translateX(0px)';
+          fill.style.transition = 'width 0.3s ease';
+          fill.style.width = '0px';
+          label.style.opacity = '1';
+        }
+      };
+
+      knob.addEventListener('mousedown', onPointerDown);
+      knob.addEventListener('touchstart', onPointerDown, { passive: true });
+      window.addEventListener('mousemove', onPointerMove);
+      window.addEventListener('touchmove', onPointerMove, { passive: true });
+      window.addEventListener('mouseup', onPointerUp);
+      window.addEventListener('touchend', onPointerUp);
+    }
+
+    setupSwipeSlider('swipeContainer', 'swipeKnob', 'swipeFill', 'swipeLabel', () => {
+      document.getElementById('swipeContainer').classList.add('hidden');
+      document.getElementById('swipeResult').classList.remove('hidden');
+    });
+
+    setupSwipeSlider('phoneSwipeContainer', 'phoneSwipeKnob', 'phoneSwipeFill', 'phoneSwipeLabel', () => {
+      alert('Transaction Deleted in Mobile View! (Confirmed via Gesture)');
+      resetPhoneSwipe();
+    });
+
+    function resetSwipe() {
+      const knob = document.getElementById('swipeKnob');
+      const fill = document.getElementById('swipeFill');
+      const label = document.getElementById('swipeLabel');
+      document.getElementById('swipeContainer').classList.remove('hidden');
+      document.getElementById('swipeResult').classList.add('hidden');
+      knob.style.transform = 'translateX(0px)';
+      fill.style.width = '0px';
+      label.style.opacity = '1';
+    }
+
+    function resetPhoneSwipe() {
+      const knob = document.getElementById('phoneSwipeKnob');
+      const fill = document.getElementById('phoneSwipeFill');
+      const label = document.getElementById('phoneSwipeLabel');
+      knob.style.transform = 'translateX(0px)';
+      fill.style.width = '0px';
+      label.style.opacity = '1';
+    }
+
+    // 5. Spotlight Card Follower Logic
+    const spotlightCard = document.getElementById('spotlightTarget');
+    if (spotlightCard) {
+      spotlightCard.addEventListener('mousemove', (e) => {
+        const rect = spotlightCard.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        spotlightCard.style.setProperty('--mouse-x', `${x}px`);
+        spotlightCard.style.setProperty('--mouse-y', `${y}px`);
+      });
+    }
+
+    // 6. Undo Toast Logic
+    let toastTimer = null;
+    function triggerUndoToast() {
+      const toast = document.getElementById('undoToastContainer');
+      const bar = document.getElementById('undoProgressBar');
+      toast.classList.remove('hidden');
+      bar.style.transition = 'none';
+      bar.style.width = '100%';
+
+      setTimeout(() => {
+        bar.style.transition = 'width 6s linear';
+        bar.style.width = '0%';
+      }, 50);
+
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.classList.add('hidden');
+      }, 6050);
+    }
+
+    function clickUndo() {
+      if (toastTimer) clearTimeout(toastTimer);
+      const toast = document.getElementById('undoToastContainer');
+      toast.classList.add('hidden');
+      alert('Undo clicked! Transaction restored to ledger.');
+    }
+
+    // 7. Bottom Sheet Drawer Logic (Phone & Global)
+    function openDrawerPhone() {
+      const overlay = document.getElementById('phoneDrawerOverlay');
+      const card = document.getElementById('phoneDrawerCard');
+      overlay.classList.remove('opacity-0', 'pointer-events-none');
+      overlay.classList.add('opacity-100', 'pointer-events-auto');
+      card.classList.remove('translate-y-full');
+      card.classList.add('translate-y-0');
+    }
+    function closeDrawerPhone() {
+      const overlay = document.getElementById('phoneDrawerOverlay');
+      const card = document.getElementById('phoneDrawerCard');
+      overlay.classList.remove('opacity-100', 'pointer-events-auto');
+      overlay.classList.add('opacity-0', 'pointer-events-none');
+      card.classList.remove('translate-y-0');
+      card.classList.add('translate-y-full');
+    }
+    function saveFromPhoneDrawer() {
+      closeDrawerPhone();
+      updateOdometer(250000);
+      alert('Transaction saved from Mobile Drawer! Balance updated.');
+    }
+
+    function openDrawerGlobal() {
+      const overlay = document.getElementById('globalDrawerOverlay');
+      const card = document.getElementById('globalDrawerCard');
+      overlay.classList.remove('opacity-0', 'pointer-events-none');
+      overlay.classList.add('opacity-100', 'pointer-events-auto');
+      card.classList.remove('translate-y-full');
+      card.classList.add('translate-y-0');
+    }
+    function closeDrawerGlobal() {
+      const overlay = document.getElementById('globalDrawerOverlay');
+      const card = document.getElementById('globalDrawerCard');
+      overlay.classList.remove('opacity-100', 'pointer-events-auto');
+      overlay.classList.add('opacity-0', 'pointer-events-none');
+      card.classList.remove('translate-y-0');
+      card.classList.add('translate-y-full');
+    }
+  </script>
+</body>
+</html>

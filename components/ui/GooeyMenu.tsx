@@ -174,7 +174,7 @@ export default function GooeyMenu({
         }}
       >
         <div
-          className="space-y-1 overflow-y-auto pr-1 overscroll-contain"
+          className="space-y-1 overflow-y-auto pr-1.5 overscroll-contain gooey-scrollbar"
           style={{ maxHeight: dropdownHeight - 16 }}
         >
           {/* "All Categories" option */}

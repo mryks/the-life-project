@@ -212,3 +212,25 @@ body {
   animation: pin-shake 0.4s ease-in-out;
 }
 
+/* Premium Sleek Scrollbar for Gooey Menu & Custom Overlays */
+.gooey-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #52525b transparent;
+}
+.gooey-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+.gooey-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 4px 0;
+}
+.gooey-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #52525b; /* Abu tua */
+  border-radius: 9999px;
+  transition: background-color 0.15s ease;
+}
+.gooey-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #71717a;
+}
+
+

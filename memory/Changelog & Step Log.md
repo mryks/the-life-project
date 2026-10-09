@@ -6,6 +6,20 @@
 
 ## 📜 Sprint & Evolution Log
 
+### Langkah 19: Premium Gooey Menu PC Scrollbar & EasyUI Interactive Preview (Phone + Desktop)
+- **Gooey Menu PC Scrollbar (`.gooey-scrollbar`)**:
+  - Replaced native boxy browser scrollbar with a sleek, minimalist dark gray thumb (`#52525b`, zinc-600) with rounded-full pill styling and transparent track in `app/globals.css` and `components/ui/GooeyMenu.tsx`.
+- **EasyUI 6 Component Interactive Preview (`public/preview-easyui.html`)**:
+  - Created a rich, interactive testing sandbox with dual mode: **Desktop View** & **Simulated Phone Frame (iPhone 390x844 with Dynamic Island and native swipe/scroll gestures)**.
+  - Interactive demos for:
+    1. `animated-number` (Rolling Odometer for Hero Vault & KPIs)
+    2. `drawer` / bottom-sheet (Mobile bottom drawer with drag handle)
+    3. `animated-tabs` (Fluid spring indicator pill across Expense, Income, Transfer, Refund)
+    4. `drag-to-confirm` (Slide-to-confirm gesture for delete/transfer actions)
+    5. `spotlight-card` (Cursor follower radial glow for accounts)
+    6. `undo-toast` (Tactile pill with live countdown timer and instant Undo)
+- **Verification**: 194/194 Vitest tests passing, `next build` 100% green.
+
 ### Langkah 18: EasyUI Gooey Menu, Mobile Keyboard Auto-Dismiss & Lowercase Triggers
 - **EasyUI Gooey Menu (`GooeyMenu.tsx`)**:
   - Implemented liquid metaball SVG filter (`feGaussianBlur` + `feColorMatrix`) with pure CSS spring physics (`cubic-bezier(0.16, 1, 0.3, 1)`).
