@@ -7,12 +7,22 @@
 
 ## 🧭 Vault Navigation & Map of Content (MOC)
 
-- [[Domain & Financial Model]] — The core financial events architecture, accounting rules, formulas, and validations.
-- [[Cloud Sync & Supabase]] — Multi-device synchronization engine, database schema, tombstone deletions, and conflict resolution.
+### 🏛️ Core Financial Domain
+- [[Domain & Financial Model]] — Core financial events architecture, accounting rules, formulas, and validations.
+- [[Accounts & Portfolio]] — Detailed guide to the 17 accounts (10 Liquid & 7 Investment), balance derivation, and net worth.
+- [[Refunds & Relations]] — Comprehensive refund rules, cross-account refunds, modal UX, and deletion cascades.
+
+### ☁️ Infrastructure & Security
+- [[Cloud Sync & Supabase]] — Local-first synchronization engine, database schema, tombstone deletions, offline shields, and conflict resolution.
 - [[Security & Master PIN]] — Single-user privacy shield, Web Crypto SHA-256 hashing, rate limiting, and 15-minute auto-lock.
-- [[UI & Design System]] — Tactile Duolingo-inspired aesthetics, micro-interactions, color matrix, and typography standards.
 - [[Deployment & Vercel]] — Production deployment pipeline targeting `https://the-life-project-os.vercel.app/`.
-- [[Changelog & Step Log]] — Chronological progress tracker and engineering log across all development sprints.
+
+### 🎨 Design & Experience
+- [[UI & Design System]] — Tactile Duolingo-inspired aesthetics, micro-interactions, color matrix, Gooey Menu, fluid spring tabs, and typography standards.
+
+### 📜 History & Agreements
+- [[Agreements & Historical Context]] — Complete record of user requests, decisions, resolved dilemmas, and binding agreements.
+- [[Changelog & Step Log]] — Chronological progress tracker and engineering log across all development sprints (Langkah 1–23).
 
 ---
 

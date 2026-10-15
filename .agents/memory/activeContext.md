@@ -51,6 +51,15 @@
 12. **Langkah 13: Background Scroll Lock on Modal Open** (Locked background body scrolling with scrollbar compensation and touch-none overscroll containment when Transaction Options or other interactive modals are active).
 13. **Langkah 14: Type Color Harmonization & Custom Tactile Category Dropdown** (Transfer set to blue in both form switcher `.btn-tactile-blue` and filter chips; Refund filter set to purple/violet `.bg-violet-600`; Category filter upgraded from native `<select>` to custom tactile Duolingo-style dropdown).
 14. **Langkah 15: Refund Editing & Net Expense Accounting Integrity** (Enabled editing existing refunds via RefundModal, validated max refundable limit against remaining parent balance, cascaded parent account changes to refunds, enforced refund non-income rule with purple credit styling, and displayed net expense breakdown directly on parent expense cards).
+15. **Langkah 16: Multi-Device Sync Hardening & Root Memory Vault Setup** (Auto-sync on mount/visibilitychange/focus, `inFlightSync` caching, root `memory/` vault initial setup).
+16. **Langkah 17: Direct Force Upload to Cloud & Legacy Vercel Cleanup** (Direct bulk upsert in `lib/sync.ts`, backup restore auto-push, migration and cleanup of duplicate `the-life-project-eta`).
+17. **Langkah 18: EasyUI Gooey Menu & Mobile Keyboard Auto-Dismiss** (Liquid SVG metaballs category dropdown, mobile keyboard blur on scroll/tap, `autoCapitalize="none"` on descriptions).
+18. **Langkah 19: Premium Gooey Menu PC Scrollbar & EasyUI Interactive Preview** (Zinc-600 custom scrollbar, HTML interactive preview with desktop & phone simulator).
+19. **Langkah 20: Fluid Spring Indicator Tabs for Transaction Record Form** (Elastic spring sliding pill with icons and tactile bottom border for Expense, Income, Transfer).
+20. **Langkah 21: Refund Modal Amount & Date Standardization** (Live IDR dot-delimited amount, tactile formatted date card display with transparent picker).
+21. **Langkah 22: Cross-Account Refunds & Multi-Account Support** (Removed same-account refund constraint, added unselected destination account selector in RefundModal, account change preservation).
+22. **Langkah 23: Comprehensive Codebase & Financial Engine Audit** (Offline deletion tombstone shield, force upload parity soft-delete, Recharts negative pie arc clamp, zero-emoji verification).
+23. **Langkah 24: Obsidian Finance Memory Vault Expansion** (Dedicated notes: `Accounts & Portfolio.md`, `Refunds & Relations.md`, `Agreements & Historical Context.md`, bidirectional `[[Wikilinks]]`).
 
 ---
 

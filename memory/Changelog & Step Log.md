@@ -6,6 +6,16 @@
 
 ## 📜 Sprint & Evolution Log
 
+### Langkah 24: Comprehensive Obsidian Finance Memory Vault Expansion
+- **Dedicated Obsidian Memory Notes**:
+  - `memory/Accounts & Portfolio.md`: Full documentation of all 17 accounts (10 Liquid & 7 Investment), short codes, color tokens, balance derivation formulas, net worth aggregation, and the strict rule forbidding intrusive "Liquid/Non-Liquid" badges on UI cards/selectors.
+  - `memory/Refunds & Relations.md`: Comprehensive refund domain guide covering: refund is never income, net expense contribution adjustment, cross-account refunds (multi-account destination), `RefundModal` UX requirements (unselected `null` start, live IDR dot delimiter, date card), cascade deletions, and cross-month negative category spending guards.
+  - `memory/Agreements & Historical Context.md`: Detailed chronological record of all user feedback, solved dilemmas, and binding agreements across the project lifecycle (color coding, Gooey Menu scrollbar, Vercel `eta` vs `os` cleanup, local-first sync rationale, mobile keyboard dismissal, EasyUI tabs scope).
+- **Networked Knowledge Graph & Invariants**:
+  - `memory/00 - Atlas (Index).md`: Updated MOC with categorized hubs (Core Financial Domain, Infrastructure & Security, Design & Experience, History & Agreements).
+  - Cross-linked all memory files bidirectionally with `[[Wikilinks]]` for instant Obsidian navigation and permanent session continuity.
+- **Verification**: Complete documentation verified against all source code, tests passing, TypeScript strictly clean.
+
 ### Langkah 23: Comprehensive Codebase & Financial Engine Audit
 - **Offline Deletion Tombstone Shield (`lib/sync.ts`)**:
   - Identified critical edge case where locally deleted transactions were resurrected upon next sync if offline or if network timeout occurred before cloud soft-delete completed.

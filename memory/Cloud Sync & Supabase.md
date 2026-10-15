@@ -56,11 +56,13 @@ To prevent duplicate overlapping HTTP requests when multiple events fire simulta
 
 ### 3. Conflict Resolution (Last-Write-Wins + Tombstones)
 - **Soft Deletions**: Deletions are recorded in `thelife-pending-deleted-ids` and written to cloud with `deleted_at = now()`. Tombstoned events are stripped from local storage and not resurrected.
+- **Offline Deletion Tombstone Shield**: In `mergeLocalAndCloudEvents`, the active `pendingDeletedIds` queue is checked *before* adding any non-deleted cloud rows. Even if an offline client or network hiccup delays writing the tombstone to Supabase, the deleted event is **never resurrected** on subsequent cloud fetches.
 - **Within-Day Ordering**: Maintained via `within_day_order`, ensuring manual card reordering persists across devices.
 - **Outbox Persistence**: Pending changes are queued in `localStorage` under `thelife-pending-upsert-ids` and retried automatically if the network is temporarily offline.
 
-### 4. Direct Force Upload (`forceUploadAllToCloud`)
+### 4. Direct Force Upload & Parity Soft-Delete (`forceUploadAllToCloud`)
 - When transactions are present locally (e.g. entered while offline or restored from a JSON backup), `forceUploadAllToCloud()` directly pushes all active domain events to Supabase with `{ onConflict: 'id' }`.
+- **Parity Soft-Delete**: Before upserting, it queries cloud records and automatically marks any cloud events *missing* from the local snapshot as `deleted_at = now()`. This prevents old ghost records from contaminating a freshly restored backup.
 - Available in the Cloud Sync Modal as a manual action and triggered automatically upon JSON backup restore.
 
 ---

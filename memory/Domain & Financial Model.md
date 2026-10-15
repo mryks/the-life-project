@@ -1,6 +1,6 @@
 # Domain & Financial Model
 
-> Hub: [[00 - Atlas (Index)]] | Related: [[Cloud Sync & Supabase]], [[UI & Design System]]
+> Hub: [[00 - Atlas (Index)]] | Related: [[Accounts & Portfolio]], [[Refunds & Relations]], [[Cloud Sync & Supabase]], [[UI & Design System]]
 
 ---
 
@@ -46,6 +46,7 @@ export type FinancialEvent =
   - Admin fee is treated as an expense fee on the source account.
 
 ### 4. RefundEvent (`type: 'refund'`)
+- For comprehensive rules, see dedicated note: [[Refunds & Relations]].
 - Fields: `id`, `date`, `description`, `amount`, `accountId`, `relatedEventId`.
 - **Fundamental Rule**:
   - **Refund is NOT Income.** It must never be aggregated into monthly income totals.
@@ -60,13 +61,19 @@ export type FinancialEvent =
 
 All calculations are pure functions located in `lib/finance.ts`:
 
-1. **Account Balances** (`deriveAccountBalances`):
-   - Computes exact balance per account by scanning all events chronologically.
-2. **Monthly Summary** (`deriveMonthlySummary`):
+1. **Account Balances** (`getAccountBalances`):
+   - Computes exact balance per account across all 17 accounts (see [[Accounts & Portfolio]]) by scanning ledger entries chronologically.
+2. **Monthly Summary** (`calculateFinanceStats`):
    - Total Income = $\sum \text{Income events in month}$
    - Total Expense = $\sum \text{Expense events} - \sum \text{Refund events} + \sum \text{Admin fees}$
-   - Net Savings = $\text{Total Income} - \text{Total Expense}$
-   - Savings Rate = $\frac{\text{Net Savings}}{\text{Total Income}} \times 100\%$ (clamped to 0% if income is 0).
+   - Net Cashflow = $\text{Total Income} - \text{Total Expense}$
+   - Savings Rate = $\frac{\text{Net Cashflow}}{\text{Total Income}} \times 100\%$ (clamped to 0% if income is 0).
+   - Daily Average = $\frac{\text{Total Expense}}{\text{Days in Month}}$.
+3. **Pie Chart Data Guard (`pieData`)**:
+   - `pieData` filters strictly for positive category spending (`categoryTotals[category] > 0`). If a cross-month refund causes a category's monthly net spending to be negative, it is excluded from the pie chart, protecting Recharts from SVG arc NaN crashes.
+4. **Within-Day Reordering**:
+   - Transactions within the same date can be reordered via drag-and-drop.
+   - Preserves Atomic Reorder Units (expense + linked cashback are tied together). Reordering is strictly constrained within the same calendar date.
 
 ---
 

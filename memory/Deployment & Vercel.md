@@ -1,6 +1,6 @@
 # Deployment & Vercel
 
-> Hub: [[00 - Atlas (Index)]] | Related: [[Cloud Sync & Supabase]], [[Changelog & Step Log]]
+> Hub: [[00 - Atlas (Index)]] | Related: [[Cloud Sync & Supabase]], [[Agreements & Historical Context]], [[Changelog & Step Log]]
 
 ---
 

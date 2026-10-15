@@ -3,7 +3,7 @@
 ## Overall Status: STABLE PRODUCTION (OFFICIALLY GO-LIVE 🚀)
 - **Live Production URL:** [https://the-life-project-os.vercel.app/finance](https://the-life-project-os.vercel.app/finance)
 - **Backend Database:** Supabase PostgreSQL (`peydzblrtfgdoaisljkm.supabase.co`)
-- **Automated Test Suite:** 16 test suites, **191/191 tests passing (100%)**
+- **Automated Test Suite:** 16 test suites, **196/196 tests passing (100%)**
 - **Code Quality:** 0 ESLint errors, 0 TypeScript errors (`npx tsc --noEmit`)
 - **Session Boundary:** Permanently assigned as **Finance Domain Specialist**. All non-finance life domains (Habits, Journal, Tasks) are developed in separate dedicated chat sessions.
 
@@ -16,7 +16,7 @@
 - Full historical calendar support without arbitrary date restrictions.
 - Starting balances recorded as regular income (`category: 'Others'`).
 - Transfer `adminFee` support: automatically deducted from source account and recorded in monthly expense calculations under `'Other'`.
-- Relational integrity: Cashback and Refunds linked to parent expense on identical account; refund sum capped at parent expense amount; cascading deletions.
+- Relational integrity: Cashback and Refunds linked to parent expense; refund sum capped at parent expense amount; cascading deletions.
 
 ### 2. Account System (17 Accounts Partitioned)
 - **10 Liquid Accounts:** Cash (`c`), BNI (`b`), GoPay (`g`), ShopeePay (`s`), Jago Yoel (`jy`), e-money (`e`), SeaBank (`sea`), Bank Saqu (`q`), Jago (`j`), Clara (`cla`).
@@ -69,6 +69,28 @@
 - **Tactile Guardrail Confirmation Modal:**
   * When editing an expense with cashback and changing the account, clicking "Save Transaction" displays a tactile amber warning dialog explaining that both the expense and cashback accounts will be updated.
   * User can cancel or confirm to commit the dual-account update.
+
+### 9. Cross-Account Refunds & Refund UX Modernization
+- Multi-account refund support: user can choose any destination account for a refund (e.g. paid via BCA, refunded to GoPay).
+- `RefundModal` UX: starts unselected (`null`), live IDR dot separator, tactile formatted date card display with transparent picker.
+- Parent expense account edits preserve each linked refund's independent destination account.
+
+### 10. EasyUI Gooey Menu & Fluid Spring Tabs
+- Liquid SVG metaballs filter with spring physics for Activity category selection.
+- Sleek zinc-600 custom scrollbar for desktop.
+- Fluid Spring sliding tabs for transaction type switcher (strictly 3 types: Expense, Income, Transfer).
+- Mobile virtual keyboard auto-dismiss on scroll or tap, and lowercase description triggers.
+
+### 11. Codebase Audit, Deletion Tombstone Shield & Pie Chart Fix
+- Offline deletion tombstone shield: pending deleted IDs checked in `mergeLocalAndCloudEvents` to prevent cloud resurrection.
+- Force upload parity soft-delete: cloud records missing from local snapshot are soft-deleted on restore/force-upload.
+- Clamped Recharts `pieData` to positive values (`categoryTotals[category] > 0`) to prevent SVG arc NaN crashes.
+- Zero-emoji design audit completed: 100% Lucide vector icons.
+
+### 12. Comprehensive Obsidian Finance Memory Vault
+- Root `memory/` vault created with Map of Content (`00 - Atlas (Index).md`).
+- Dedicated notes: `Accounts & Portfolio.md`, `Refunds & Relations.md`, `Agreements & Historical Context.md`, `Domain & Financial Model.md`, `Cloud Sync & Supabase.md`, `UI & Design System.md`, `Security & Master PIN.md`, `Deployment & Vercel.md`, `Changelog & Step Log.md`.
+- Networked with bidirectional `[[Wikilinks]]` for complete context preservation and zero session drift.
 
 ---
 
