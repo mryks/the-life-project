@@ -113,4 +113,7 @@ This document provides a permanent, faithful record of every user request, resol
      - Digits roll vertically via Framer Motion physics springs while strictly preserving Indonesian Rupiah dot separators (e.g. `Rp 48.250.000`) and tabular monospaced numbers.
   5. **Totals Motion**:
      - Total Liquid, Total Investment, and Total Net Worth Aggregate cards/headers on the Accounts page smoothly morph their numbers using `AnimatedNumber`.
+  6. **Mount Animation Reliability & Duration Choreography**:
+     - Resolved "kadang bisa kadang tidak bisa" root cause: passing snapshot of `previousBalancesSnapshot` and `previousStatsSnapshot` ensures `initial={{ y: -fromDigit * 10% }}` animates on initial mount when redirecting from Dashboard/Ledger.
+     - Tuned rolling animation duration to `2.1s` with Apple-grade cubic-bezier `[0.16, 1, 0.3, 1]`, fulfilling user requirement that the rolling number duration be slightly faster than the 2.8s tactile highlight ring.
 

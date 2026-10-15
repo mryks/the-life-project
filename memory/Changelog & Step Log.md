@@ -6,6 +6,17 @@
 
 ## 📜 Sprint & Evolution Log
 
+### Langkah 26: AnimatedNumber Mount Fix & Rolling Duration Choreography (2.1s)
+- **Mount Animation Reliability ("Kadang Bisa Kadang Tidak Bisa" Fix)**:
+  - Root Cause: When user saved a transaction from Dashboard or Ledger, `view` was switched to `'accounts'`. `AnimatedNumber` was mounted for the first time with the *new* value directly. Framer Motion's `useSpring(target)` only runs animations when the target value *changes while already mounted*, so on first mount it rendered the final target immediately without animating! Only if the user was *already* on the Accounts view when recording did it roll.
+  - Solution: Implemented snapshot mechanism (`previousBalancesSnapshot` & `previousStatsSnapshot`) passed into `triggerAccountsRedirectAndHighlight`. Each `DigitColumn` receives its exact starting digit `fromDigit` derived mathematically ($10^k$). On initial mount, `initial={{ y: `-${initialDigit * 10}%` }}` and `animate={{ y: `-${numValue * 10}%` }}` guarantees that the numbers roll smoothly on mount every single time with 100% reliability.
+- **Duration Choreography (2.1s vs 2.8s Highlight)**:
+  - User feedback: "rolling numbernya terlalu cepat, buat aja durasinya menjadi sedikit lebih cepat dari lamanya highlight taktil".
+  - Tactile amber ring and `"UPDATED"` badge persist for 2.8 seconds.
+  - Set rolling number duration to `2.1s` (`duration = 2.1`) using Apple-grade cubic-bezier easing `[0.16, 1, 0.3, 1]`.
+  - The rolling numbers smoothly decelerate and settle crisply at 2.1s, followed 700ms later by the gentle fade-out of the amber tactile ring at 2.8s.
+- **Verification**: 196/196 Vitest unit tests pass, Turbopack production build succeeds with 0 errors.
+
 ### Langkah 25: Post-Transaction Redirect to Accounts & EasyUI Animated Number Motion
 - **Post-Transaction Navigation Flow**:
   - Automatically redirects view to the "Accounts" page (`setView('accounts')`) immediately upon completing any transaction (Expense, Income, Transfer, or Refund).
