@@ -6,6 +6,16 @@
 
 ## 📜 Sprint & Evolution Log
 
+### Langkah 21: Refund Modal Amount and Date Standardization
+- **Refund Amount Input (`RefundModal.tsx`)**:
+  - Replaced raw number input with live dot-delimited IDR formatting (`toLocaleString('id-ID')`).
+  - Standardized label to "Amount" (removing raw `(IDR)`), large font (`text-xl font-black font-mono-numbers`), and `Rp` badge matching standard transaction forms.
+- **Refund Date Picker (`RefundModal.tsx`)**:
+  - Replaced native date box with custom tactile date display card (`Calendar` icon, `formatDateDisplay(date)` e.g. "15 October 2026", and "Change" badge) with transparent native picker overlay.
+- **Visual Harmonization**:
+  - Upgraded container to tactile stone borders (`border-2 border-stone-200 border-b-4 border-b-stone-300`) and tactile buttons (`btn-tactile-neutral`, `btn-tactile-dark`).
+- **Verification**: 194/194 Vitest tests passing, `next build` 100% green.
+
 ### Langkah 20: Fluid Spring Indicator Tabs for Transaction Record Form
 - **Fluid Spring Indicator Tabs (`showForm`)**:
   - Upgraded Type Switcher in `app/finance/page.tsx` to fluid spring sliding pill (`cubic-bezier(0.16, 1, 0.3, 1)`).
