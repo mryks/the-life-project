@@ -613,16 +613,38 @@ export default function FinancePage() {
       filtered = filtered.filter((event) => event.type === typeFilter);
     }
     if (categoryFilter !== 'all') {
-      filtered = filtered.filter((event) => 'category' in event && event.category === categoryFilter);
+      const expensesById = new Map(events.filter((e) => e.type === 'expense').map((e) => [e.id, e]));
+      filtered = filtered.filter((event) => {
+        if ('category' in event) return event.category === categoryFilter;
+        if (event.type === 'refund') {
+          const parent = expensesById.get(event.relatedEventId);
+          return parent?.category === categoryFilter;
+        }
+        return false;
+      });
     }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
       filtered = filtered.filter((event) => {
         const descMatch = event.description.toLowerCase().includes(q);
         const accMatch = event.type === 'transfer'
-          ? ((getAccountById(event.sourceAccountId)?.fullName.toLowerCase().includes(q) ?? false) ||
-             (getAccountById(event.destinationAccountId)?.fullName.toLowerCase().includes(q) ?? false))
-          : (getAccountById(event.accountId)?.fullName.toLowerCase().includes(q) ?? false);
+          ? (() => {
+              const src = getAccountById(event.sourceAccountId);
+              const dst = getAccountById(event.destinationAccountId);
+              return (
+                (src?.fullName.toLowerCase().includes(q) ?? false) ||
+                (src?.name.toLowerCase().includes(q) ?? false) ||
+                (dst?.fullName.toLowerCase().includes(q) ?? false) ||
+                (dst?.name.toLowerCase().includes(q) ?? false)
+              );
+            })()
+          : (() => {
+              const acc = getAccountById(event.accountId);
+              return (
+                (acc?.fullName.toLowerCase().includes(q) ?? false) ||
+                (acc?.name.toLowerCase().includes(q) ?? false)
+              );
+            })();
         const amountMatch = event.amount.toString().includes(q);
         return descMatch || accMatch || amountMatch;
       });
@@ -1623,9 +1645,10 @@ export default function FinancePage() {
                   <button
                     type="button"
                     onClick={() => setFilterAccountId(null)}
-                    className="text-amber-400 hover:text-amber-300 font-bold hover:underline cursor-pointer"
+                    className="text-amber-400 hover:text-amber-300 font-bold hover:underline cursor-pointer flex items-center gap-1"
                   >
-                    Clear Filter ✕
+                    <span>Clear Filter</span>
+                    <X className="w-3.5 h-3.5" />
                   </button>
                 </div>
               );

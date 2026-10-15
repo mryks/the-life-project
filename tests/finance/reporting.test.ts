@@ -68,6 +68,8 @@ describe('Financial Reporting & Stats (Rule G)', () => {
     const octStats = calculateFinanceStats(events, '2026-10-01');
     expect(octStats.monthlyExpense).toBe(-100_000);
     expect(octStats.categoryTotals['Personal Care']).toBe(-100_000);
+    // pieData must exclude negative categories to prevent broken Pie chart arcs
+    expect(octStats.pieData).toHaveLength(0);
   });
 
   it('attributes refund reduction to original Expense category', () => {

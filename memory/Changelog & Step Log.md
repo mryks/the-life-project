@@ -6,6 +6,24 @@
 
 ## 📜 Sprint & Evolution Log
 
+### Langkah 23: Comprehensive Codebase & Financial Engine Audit
+- **Offline Deletion Tombstone Shield (`lib/sync.ts`)**:
+  - Identified critical edge case where locally deleted transactions were resurrected upon next sync if offline or if network timeout occurred before cloud soft-delete completed.
+  - Updated `mergeLocalAndCloudEvents` to strictly check `pendingDeletedIds`, guaranteeing pending deletions are never resurrected from cloud data. Added unit test.
+- **Parity Soft-Delete on Force Upload & Restore (`lib/sync.ts`)**:
+  - Updated `forceUploadAllToCloud` to soft-delete any cloud records not present in the active local/restored dataset. Prevents restored snapshots from being contaminated by old cloud records.
+- **Negative Category Pie Chart Fix (`lib/finance.ts`)**:
+  - Fixed mathematical SVG rendering bug where cross-month refunds caused negative category totals to be passed to Recharts `<Pie>`, resulting in NaN angles. Clamped `pieData` to positive categories (`categoryTotals[category] > 0`).
+- **Category Filter Parity for Refunds (`app/finance/page.tsx`)**:
+  - Aligned Card View with Ledger View so filtering by category displays refunds belonging to that expense category (resolves parent expense category lookup).
+- **Account Search Expansion (`app/finance/page.tsx`)**:
+  - Expanded search query in Card View to match both `fullName` and short `name` (e.g. searching "SEA", "JY", "B" now matches correctly, consistent with Ledger View).
+- **Design System & Icon Audit**:
+  - Replaced raw Unicode `✕` symbol with Lucide `X` icon, maintaining 100% adherence to zero-emoji design rules.
+  - Verified 0 Unicode emojis across all `.ts` and `.tsx` source files.
+  - Synced `next.config.ts` allowedDevOrigins.
+- **Verification**: 196/196 Vitest tests passing, 0 ESLint warnings, TypeScript strict check green, Next.js production build green.
+
 ### Langkah 22: Cross-Account Refunds & Account Preservation
 - **Cross-Account Refund Support**:
   - Removed same-account restriction in `validateFinancialEvents` (`lib/finance.ts`), enabling refunds to be deposited into any valid active account (e.g. paid with BCA, refunded to GoPay).

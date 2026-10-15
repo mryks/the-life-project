@@ -233,6 +233,50 @@ describe('Sync Engine & Supabase Data Mapper', () => {
       expect(mergedEvents.length).toBe(1);
       expect(mergedEvents[0].id).toBe('evt-to-keep');
     });
+
+    it('does not resurrect locally deleted events when pending in pendingDeletedIds even if cloud row still has deleted_at: null', () => {
+      const activeEvent: ExpenseEvent = {
+        id: 'evt-active',
+        date: '2026-10-05',
+        description: 'Active dinner',
+        amount: 50000,
+        type: 'expense',
+        accountId: 'g',
+        category: 'Food & Drinks',
+      };
+
+      // Cloud still has deleted_at: null because network timeout/offline prevented tombstone write
+      const cloudNotYetTombstonedRow: FinancialEventDbRow = {
+        id: 'evt-deleted-offline',
+        date: '2026-10-05',
+        description: 'Deleted offline expense',
+        amount: 30000,
+        type: 'expense',
+        category: 'Other',
+        account_id: 'g',
+        source_account_id: null,
+        destination_account_id: null,
+        admin_fee: null,
+        related_event_id: null,
+        within_day_order: 0,
+        created_at: '2026-10-05T07:00:00Z',
+        updated_at: '2026-10-05T07:00:00Z',
+        deleted_at: null, // Still null in cloud!
+        user_id: 'single-user',
+      };
+
+      const { mergedEvents } = mergeLocalAndCloudEvents(
+        [activeEvent], // Local already deleted it
+        [cloudNotYetTombstonedRow],
+        [],
+        ['evt-deleted-offline'] // In pending deletions queue!
+      );
+
+      // Must NOT be resurrected
+      expect(mergedEvents.find((e) => e.id === 'evt-deleted-offline')).toBeUndefined();
+      expect(mergedEvents.length).toBe(1);
+      expect(mergedEvents[0].id).toBe('evt-active');
+    });
   });
 
   describe('Pending deletions queue', () => {

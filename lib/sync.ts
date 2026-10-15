@@ -257,13 +257,17 @@ export const computeWithinDayOrders = (events: FinancialEvent[]): Map<string, nu
 export const mergeLocalAndCloudEvents = (
   localEvents: FinancialEvent[],
   cloudRows: FinancialEventDbRow[],
-  pendingUpsertIds?: string[]
+  pendingUpsertIds?: string[],
+  pendingDeletedIds?: string[]
 ): {
   mergedEvents: FinancialEvent[];
   rowsToUpsert: FinancialEventDbRow[];
 } => {
   const effectivePendingUpsertIds = pendingUpsertIds !== undefined ? pendingUpsertIds : getPendingUpsertIds();
   const pendingUpsertSet = new Set<string>(effectivePendingUpsertIds);
+
+  const effectivePendingDeletedIds = pendingDeletedIds !== undefined ? pendingDeletedIds : getPendingDeletedIds();
+  const pendingDeletedSet = new Set<string>(effectivePendingDeletedIds);
 
   const localEventMap = new Map<string, FinancialEvent>(localEvents.map((e) => [e.id, e]));
   const cloudRowMap = new Map<string, FinancialEventDbRow>(cloudRows.map((r) => [r.id, r]));
@@ -274,12 +278,12 @@ export const mergeLocalAndCloudEvents = (
 
   // 1. Process cloud rows
   const nonDeletedCloudIds = new Set<string>(
-    cloudRows.filter((r) => !r.deleted_at).map((r) => r.id)
+    cloudRows.filter((r) => !r.deleted_at && !pendingDeletedSet.has(r.id)).map((r) => r.id)
   );
 
   for (const row of cloudRows) {
-    // If tombstoned (soft-deleted), ensure it's removed from local
-    if (row.deleted_at) {
+    // If tombstoned in cloud OR locally marked as pending deletion, ensure removed from local and skipped
+    if (row.deleted_at || pendingDeletedSet.has(row.id)) {
       localEventMap.delete(row.id);
       continue;
     }
@@ -319,6 +323,7 @@ export const mergeLocalAndCloudEvents = (
 
   // 2. Process local events not yet in cloud
   for (const localEvt of localEvents) {
+    if (pendingDeletedSet.has(localEvt.id)) continue;
     if (!cloudRowMap.has(localEvt.id)) {
       const localOrder = localOrderMap.get(localEvt.id) ?? 0;
       candidateEventsMap.set(localEvt.id, { event: localEvt, order: localOrder });
@@ -508,7 +513,13 @@ export const syncWithCloud = async (
 
     // 3. Reconcile local and cloud events
     const pendingUpsertIds = getPendingUpsertIds();
-    const { mergedEvents, rowsToUpsert } = mergeLocalAndCloudEvents(local, cloudRows, pendingUpsertIds);
+    const remainingPendingDeletedIds = getPendingDeletedIds();
+    const { mergedEvents, rowsToUpsert } = mergeLocalAndCloudEvents(
+      local,
+      cloudRows,
+      pendingUpsertIds,
+      remainingPendingDeletedIds
+    );
 
     // 4. Push local changes/new records up to cloud
     if (rowsToUpsert.length > 0) {
@@ -583,7 +594,7 @@ export const deleteFinancialEventWithSync = async (
 
 /**
  * Force pushes all local events directly to Supabase with onConflict: 'id'.
- * Useful when local storage has newer records that need guaranteed immediate cloud upload.
+ * Soft-deletes any cloud records not present in the local set to guarantee perfect parity.
  */
 export const forceUploadAllToCloud = async (
   events?: FinancialEvent[]
@@ -601,6 +612,28 @@ export const forceUploadAllToCloud = async (
 
   try {
     notifySyncState({ status: 'syncing', errorMessage: null });
+
+    // 1. Soft-delete any cloud records that do not exist in the dataset being force-pushed
+    const localIdSet = new Set(local.map((e) => e.id));
+    const { data: existingCloud, error: fetchErr } = await client
+      .from('financial_events')
+      .select('id')
+      .is('deleted_at', null);
+
+    if (!fetchErr && existingCloud) {
+      const ghostIds = existingCloud
+        .map((r) => r.id)
+        .filter((id) => !localIdSet.has(id));
+
+      if (ghostIds.length > 0) {
+        await client
+          .from('financial_events')
+          .update({ deleted_at: new Date().toISOString() })
+          .in('id', ghostIds);
+      }
+    }
+
+    // 2. Upsert active local events
     const { error } = await client
       .from('financial_events')
       .upsert(rows, { onConflict: 'id' });
@@ -611,6 +644,7 @@ export const forceUploadAllToCloud = async (
     }
 
     clearPendingUpserts(local.map((e) => e.id));
+    clearPendingDeletions(getPendingDeletedIds());
     const nowIso = new Date().toISOString();
     notifySyncState({ status: 'synced', lastSyncedAt: nowIso, errorMessage: null });
     return { success: true, count: rows.length };

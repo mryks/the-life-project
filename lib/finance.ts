@@ -452,7 +452,7 @@ export const calculateFinanceStats = (events: FinancialEvent[], currentDate: str
     savingsRate,
     dailyAverageExpense,
     categoryTotals,
-    pieData: expenseCategories.filter((category) => categoryTotals[category] !== 0).map((name) => ({ name, value: categoryTotals[name] })),
+    pieData: expenseCategories.filter((category) => categoryTotals[category] > 0).map((name) => ({ name, value: categoryTotals[name] })),
   };
 };
 
