@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   calculateIndicatorPosition,
   calculateSnappedTabIndex,
+  calculateBoundedSwipeTarget,
   type TabButtonRect,
 } from "@/lib/swipe-tabs";
 
@@ -96,4 +97,95 @@ describe("Swipeable Tabs Pure Calculations", () => {
       expect(calculateSnappedTabIndex(100, clientWidth, 0)).toBe(0);
     });
   });
+
+  describe("calculateBoundedSwipeTarget (Single-Step Pagination Invariant)", () => {
+    it("advances by exactly +1 tab on intentional left swipe", () => {
+      const target = calculateBoundedSwipeTarget({
+        startIndex: 0,
+        deltaX: -100,
+        velocity: 0.1,
+        clientWidth,
+        totalTabs: 3,
+      });
+      expect(target).toBe(1);
+    });
+
+    it("STRICT INVARIANT: huge flick from tab 0 never skips tab 1 to reach tab 2", () => {
+      const target = calculateBoundedSwipeTarget({
+        startIndex: 0,
+        deltaX: -800,
+        velocity: 4.5, // Extremely high velocity flick
+        clientWidth,
+        totalTabs: 3,
+      });
+      expect(target).toBe(1); // STRICTLY 1, NEVER 2!
+    });
+
+    it("advances by exactly +1 tab on quick flick left", () => {
+      const target = calculateBoundedSwipeTarget({
+        startIndex: 0,
+        deltaX: -30,
+        velocity: 0.4,
+        clientWidth,
+        totalTabs: 3,
+      });
+      expect(target).toBe(1);
+    });
+
+    it("snaps back to start tab on weak/incomplete drag", () => {
+      const target = calculateBoundedSwipeTarget({
+        startIndex: 0,
+        deltaX: -15,
+        velocity: 0.05,
+        clientWidth,
+        totalTabs: 3,
+      });
+      expect(target).toBe(0);
+    });
+
+    it("moves by exactly -1 tab on intentional right swipe from tab 1", () => {
+      const target = calculateBoundedSwipeTarget({
+        startIndex: 1,
+        deltaX: 100,
+        velocity: 0.1,
+        clientWidth,
+        totalTabs: 3,
+      });
+      expect(target).toBe(0);
+    });
+
+    it("STRICT INVARIANT: huge flick right from tab 2 never skips tab 1 to reach tab 0", () => {
+      const target = calculateBoundedSwipeTarget({
+        startIndex: 2,
+        deltaX: 900,
+        velocity: 5.0, // Massive flick
+        clientWidth,
+        totalTabs: 3,
+      });
+      expect(target).toBe(1); // STRICTLY 1, NEVER 0!
+    });
+
+    it("clamps boundaries safely when swiping right at index 0", () => {
+      const target = calculateBoundedSwipeTarget({
+        startIndex: 0,
+        deltaX: 200,
+        velocity: 0.5,
+        clientWidth,
+        totalTabs: 3,
+      });
+      expect(target).toBe(0);
+    });
+
+    it("clamps boundaries safely when swiping left at last index (2)", () => {
+      const target = calculateBoundedSwipeTarget({
+        startIndex: 2,
+        deltaX: -200,
+        velocity: 0.5,
+        clientWidth,
+        totalTabs: 3,
+      });
+      expect(target).toBe(2);
+    });
+  });
 });
+

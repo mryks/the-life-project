@@ -56,3 +56,46 @@ export function calculateSnappedTabIndex(
   const rawIndex = Math.round(scrollLeft / clientWidth);
   return Math.max(0, Math.min(rawIndex, totalTabs - 1));
 }
+
+export interface SwipeGestureInfo {
+  startIndex: number;
+  deltaX: number;
+  velocity: number;
+  clientWidth: number;
+  totalTabs: number;
+}
+
+/**
+ * Calculates the target tab index for a single swipe gesture.
+ * STRICT INVARIANT: A single swipe can advance by AT MOST ±1 tab.
+ * It will NEVER skip multiple tabs regardless of swipe distance or velocity.
+ */
+export function calculateBoundedSwipeTarget({
+  startIndex,
+  deltaX,
+  velocity,
+  clientWidth,
+  totalTabs,
+}: SwipeGestureInfo): number {
+  if (totalTabs <= 0) return 0;
+  if (clientWidth <= 0) return Math.max(0, Math.min(startIndex, totalTabs - 1));
+
+  // Minimum travel distance: 18% of viewport width
+  const distanceThreshold = clientWidth * 0.18;
+  // Quick flick detection: displacement > 20px and velocity > 0.22 px/ms
+  const isQuickFlick = Math.abs(deltaX) > 20 && velocity > 0.22;
+
+  if (deltaX < -distanceThreshold || (deltaX < -20 && isQuickFlick)) {
+    // Swipe left -> advance by AT MOST +1 tab
+    return Math.min(startIndex + 1, totalTabs - 1);
+  }
+
+  if (deltaX > distanceThreshold || (deltaX > 20 && isQuickFlick)) {
+    // Swipe right -> advance by AT MOST -1 tab
+    return Math.max(startIndex - 1, 0);
+  }
+
+  // Sub-threshold gesture -> snap back to starting tab
+  return Math.max(0, Math.min(startIndex, totalTabs - 1));
+}
+

@@ -1,7 +1,10 @@
+"use client";
+
 import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
 import {
   calculateIndicatorPosition,
   calculateSnappedTabIndex,
+  calculateBoundedSwipeTarget,
   type TabButtonRect,
 } from "@/lib/swipe-tabs";
 
@@ -28,6 +31,16 @@ export function useSwipeableTabs<T extends string>({
   const rafRef = useRef<number | null>(null);
   const prevActiveTabRef = useRef<T>(activeTab);
   const isMounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
+
+  // Active touch gesture tracking for single-step pagination enforcement
+  const touchStateRef = useRef<{
+    startX: number;
+    startY: number;
+    startTime: number;
+    startIndex: number;
+    isTracking: boolean;
+    isHorizontal: boolean | null;
+  } | null>(null);
 
   // Measure tab button offsets and continuously interpolate indicator position (1:1 motion)
   const updateIndicator = useCallback(() => {
@@ -101,7 +114,8 @@ export function useSwipeableTabs<T extends string>({
       updateIndicator();
     });
 
-    if (isProgrammaticScrollRef.current) return;
+    // Do not settle if programmatic scroll or active touch gesture is in progress
+    if (isProgrammaticScrollRef.current || touchStateRef.current?.isTracking) return;
 
     if (scrollTimeoutRef.current !== null) {
       window.clearTimeout(scrollTimeoutRef.current);
@@ -144,6 +158,118 @@ export function useSwipeableTabs<T extends string>({
       if (scrollTimeoutRef.current !== null) window.clearTimeout(scrollTimeoutRef.current);
     };
   }, [handleScroll]);
+
+  // Attach touch listeners to strictly enforce SINGLE-STEP pagination (max 1 tab per swipe)
+  useEffect(() => {
+    const carousel = carouselRef.current;
+    if (!carousel) return;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length !== 1) return;
+      const touch = e.touches[0];
+      const clientWidth = carousel.clientWidth;
+      if (clientWidth <= 0) return;
+
+      const currentIndex = Math.max(
+        0,
+        Math.min(Math.round(carousel.scrollLeft / clientWidth), tabs.length - 1)
+      );
+
+      touchStateRef.current = {
+        startX: touch.clientX,
+        startY: touch.clientY,
+        startTime: Date.now(),
+        startIndex: currentIndex,
+        isTracking: true,
+        isHorizontal: null,
+      };
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      const state = touchStateRef.current;
+      if (!state || !state.isTracking) return;
+
+      const touch = e.touches[0];
+      const deltaX = touch.clientX - state.startX;
+      const deltaY = touch.clientY - state.startY;
+
+      if (state.isHorizontal === null) {
+        if (Math.abs(deltaX) > 6 || Math.abs(deltaY) > 6) {
+          state.isHorizontal = Math.abs(deltaX) > Math.abs(deltaY);
+        }
+      }
+
+      if (state.isHorizontal) {
+        const clientWidth = carousel.clientWidth;
+        if (clientWidth <= 0) return;
+
+        // PHYSICAL BOUNDARY: Strictly clamp scroll position to at most ±1 tab
+        const minAllowedScroll = Math.max(0, (state.startIndex - 1) * clientWidth);
+        const maxAllowedScroll = Math.min(
+          (tabs.length - 1) * clientWidth,
+          (state.startIndex + 1) * clientWidth
+        );
+
+        if (carousel.scrollLeft < minAllowedScroll) {
+          carousel.scrollLeft = minAllowedScroll;
+        } else if (carousel.scrollLeft > maxAllowedScroll) {
+          carousel.scrollLeft = maxAllowedScroll;
+        }
+      }
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      const state = touchStateRef.current;
+      touchStateRef.current = null;
+      if (!state || !state.isHorizontal) return;
+
+      const touch = e.changedTouches[0];
+      const deltaX = touch.clientX - state.startX;
+      const elapsed = Math.max(1, Date.now() - state.startTime);
+      const velocity = Math.abs(deltaX) / elapsed;
+
+      const clientWidth = carousel.clientWidth;
+      if (clientWidth <= 0) return;
+
+      const targetIndex = calculateBoundedSwipeTarget({
+        startIndex: state.startIndex,
+        deltaX,
+        velocity,
+        clientWidth,
+        totalTabs: tabs.length,
+      });
+
+      const targetTab = tabs[targetIndex];
+      if (targetTab) {
+        isProgrammaticScrollRef.current = true;
+        carousel.scrollTo({
+          left: targetIndex * clientWidth,
+          behavior: "smooth",
+        });
+        onTabChange(targetTab);
+
+        if (scrollTimeoutRef.current !== null) {
+          window.clearTimeout(scrollTimeoutRef.current);
+        }
+        scrollTimeoutRef.current = window.setTimeout(() => {
+          isProgrammaticScrollRef.current = false;
+          updateIndicator();
+        }, 350);
+      }
+    };
+
+    carousel.addEventListener("touchstart", handleTouchStart, { passive: true });
+    carousel.addEventListener("touchmove", handleTouchMove, { passive: true });
+    carousel.addEventListener("touchend", handleTouchEnd, { passive: true });
+    carousel.addEventListener("touchcancel", handleTouchEnd, { passive: true });
+
+    return () => {
+      carousel.removeEventListener("touchstart", handleTouchStart);
+      carousel.removeEventListener("touchmove", handleTouchMove);
+      carousel.removeEventListener("touchend", handleTouchEnd);
+      carousel.removeEventListener("touchcancel", handleTouchEnd);
+    };
+  }, [onTabChange, tabs, updateIndicator]);
 
   // Prevent horizontal trackpad swipe from switching tabs on desktop PC
   useEffect(() => {

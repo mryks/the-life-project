@@ -141,3 +141,9 @@ Keep changes minimal and reviewable.
   * `progress.md`: Completed features vs backlog.
 - At the start of tasks, consult the Memory Bank before performing redundant codebase rescans.
 - When finishing major milestones, update the relevant Memory Bank files.
+
+## Front-End & UI Engineering Standard
+
+- The agent must strictly adhere to `.agents/skills/senior-frontend-engineer/SKILL.md` for all UI, layout, animation, and touch gesture tasks.
+- **Single-Step Pagination Invariant**: Multi-view tab carousels must strictly advance by at most $\pm 1$ tab per swipe gesture. Fast flicks or large drags must never skip adjacent screens.
+- **Production Parity**: When building or refining mobile interactions, verification is incomplete until changes are committed, pushed, and deployed live to Vercel.

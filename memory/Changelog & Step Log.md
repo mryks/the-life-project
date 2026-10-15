@@ -6,6 +6,21 @@
 
 ## 📜 Sprint & Evolution Log
 
+### Langkah 29: Single-Step Pagination Invariant (Max 1 Tab per Swipe) & Senior Frontend Skill
+- **User Directive**:
+  - Install a comprehensive Senior Front-End & UI Engineer skill in `.agents/skills/senior-frontend-engineer/SKILL.md` and enforce its usage across all UI work.
+  - Implement the **Single-Step Pagination Invariant**: a single swipe gesture MUST move by at most 1 tab ($\pm 1$), and can NEVER skip multiple tabs (e.g. from Overview cannot skip Accounts directly to Activity).
+- **Senior Front-End Playbook Installation**:
+  - Created `.agents/skills/senior-frontend-engineer/SKILL.md` codifying gesture bounding, velocity gating, zero-assumption engineering, 120fps hardware motion, and live deployment verification.
+  - Codified in `AGENTS.md` under `## Front-End & UI Engineering Standard`.
+- **Pure Calculation Engine (`lib/swipe-tabs.ts`)**:
+  - `calculateBoundedSwipeTarget`: guarantees that regardless of flick speed or drag distance, target index is mathematically capped at `[startIndex - 1, startIndex, startIndex + 1]`.
+  - 8 new unit tests added (21/21 passing in `swipeable-tabs.test.ts`).
+- **Touch Gesture Boundary Enforcement (`hooks/useSwipeableTabs.ts`)**:
+  - `handleTouchMove`: strictly clamps `carousel.scrollLeft` within $[(\text{startIndex} - 1) \times W, (\text{startIndex} + 1) \times W]$. The DOM cannot physically scroll beyond the adjacent tab during a single touch drag.
+  - `handleTouchEnd`: evaluates displacement and flick velocity, computes the strictly bounded target index, programmatically smooth-scrolls to it, and updates `activeTab`.
+- **Verification**: 217/217 Vitest tests passing across 17 test suites, 0 ESLint warnings, Next.js Turbopack production build succeeds with 0 errors.
+
 ### Langkah 28: React Aria Swipeable Tabs Carousel & 1:1 Sliding Indicator Motion
 - **Architecture & Pattern (`https://react-aria.adobe.com/examples/swipeable-tabs`)**:
   - Implemented CSS scroll-snapping horizontal carousel (`flex overflow-x-auto snap-x snap-mandatory scrollbar-hide overscroll-x-contain touch-pan-x touch-pan-y`) hosting `Overview`, `Accounts`, and `Activity & Ledger` side-by-side (`w-full min-w-full shrink-0 snap-start snap-always`).

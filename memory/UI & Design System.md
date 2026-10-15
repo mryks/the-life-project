@@ -44,9 +44,12 @@ Custom CSS utilities in `app/globals.css`:
   - Paired with an amber spring pulse ring (`ring-4 ring-amber-400`), card lift, `"UPDATED"` badge, and smooth viewport auto-scroll upon transaction completion.
 - **Swipeable Tabs Carousel (`hooks/useSwipeableTabs.ts` & `lib/swipe-tabs.ts`)**:
   - Architecture inspired by React Aria (`https://react-aria.adobe.com/examples/swipeable-tabs`).
-  - Native CSS scroll-snap carousel (`flex overflow-x-auto snap-x snap-mandatory scrollbar-hide overscroll-x-contain touch-pan-x touch-pan-y`) hosting `Overview`, `Accounts`, and `Activity & Ledger` side-by-side.
-  - 1:1 hardware-accelerated continuous pill tracking: calculates exact button offset and width interpolation via `requestAnimationFrame` for stutter-free 120fps motion following the user's finger.
-  - Touch-only horizontal swipe: phone/tablet users can naturally swipe between tabs, while desktop PC mouse uses tab button clicks. Horizontal wheel delta on fine pointers (`(pointer: fine)`) is intercepted to prevent accidental trackpad page switching on desktop.
-  - Seamless transaction completion transition: saves trigger `goToTab('accounts')`, smoothly sliding into the Accounts view before triggering tactical highlight and `AnimatedNumber` rolling counters.
+  - Native CSS scroll-snap carousel (`flex overflow-x-auto snap-x snap-mandatory scrollbar-hide overscroll-x-contain`) hosting `Overview`, `Accounts`, and `Activity & Ledger` side-by-side (`w-full min-w-full shrink-0 snap-start`).
+  - **Single-Step Pagination Invariant (`calculateBoundedSwipeTarget`)**: A single touch swipe gesture is strictly constrained to advance by **at most $\pm 1$ tab**. It can NEVER skip or fly over multiple screens regardless of how fast or hard the user flicks.
+  - **Gesture Boundary Clamping**: During `touchmove`, `carousel.scrollLeft` is physically clamped within $[(\text{startIndex} - 1) \times W, (\text{startIndex} + 1) \times W]$. The DOM cannot physically traverse beyond adjacent tabs during a single drag.
+  - **Velocity Gating**: Distance $\ge 18\%$ of screen width OR quick flick velocity $> 0.22\,\text{px/ms}$ commits the transition to the adjacent tab; sub-threshold drags smoothly snap back to the origin tab.
+  - **1:1 Hardware-Accelerated Indicator Motion**: Tracks exact button offset and width via `requestAnimationFrame` for buttery 120fps motion following the user's finger.
+  - **Senior Front-End Playbook**: Codified in `.agents/skills/senior-frontend-engineer/SKILL.md` and enforced in `AGENTS.md`.
+
 
 
