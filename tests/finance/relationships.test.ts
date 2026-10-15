@@ -83,10 +83,10 @@ describe('Relationship Integrity (Rule B)', () => {
       expect(validateFinancialEvents([refund])).toBe(false);
     });
 
-    it('rejects refund when account differs from parent expense account', () => {
-      const expense = createExpense({ id: 'exp-1', accountId: 'g' });
-      const refund = createRefund({ id: 'ref-1', relatedEventId: 'exp-1', accountId: 's' }); // S != G
-      expect(validateFinancialEvents([expense, refund])).toBe(false);
+    it('allows refund when account differs from parent expense account', () => {
+      const expense = createExpense({ id: 'exp-1', accountId: 'g', amount: 100_000 });
+      const refund = createRefund({ id: 'ref-1', relatedEventId: 'exp-1', accountId: 's', amount: 60_000 }); // S != G
+      expect(validateFinancialEvents([expense, refund])).toBe(true);
     });
 
     it('rejects invalid or empty relatedEventId', () => {

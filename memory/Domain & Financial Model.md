@@ -50,7 +50,8 @@ export type FinancialEvent =
 - **Fundamental Rule**:
   - **Refund is NOT Income.** It must never be aggregated into monthly income totals.
   - **Refund reduces Net Expense**: If an expense of Rp 100,000 has a refund of Rp 60,000, net expense is Rp 40,000.
-  - Money returns to the original expense account (`accountId === parentExpense.accountId`).
+  - Money returns to the user-selected destination account (`accountId` can be any valid account, e.g. paid via BCA, refunded to GoPay).
+  - Parent expense retains original outflow on its account; refund destination account receives incoming funds.
   - Total refunds for an expense must never exceed the parent expense amount (`totalRefunds <= parentExpense.amount`).
 
 ---
@@ -75,5 +76,5 @@ All calculations are pure functions located in `lib/finance.ts`:
 2. Event date must match strict `YYYY-MM-DD` calendar format.
 3. Every ID must be unique across the entire dataset.
 4. Child events (`refund` or `cashback`) must have a valid parent expense event.
-5. Child event `accountId` must strictly match parent `accountId`.
+5. Child cashback event `accountId` matches parent `accountId`. Refund event `accountId` can be any valid account selected by the user.
 6. Sum of refunds on an expense cannot exceed parent expense amount.

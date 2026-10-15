@@ -152,9 +152,9 @@ describe('CRUD, Event Replacement & Cascade Deletion (Rules C & D)', () => {
       expect(next).toBeNull();
     });
 
-    it('cascades account change from parent Expense to associated Refunds', () => {
+    it('preserves refund destination account when parent Expense account changes', () => {
       const expense = createExpense({ id: 'exp-1', accountId: 'g', amount: 200_000 });
-      const refund = createRefund({ id: 'ref-1', relatedEventId: 'exp-1', accountId: 'g', amount: 50_000 });
+      const refund = createRefund({ id: 'ref-1', relatedEventId: 'exp-1', accountId: 's', amount: 50_000 });
       const events: FinancialEvent[] = [expense, refund];
 
       // Change expense account from 'g' to 'b'
@@ -166,7 +166,7 @@ describe('CRUD, Event Replacement & Cascade Deletion (Rules C & D)', () => {
       const exp = next!.find((e) => e.id === 'exp-1');
       const ref = next!.find((e) => e.id === 'ref-1');
       expect(exp?.type === 'expense' && exp.accountId).toBe('b');
-      expect(ref?.type === 'refund' && ref.accountId).toBe('b');
+      expect(ref?.type === 'refund' && ref.accountId).toBe('s');
     });
 
     it('ensures Transfer can only remain Transfer and cannot become Income or Expense', () => {

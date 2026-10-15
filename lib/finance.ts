@@ -175,7 +175,7 @@ export const validateFinancialEvents = (events: FinancialEvent[]): boolean => {
     }
     if (event.type === 'refund') {
       const parent = eventById.get(event.relatedEventId);
-      if (!parent || parent.type !== 'expense' || parent.accountId !== event.accountId) return false;
+      if (!parent || parent.type !== 'expense') return false;
       refundsByExpense.set(parent.id, (refundsByExpense.get(parent.id) ?? 0) + event.amount);
     }
   }
@@ -514,7 +514,7 @@ export const replaceFinancialEvent = (events: FinancialEvent[], replacement: Fin
         ref.id,
         {
           ...ref,
-          accountId: replacement.accountId,
+          accountId: ref.accountId,
         },
       ])
     );

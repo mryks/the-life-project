@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import type { ExpenseEvent, RefundEvent } from "@/lib/types";
-import { getAccountById } from "@/lib/accounts";
+import type { ExpenseEvent, RefundEvent, AccountId } from "@/lib/types";
+import { accounts, getAccountById } from "@/lib/accounts";
 import { todayDate, isDateOnly } from "@/lib/finance";
 import { X, RotateCcw, AlertCircle, Check, Calendar as CalendarIcon } from "lucide-react";
 
@@ -13,7 +13,7 @@ interface RefundModalProps {
   editingRefund?: RefundEvent | null;
   maxRefundableAmount: number;
   existingRefundedAmount: number;
-  onSaveRefund: (data: { date: string; amount: number; description: string }) => void;
+  onSaveRefund: (data: { date: string; amount: number; description: string; accountId: AccountId }) => void;
   error: string | null;
   formatRupiah: (amount: number) => string;
 }
@@ -62,6 +62,9 @@ function RefundModalInner({
       ? editingRefund.amount.toLocaleString('id-ID') 
       : maxRefundableAmount.toLocaleString('id-ID')
   );
+  const [selectedAccount, setSelectedAccount] = useState<AccountId | null>(() => 
+    editingRefund ? editingRefund.accountId : null
+  );
   const [desc, setDesc] = useState(() => editingRefund ? editingRefund.description : `Refund: ${parentExpense.description}`);
   const [localError, setLocalError] = useState<string | null>(null);
 
@@ -97,6 +100,10 @@ function RefundModalInner({
       setLocalError(`Refund amount exceeds the maximum refundable balance (${formatRupiah(maxRefundableAmount)}).`);
       return;
     }
+    if (!selectedAccount) {
+      setLocalError("Please select a destination account for the refund.");
+      return;
+    }
     if (!date) {
       setLocalError("Refund date is required.");
       return;
@@ -105,6 +112,7 @@ function RefundModalInner({
       date,
       amount: parsedAmount,
       description: desc.trim() || `Refund: ${parentExpense.description}`,
+      accountId: selectedAccount,
     });
   };
 
@@ -165,7 +173,7 @@ function RefundModalInner({
             <span className="font-semibold text-stone-900">{parentExpense.description}</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-stone-500 font-medium">Account:</span>
+            <span className="text-stone-500 font-medium">Paid From:</span>
             <span className="font-semibold text-stone-900 flex items-center gap-1.5">
               <span className={`w-2.5 h-2.5 rounded-full ${parentAcc?.colorClass}`} />
               <span>{parentAcc?.fullName} ({parentAcc?.name})</span>
@@ -211,6 +219,43 @@ function RefundModalInner({
                 Partial refund: remaining net expense balance will be {formatRupiah(maxRefundableAmount - parsedAmount)}
               </p>
             )}
+          </div>
+
+          {/* Destination Account Selection */}
+          <div>
+            <div className="flex justify-between items-center mb-1">
+              <label className="text-xs font-bold text-stone-700 uppercase tracking-wider block">
+                Destination Account
+              </label>
+              {!selectedAccount && (
+                <span className="text-[10px] font-bold text-rose-500">Required</span>
+              )}
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-40 overflow-y-auto p-1.5 bg-stone-50 rounded-2xl border border-stone-200">
+              {accounts.map((acc) => (
+                <button
+                  key={acc.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedAccount(acc.id);
+                    setLocalError(null);
+                  }}
+                  className={`p-2.5 rounded-xl border text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+                    selectedAccount === acc.id
+                      ? 'bg-stone-900 text-white border-stone-950 shadow-xs'
+                      : 'bg-white border-stone-200 text-stone-700 hover:bg-stone-100'
+                  }`}
+                >
+                  <span className={`w-5 h-5 rounded-full ${acc.colorClass} text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0 shadow-xs`}>
+                    {acc.name}
+                  </span>
+                  <span className="truncate">{acc.fullName}</span>
+                </button>
+              ))}
+            </div>
+            <p className="text-[11px] text-stone-500 mt-1">
+              Account receiving the refunded funds (can be different from the original paid account).
+            </p>
           </div>
 
           {/* Date Input (Formatted as d MMMM yyyy, e.g. 15 October 2026) */}

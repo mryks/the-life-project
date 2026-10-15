@@ -709,7 +709,7 @@ export default function FinancePage() {
     setActiveTransactionId(null);
   };
 
-  const handleSaveRefund = ({ date: refDate, amount: refAmount, description: refDesc }: { date: string; amount: number; description: string }) => {
+  const handleSaveRefund = ({ date: refDate, amount: refAmount, description: refDesc, accountId: refAccountId }: { date: string; amount: number; description: string; accountId: AccountId }) => {
     if (!refundParentExpense) return;
 
     if (editingRefundEvent) {
@@ -718,6 +718,7 @@ export default function FinancePage() {
         date: refDate,
         description: refDesc,
         amount: refAmount,
+        accountId: refAccountId,
       };
       const nextEvents = replaceFinancialEvent(events, updatedRefund);
       if (!nextEvents) {
@@ -749,7 +750,7 @@ export default function FinancePage() {
       description: refDesc,
       amount: refAmount,
       type: 'refund',
-      accountId: refundParentExpense.accountId,
+      accountId: refAccountId,
       relatedEventId: refundParentExpense.id,
     };
     const nextEvents = [...events, refundEvent];

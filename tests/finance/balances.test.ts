@@ -74,6 +74,29 @@ describe('Balance Calculations (Rule F)', () => {
     expect(stats.totalBalance).toBe(-350_000);
   });
 
+  it('cross-account refund updates both accounts and net monthly expense correctly', () => {
+    // Expense paid from GoPay ('g'): 100,000
+    const expense = createExpense({ id: 'exp-1', accountId: 'g', amount: 100_000, date: '2026-10-10' });
+    // Refund received into ShopeePay ('s'): 60,000
+    const refund = createRefund({ id: 'ref-1', relatedEventId: 'exp-1', accountId: 's', amount: 60_000, date: '2026-10-12' });
+
+    const events: FinancialEvent[] = [expense, refund];
+    const balances = getAccountBalances(events);
+
+    // Parent expense account 'g' has -100,000
+    expect(balances['g']).toBe(-100_000);
+    // Refund destination account 's' has +60,000
+    expect(balances['s']).toBe(60_000);
+
+    const stats = calculateFinanceStats(events, '2026-10-01');
+    // Net expense contribution adjusted to 40,000 (100,000 - 60,000)
+    expect(stats.monthlyExpense).toBe(40_000);
+    // Refund does NOT count as income
+    expect(stats.monthlyIncome).toBe(0);
+    // Total balance reflects net change: -100,000 + 60,000 = -40,000
+    expect(stats.totalBalance).toBe(-40_000);
+  });
+
   it('total balance matches sum of individual account balances and derived ledger entries', () => {
     const events: FinancialEvent[] = [
       createIncome({ id: 'init-1', accountId: 'g', amount: 1_000_000 }),

@@ -6,6 +6,20 @@
 
 ## 📜 Sprint & Evolution Log
 
+### Langkah 22: Cross-Account Refunds & Account Preservation
+- **Cross-Account Refund Support**:
+  - Removed same-account restriction in `validateFinancialEvents` (`lib/finance.ts`), enabling refunds to be deposited into any valid active account (e.g. paid with BCA, refunded to GoPay).
+  - Derived ledger entries and balances already credit the refund's chosen `accountId` and reduce the parent expense's net contribution deterministically.
+  - Stats calculation (`calculateFinanceStats`) correctly decrements `monthlyExpense` by the refund amount without treating it as income.
+- **Refund Destination Account Selection (`RefundModal.tsx`)**:
+  - Added clean account selector grid (matching transaction form) with color indicator, initials, and full name.
+  - Configured to start unselected (`null`) for new refunds, requiring the user to explicitly choose the destination account.
+  - Added validation warning ("Please select a destination account for the refund.") if submitted without selecting an account.
+  - Summary box updated with "Paid From:" label to distinguish source from refund destination account.
+- **Parent Account Edit Preservation**:
+  - Updated `replaceFinancialEvent` in `lib/finance.ts` so editing the parent expense account preserves each linked refund's independent destination account instead of overwriting it.
+- **Verification**: 195/195 Vitest tests passing (added cross-account balance derivation and account preservation tests), TypeScript strict check passing, Next.js production build green.
+
 ### Langkah 21: Refund Modal Amount and Date Standardization
 - **Refund Amount Input (`RefundModal.tsx`)**:
   - Replaced raw number input with live dot-delimited IDR formatting (`toLocaleString('id-ID')`).
