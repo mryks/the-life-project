@@ -113,7 +113,9 @@ This document provides a permanent, faithful record of every user request, resol
      - Digits roll vertically via Framer Motion physics springs while strictly preserving Indonesian Rupiah dot separators (e.g. `Rp 48.250.000`) and tabular monospaced numbers.
   5. **Totals Motion**:
      - Total Liquid, Total Investment, and Total Net Worth Aggregate cards/headers on the Accounts page smoothly morph their numbers using `AnimatedNumber`.
-  6. **Mount Animation Reliability & Duration Choreography**:
+  6. **Mount Animation Reliability & Staged Choreography (770ms Delay)**:
      - Resolved "kadang bisa kadang tidak bisa" root cause: passing snapshot of `previousBalancesSnapshot` and `previousStatsSnapshot` ensures `initial={{ y: -fromDigit * 10% }}` animates on initial mount when redirecting from Dashboard/Ledger.
-     - Tuned rolling animation duration to `2.1s` with Apple-grade cubic-bezier `[0.16, 1, 0.3, 1]`, fulfilling user requirement that the rolling number duration be slightly faster than the 2.8s tactile highlight ring.
+     - **770ms Delay**: Enforced explicit 770ms pre-roll delay (`delay = 0.77`) so that modal closing, page switching, and viewport auto-scroll finish completely before the numbers start to roll in front of the user's eyes.
+     - Tuned rolling animation duration to `2.1s` with Apple-grade cubic-bezier `[0.16, 1, 0.3, 1]`, finishing at $t = 2870\text{ms}$.
+     - Extended tactile amber ring and `"UPDATED"` badge highlight to `3.6s` (`3600ms`), fulfilling user requirement that the rolling number duration be slightly faster than the tactile highlight ring (allowing 730ms of settled reading time before the highlight clears).
 

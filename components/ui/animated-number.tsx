@@ -9,8 +9,10 @@ export interface AnimatedNumberProps {
   value: number;
   /** Optional starting numeric value to animate from */
   fromValue?: number;
-  /** Duration of rolling animation in seconds (default: 2.1s, slightly faster than 2.8s tactile highlight) */
+  /** Duration of rolling animation in seconds (default: 2.1s) */
   duration?: number;
+  /** Delay in seconds before rolling animation starts (default: 0.77s / 770ms) */
+  delay?: number;
   /** Prepend text or currency symbol (e.g. "Rp ") */
   prefix?: string;
   /** Append text (e.g. "%") */
@@ -32,7 +34,8 @@ const DigitColumn: React.FC<{
   digit: string;
   fromDigit?: string;
   duration?: number;
-}> = ({ digit, fromDigit, duration = 2.1 }) => {
+  delay?: number;
+}> = ({ digit, fromDigit, duration = 2.1, delay = 0.77 }) => {
   const isNumber = !isNaN(parseInt(digit, 10));
   const numValue = isNumber ? parseInt(digit, 10) : 0;
 
@@ -58,6 +61,7 @@ const DigitColumn: React.FC<{
         animate={{ y: `-${numValue * 10}%` }}
         transition={{
           duration,
+          delay: shouldAnimateOnMount ? delay : 0,
           ease: [0.16, 1, 0.3, 1], // Smooth Apple-grade physical deceleration
         }}
         className="flex flex-col select-none"
@@ -76,6 +80,7 @@ export const AnimatedNumber: React.FC<AnimatedNumberProps> = ({
   value,
   fromValue,
   duration = 2.1,
+  delay = 0.77,
   prefix = '',
   suffix = '',
   className,
@@ -118,6 +123,7 @@ export const AnimatedNumber: React.FC<AnimatedNumberProps> = ({
               digit={char}
               fromDigit={fromDigit}
               duration={duration}
+              delay={delay}
             />
           );
         })}
