@@ -6,14 +6,16 @@
 
 ## 📜 Sprint & Evolution Log
 
-### Langkah 27: Staged Pre-Roll Delay (770ms) & Synchronized Highlight (3.6s)
-- **770ms Pre-Roll Staging Delay**:
-  - User feedback: Modal closing, page switching, and viewport auto-scroll previously meant the rolling animation began before the user's eyes arrived on the target card.
-  - Implemented `delay={0.77}` (770ms) across all `AnimatedNumber` columns and total banners (`liquidBalance`, `investmentBalance`, `netWorth`, and account cards).
-  - During $t = 0 - 770\text{ms}$, the card centers in the viewport, the amber ring and `"UPDATED"` badge glow, and the previous balance stays still and readable.
-  - At $t = 770\text{ms}$, the digits smoothly roll for 2.1 seconds (`[0.16, 1, 0.3, 1]`), finishing crisply at $t = 2870\text{ms}$.
-- **Extended Highlight Lifecycle (3.6s)**:
-  - Extended tactile amber ring and `"UPDATED"` badge from 2.8s to 3.6s (`3600ms`), ensuring the settled number remains highlighted for 730ms before fading away gently.
+### Langkah 27: Staged Pre-Roll Delay (710ms), 2500ms Roll & 730ms Calm Hold (3940ms Highlight)
+- **710ms Pre-Roll Staging Delay**:
+  - User feedback: Exact timing tuned to `710ms jeda + 2500ms putaran + 730ms jeda baca akhir`.
+  - Implemented `delay={0.71}` (710ms) across all `AnimatedNumber` columns and total banners (`liquidBalance`, `investmentBalance`, `netWorth`, and account cards).
+  - During $t = 0 - 710\text{ms}$, the card centers in the viewport, the amber ring and `"UPDATED"` badge glow, and the previous balance stays still and readable.
+- **2500ms Rolling Duration**:
+  - Set `duration={2.5}` (2500ms) with Apple-grade cubic-bezier `[0.16, 1, 0.3, 1]`. Numbers smoothly roll and decelerate, settling crisply at $t = 3210\text{ms}$ ($710\text{ms} + 2500\text{ms}$).
+- **730ms Calm Reading Hold & 3940ms Total Highlight**:
+  - Total highlight timeout set to `3940ms` ($710\text{ms} + 2500\text{ms} + 730\text{ms} = 3940\text{ms}$).
+  - Gives the user 730ms to calmly read the settled new balance before the amber tactile highlight gently fades away.
 - **Verification**: 196/196 Vitest unit tests pass, 0 ESLint warnings, Next.js Turbopack production build succeeds with 0 errors.
 
 ### Langkah 26: AnimatedNumber Mount Fix & Rolling Duration Choreography (2.1s)

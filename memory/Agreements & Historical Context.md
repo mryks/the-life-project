@@ -113,9 +113,11 @@ This document provides a permanent, faithful record of every user request, resol
      - Digits roll vertically via Framer Motion physics springs while strictly preserving Indonesian Rupiah dot separators (e.g. `Rp 48.250.000`) and tabular monospaced numbers.
   5. **Totals Motion**:
      - Total Liquid, Total Investment, and Total Net Worth Aggregate cards/headers on the Accounts page smoothly morph their numbers using `AnimatedNumber`.
-  6. **Mount Animation Reliability & Staged Choreography (770ms Delay)**:
+  6. **Mount Animation Reliability & Staged Choreography (710ms Jeda + 2500ms Roll + 730ms Hold)**:
      - Resolved "kadang bisa kadang tidak bisa" root cause: passing snapshot of `previousBalancesSnapshot` and `previousStatsSnapshot` ensures `initial={{ y: -fromDigit * 10% }}` animates on initial mount when redirecting from Dashboard/Ledger.
-     - **770ms Delay**: Enforced explicit 770ms pre-roll delay (`delay = 0.77`) so that modal closing, page switching, and viewport auto-scroll finish completely before the numbers start to roll in front of the user's eyes.
-     - Tuned rolling animation duration to `2.1s` with Apple-grade cubic-bezier `[0.16, 1, 0.3, 1]`, finishing at $t = 2870\text{ms}$.
-     - Extended tactile amber ring and `"UPDATED"` badge highlight to `3.6s` (`3600ms`), fulfilling user requirement that the rolling number duration be slightly faster than the tactile highlight ring (allowing 730ms of settled reading time before the highlight clears).
+     - **Exact Choreography Specification**:
+       * **710ms Jeda Awal (`delay = 0.71`)**: Modal closing, page switching to Accounts, and viewport auto-scroll finish completely before digits roll; initial balance is calm and readable.
+       * **2500ms Putaran (`duration = 2.5`)**: Numbers roll with Apple-grade cubic-bezier `[0.16, 1, 0.3, 1]`, settling at $t = 3210\text{ms}$.
+       * **730ms Jeda Baca Akhir**: Final settled balance is cleanly visible for 730ms before the amber highlight ring clears.
+       * **3940ms Total Highlight**: Amber ring and `"UPDATED"` badge persist for exactly 3940ms ($710\text{ms} + 2500\text{ms} + 730\text{ms} = 3940\text{ms}$).
 

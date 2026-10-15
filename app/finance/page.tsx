@@ -373,12 +373,12 @@ export default function FinancePage() {
     if (highlightTimeoutRef.current) {
       window.clearTimeout(highlightTimeoutRef.current);
     }
-    // Highlight persists for 3.6s: 770ms pre-roll settling + 2.1s rolling duration + 730ms post-roll calm
+    // Highlight persists for 3.94s: 710ms pre-roll settling + 2500ms rolling duration + 730ms post-roll calm
     highlightTimeoutRef.current = window.setTimeout(() => {
       setImpactedAccountIds([]);
       setPreviousBalancesSnapshot(null);
       setPreviousStatsSnapshot(null);
-    }, 3600);
+    }, 3940);
 
     if (accountsToHighlight.length > 0 && typeof window !== 'undefined') {
       const scrollTarget = () => {
@@ -1611,8 +1611,8 @@ export default function FinancePage() {
                     <AnimatedNumber 
                       value={stats.liquidBalance} 
                       fromValue={previousStatsSnapshot?.liquidBalance}
-                      duration={2.1}
-                      delay={0.77}
+                      duration={2.5}
+                      delay={0.71}
                       prefix="Rp " 
                     />
                   </span>
@@ -1659,8 +1659,8 @@ export default function FinancePage() {
                           <AnimatedNumber 
                             value={bal} 
                             fromValue={isImpacted ? prevBal : undefined}
-                            duration={2.1}
-                            delay={0.77}
+                            duration={2.5}
+                            delay={0.71}
                             prefix="Rp " 
                             className={isFilteredAcc ? 'text-white' : 'text-stone-900'} 
                           />
@@ -1692,8 +1692,8 @@ export default function FinancePage() {
                     <AnimatedNumber 
                       value={stats.investmentBalance} 
                       fromValue={previousStatsSnapshot?.investmentBalance}
-                      duration={2.1}
-                      delay={0.77}
+                      duration={2.5}
+                      delay={0.71}
                       prefix="Rp " 
                       className="text-violet-700" 
                     />
@@ -1741,8 +1741,8 @@ export default function FinancePage() {
                           <AnimatedNumber 
                             value={bal} 
                             fromValue={isImpacted ? prevBal : undefined}
-                            duration={2.1}
-                            delay={0.77}
+                            duration={2.5}
+                            delay={0.71}
                             prefix="Rp " 
                             className={isFilteredAcc ? 'text-white' : 'text-stone-900'} 
                           />
@@ -1762,8 +1762,8 @@ export default function FinancePage() {
                   <AnimatedNumber 
                     value={stats.netWorth} 
                     fromValue={previousStatsSnapshot?.netWorth}
-                    duration={2.1}
-                    delay={0.77}
+                    duration={2.5}
+                    delay={0.71}
                     prefix="Rp " 
                     className="text-white" 
                   />
