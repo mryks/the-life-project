@@ -92,6 +92,12 @@
 - Dedicated notes: `Accounts & Portfolio.md`, `Refunds & Relations.md`, `Agreements & Historical Context.md`, `Domain & Financial Model.md`, `Cloud Sync & Supabase.md`, `UI & Design System.md`, `Security & Master PIN.md`, `Deployment & Vercel.md`, `Changelog & Step Log.md`.
 - Networked with bidirectional `[[Wikilinks]]` for complete context preservation and zero session drift.
 
+### 13. Post-Transaction Redirect to Accounts & EasyUI Animated Number
+- Automatic view redirect to "Accounts" page upon saving Expense, Income, Transfer, or Refund.
+- EasyUI AnimatedNumber component (`components/ui/animated-number.tsx`) with Framer Motion spring physics and IDR dot formatting (`Rp 48.250.000`).
+- Animated numbers across Total Liquid, Total Investment, Total Net Worth, and impacted account cards.
+- Tactile amber pulse highlight and smooth auto-scroll to updated account card.
+
 ---
 
 ## Finance Domain Backlog (For Future Sessions)

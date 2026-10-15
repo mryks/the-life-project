@@ -42,6 +42,7 @@ import KpiGrid from "@/components/finance/KpiGrid";
 import EmptyState from "@/components/finance/EmptyState";
 import BrandLogo from "@/components/finance/BrandLogo";
 import MasterPinLockscreen from "@/components/finance/MasterPinLockscreen";
+import AnimatedNumber from "@/components/ui/animated-number";
 import {
   isSessionUnlocked,
   lockSession,
@@ -352,6 +353,40 @@ export default function FinancePage() {
   const undoTimerRef = useRef<number | null>(null);
   const [undoSnapshot, setUndoSnapshot] = useState<FinancialEvent[] | null>(null);
   const [undoToast, setUndoToast] = useState<string | null>(null);
+
+  // Post-transaction Account Redirect & Impact Highlight State
+  const [impactedAccountIds, setImpactedAccountIds] = useState<AccountId[]>([]);
+  const highlightTimeoutRef = useRef<number | null>(null);
+
+  const triggerAccountsRedirectAndHighlight = (accountsToHighlight: AccountId[]) => {
+    setView('accounts');
+    setImpactedAccountIds(accountsToHighlight);
+
+    if (highlightTimeoutRef.current) {
+      window.clearTimeout(highlightTimeoutRef.current);
+    }
+    highlightTimeoutRef.current = window.setTimeout(() => {
+      setImpactedAccountIds([]);
+    }, 2800);
+
+    if (accountsToHighlight.length > 0 && typeof window !== 'undefined') {
+      window.setTimeout(() => {
+        const primaryId = accountsToHighlight[0];
+        const el = document.getElementById(`account-card-${primaryId}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 150);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (highlightTimeoutRef.current) {
+        window.clearTimeout(highlightTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Modal Scroll Lock State
   const isAnyModalOpen = Boolean(
@@ -747,6 +782,11 @@ export default function FinancePage() {
         setRefundError("Refund validation failed. Amount cannot exceed remaining original expense.");
         return;
       }
+      const oldRefund = editingRefundEvent;
+      const impacted: AccountId[] = [refAccountId];
+      if (oldRefund && oldRefund.accountId !== refAccountId && !impacted.includes(oldRefund.accountId)) {
+        impacted.push(oldRefund.accountId);
+      }
       try {
         queuePendingUpserts([updatedRefund.id]);
         writeFinancialEvents(nextEvents);
@@ -760,6 +800,7 @@ export default function FinancePage() {
         setUndoSnapshot(null);
         setUndoToast(null);
         if (undoTimerRef.current) window.clearTimeout(undoTimerRef.current);
+        triggerAccountsRedirectAndHighlight(impacted);
       } catch {
         setRefundError("Failed to update refund.");
       }
@@ -793,6 +834,7 @@ export default function FinancePage() {
       setUndoSnapshot(null);
       setUndoToast(null);
       if (undoTimerRef.current) window.clearTimeout(undoTimerRef.current);
+      triggerAccountsRedirectAndHighlight([refAccountId]);
     } catch {
       setRefundError("Failed to save refund.");
     }
@@ -995,6 +1037,27 @@ export default function FinancePage() {
       }
     }
 
+    const impacted: AccountId[] = [];
+    if (formType === 'transfer') {
+      if (selectedAccount) impacted.push(selectedAccount);
+      if (destinationAccount && !impacted.includes(destinationAccount)) impacted.push(destinationAccount);
+      if (editingEventId) {
+        const orig = events.find((e) => e.id === editingEventId);
+        if (orig && orig.type === 'transfer') {
+          if (!impacted.includes(orig.sourceAccountId)) impacted.push(orig.sourceAccountId);
+          if (!impacted.includes(orig.destinationAccountId)) impacted.push(orig.destinationAccountId);
+        }
+      }
+    } else {
+      if (selectedAccount) impacted.push(selectedAccount);
+      if (editingEventId) {
+        const orig = events.find((e) => e.id === editingEventId);
+        if (orig && 'accountId' in orig && orig.accountId && !impacted.includes(orig.accountId)) {
+          impacted.push(orig.accountId);
+        }
+      }
+    }
+
     try {
       const idsToUpsert = [eventId];
       if (formType === 'expense' && hasCashback) {
@@ -1015,6 +1078,7 @@ export default function FinancePage() {
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('thelife-logo-bounce'));
       }
+      triggerAccountsRedirectAndHighlight(impacted);
     } catch {
       setFormError('Unable to persist financial event.');
       return;
@@ -1512,7 +1576,7 @@ export default function FinancePage() {
                 <div className="text-right">
                   <span className="text-[11px] text-stone-400 font-medium block">Total Liquid:</span>
                   <span className="text-xl font-bold font-mono-numbers text-stone-900">
-                    {formatRupiah(stats.liquidBalance)}
+                    <AnimatedNumber value={stats.liquidBalance} prefix="Rp " />
                   </span>
                 </div>
               </div>
@@ -1521,15 +1585,19 @@ export default function FinancePage() {
                 {liquidAccounts.map((acc) => {
                   const bal = accountBalances[acc.id] || 0;
                   const isFilteredAcc = filterAccountId === acc.id;
+                  const isImpacted = impactedAccountIds.includes(acc.id);
                   return (
                     <div
                       key={acc.id}
+                      id={`account-card-${acc.id}`}
                       onClick={() => {
                         setFilterAccountId(isFilteredAcc ? null : acc.id);
                         setView('ledger');
                       }}
-                      className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between hover:-translate-y-1 active:scale-95 shadow-2xs ${
-                        isFilteredAcc
+                      className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between hover:-translate-y-1 active:scale-95 shadow-2xs relative ${
+                        isImpacted
+                          ? 'ring-4 ring-amber-400/90 ring-offset-2 ring-offset-amber-50/50 bg-amber-50/40 border-amber-300 shadow-md scale-[1.02]'
+                          : isFilteredAcc
                           ? 'bg-stone-900 text-white border-stone-950 border-b-4 border-b-black shadow-sm'
                           : 'bg-stone-50/70 border-stone-200/90 border-b-[3px] border-b-stone-300/80 hover:bg-white'
                       }`}
@@ -1538,13 +1606,18 @@ export default function FinancePage() {
                         <span className={`w-8 h-8 rounded-full ${acc.colorClass} text-white text-xs font-bold flex items-center justify-center shadow-xs`}>
                           {acc.name}
                         </span>
+                        {isImpacted && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-200 text-amber-900 animate-pulse">
+                            Updated
+                          </span>
+                        )}
                       </div>
                       <div>
                         <span className={`text-xs font-semibold block truncate leading-tight ${isFilteredAcc ? 'text-stone-300' : 'text-stone-600'}`}>
                           {acc.fullName}
                         </span>
                         <span className={`text-sm font-bold font-mono-numbers block mt-1 truncate ${isFilteredAcc ? 'text-white' : 'text-stone-900'}`}>
-                          {formatRupiah(bal)}
+                          <AnimatedNumber value={bal} prefix="Rp " className={isFilteredAcc ? 'text-white' : 'text-stone-900'} />
                         </span>
                       </div>
                     </div>
@@ -1570,7 +1643,7 @@ export default function FinancePage() {
                 <div className="text-right">
                   <span className="text-[11px] text-stone-400 font-medium block">Total Investment:</span>
                   <span className="text-xl font-bold font-mono-numbers text-violet-700">
-                    {formatRupiah(stats.investmentBalance)}
+                    <AnimatedNumber value={stats.investmentBalance} prefix="Rp " className="text-violet-700" />
                   </span>
                 </div>
               </div>
@@ -1579,15 +1652,19 @@ export default function FinancePage() {
                 {investmentAccounts.map((acc) => {
                   const bal = accountBalances[acc.id] || 0;
                   const isFilteredAcc = filterAccountId === acc.id;
+                  const isImpacted = impactedAccountIds.includes(acc.id);
                   return (
                     <div
                       key={acc.id}
+                      id={`account-card-${acc.id}`}
                       onClick={() => {
                         setFilterAccountId(isFilteredAcc ? null : acc.id);
                         setView('ledger');
                       }}
-                      className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between hover:-translate-y-1 active:scale-95 shadow-2xs ${
-                        isFilteredAcc
+                      className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between hover:-translate-y-1 active:scale-95 shadow-2xs relative ${
+                        isImpacted
+                          ? 'ring-4 ring-amber-400/90 ring-offset-2 ring-offset-amber-50/50 bg-amber-50/40 border-amber-300 shadow-md scale-[1.02]'
+                          : isFilteredAcc
                           ? 'bg-stone-900 text-white border-stone-950 border-b-4 border-b-black shadow-sm'
                           : 'bg-stone-50/70 border-stone-200/90 border-b-[3px] border-b-stone-300/80 hover:bg-white'
                       }`}
@@ -1596,13 +1673,18 @@ export default function FinancePage() {
                         <span className={`w-8 h-8 rounded-full ${acc.colorClass} text-white text-xs font-bold flex items-center justify-center shadow-xs`}>
                           {acc.name}
                         </span>
+                        {isImpacted && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-200 text-amber-900 animate-pulse">
+                            Updated
+                          </span>
+                        )}
                       </div>
                       <div>
                         <span className={`text-xs font-semibold block truncate leading-tight ${isFilteredAcc ? 'text-stone-300' : 'text-stone-600'}`}>
                           {acc.fullName}
                         </span>
                         <span className={`text-sm font-bold font-mono-numbers block mt-1 truncate ${isFilteredAcc ? 'text-white' : 'text-stone-900'}`}>
-                          {formatRupiah(bal)}
+                          <AnimatedNumber value={bal} prefix="Rp " className={isFilteredAcc ? 'text-white' : 'text-stone-900'} />
                         </span>
                       </div>
                     </div>
@@ -1615,8 +1697,8 @@ export default function FinancePage() {
             <div className="bg-stone-900 text-white p-6 rounded-3xl border-b-4 border-b-black shadow-md flex flex-wrap items-center justify-between gap-4">
               <div>
                 <span className="text-xs font-bold uppercase tracking-wider text-amber-400">Total Net Worth Aggregate</span>
-                <p className="text-3xl sm:text-4xl font-black font-mono-numbers mt-1">
-                  {formatRupiah(stats.netWorth)}
+                <p className="text-3xl sm:text-4xl font-black font-mono-numbers mt-1 text-white">
+                  <AnimatedNumber value={stats.netWorth} prefix="Rp " className="text-white" />
                 </p>
               </div>
               <p className="text-xs text-stone-300 max-w-sm leading-relaxed">

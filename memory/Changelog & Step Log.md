@@ -6,6 +6,19 @@
 
 ## 📜 Sprint & Evolution Log
 
+### Langkah 25: Post-Transaction Redirect to Accounts & EasyUI Animated Number Motion
+- **Post-Transaction Navigation Flow**:
+  - Automatically redirects view to the "Accounts" page (`setView('accounts')`) immediately upon completing any transaction (Expense, Income, Transfer, or Refund).
+  - Identifies and tracks impacted accounts (both source & destination for transfers; modified accounts for edits; refund destination for refunds).
+- **EasyUI Animated Number Integration (`components/ui/animated-number.tsx`)**:
+  - Implemented Apple-grade smooth rolling digit counter using Framer Motion physics springs (`useSpring`, `useTransform`).
+  - Enforced strict Indonesian Rupiah dot separators (`.` grouping e.g. `Rp 48.250.000`) and tabular font numbers (`font-mono-numbers`).
+  - Integrated across all account cards, Total Liquid header, Total Investment header, and Total Net Worth Aggregate banner.
+- **Visual Feedback & Auto-Scroll**:
+  - Added vibrant tactile amber spring pulse ring (`ring-4 ring-amber-400`), slight scale lift (`scale-[1.02]`), and `"UPDATED"` pulse badge on impacted account card(s) with 2.8s auto-clear.
+  - Added smooth auto-scroll (`scrollIntoView({ behavior: 'smooth', block: 'center' })`) centering the primary updated account in viewport.
+- **Verification**: 196/196 Vitest tests passing, TypeScript strict typecheck clean, Next.js production build 100% green.
+
 ### Langkah 24: Comprehensive Obsidian Finance Memory Vault Expansion
 - **Dedicated Obsidian Memory Notes**:
   - `memory/Accounts & Portfolio.md`: Full documentation of all 17 accounts (10 Liquid & 7 Investment), short codes, color tokens, balance derivation formulas, net worth aggregation, and the strict rule forbidding intrusive "Liquid/Non-Liquid" badges on UI cards/selectors.

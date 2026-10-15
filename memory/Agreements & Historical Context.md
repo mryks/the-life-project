@@ -95,3 +95,22 @@ This document provides a permanent, faithful record of every user request, resol
   4. **Card View Category Filter for Refunds**: Resolves parent expense category so refunds display consistently with Ledger View when filtered by category.
   5. **Account Search Expansion**: Card View search matches both short code (`name`) and `fullName`.
   6. **Zero-Emoji Enforcement**: Replaced raw Unicode `✕` symbol with Lucide `X` icon.
+
+---
+
+### 9. Post-Transaction Redirect to Accounts & EasyUI Animated Number Motion
+- **User Request**: When completing any transaction (Expense, Income, Transfer, or Refund), automatically redirect to the "Accounts" page and animate the impacted account numbers and totals (Total Liquid, Total Investment, Total Net Worth) using EasyUI's `animated-number` (`https://www.easyui.site/components/animated-number`).
+- **Explicit Alignment & Binding Agreements**:
+  1. **Impacted Accounts Tracking**:
+     - **Expense / Income**: Highlights the selected account (plus previous account if modified during edit).
+     - **Transfer**: Highlights both source and destination accounts (plus previous accounts if modified during edit).
+     - **Refund**: Highlights the user-selected refund destination account.
+  2. **Tactile Spring Pulse & Visual Feedback**:
+     - Impacted account card(s) display an amber tactile ring (`ring-4 ring-amber-400`), soft background tint, slight scale lift (`scale-[1.02]`), and a tactile `"UPDATED"` badge with a 2.8-second auto-clear timer.
+  3. **Smooth Viewport Auto-Scroll**:
+     - Automatically scrolls smoothly (`scrollIntoView({ behavior: 'smooth', block: 'center' })`) to the impacted account card, ensuring immediate visual focus on mobile devices and large screens.
+  4. **Strict IDR Dot Delimiters**:
+     - Digits roll vertically via Framer Motion physics springs while strictly preserving Indonesian Rupiah dot separators (e.g. `Rp 48.250.000`) and tabular monospaced numbers.
+  5. **Totals Motion**:
+     - Total Liquid, Total Investment, and Total Net Worth Aggregate cards/headers on the Accounts page smoothly morph their numbers using `AnimatedNumber`.
+

@@ -37,3 +37,9 @@ Custom CSS utilities in `app/globals.css`:
   - Minimum 44px touch targets on mobile devices with `-webkit-tap-highlight-color: transparent`.
   - Automatic virtual keyboard dismissal (`blur()`) on scroll (`onScroll`, `onTouchMove`, and window scroll) or outside taps (`onPointerDown` on non-inputs) across amount, description, admin fee, cashback, and refund forms.
   - Lowercase mobile keyboard trigger (`autoCapitalize="none"`, `autoCorrect="off"`) for description input fields.
+- **EasyUI Animated Number Morph (`components/ui/animated-number.tsx`)**:
+  - Independent digit rolling counter powered by Framer Motion spring physics (`stiffness: 170`, `damping: 22`, `mass: 0.6`).
+  - Strict Indonesian Rupiah dot grouping (e.g. `Rp 48.250.000`) with stable column keying from the right for organic numeric transitions.
+  - Deployed on the Accounts page across Total Liquid, Total Investment, Total Net Worth, and all individual account cards.
+  - Paired with an amber spring pulse ring (`ring-4 ring-amber-400`), card lift, `"UPDATED"` badge, and smooth viewport auto-scroll upon transaction completion.
+

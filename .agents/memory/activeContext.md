@@ -60,6 +60,7 @@
 21. **Langkah 22: Cross-Account Refunds & Multi-Account Support** (Removed same-account refund constraint, added unselected destination account selector in RefundModal, account change preservation).
 22. **Langkah 23: Comprehensive Codebase & Financial Engine Audit** (Offline deletion tombstone shield, force upload parity soft-delete, Recharts negative pie arc clamp, zero-emoji verification).
 23. **Langkah 24: Obsidian Finance Memory Vault Expansion** (Dedicated notes: `Accounts & Portfolio.md`, `Refunds & Relations.md`, `Agreements & Historical Context.md`, bidirectional `[[Wikilinks]]`).
+24. **Langkah 25: Post-Transaction Redirect to Accounts & EasyUI Animated Number Motion** (Redirect on transaction/refund save, Framer Motion physics-based rolling digits with IDR dot formatting, tactile amber card pulse, smooth auto-scroll).
 
 ---
 
