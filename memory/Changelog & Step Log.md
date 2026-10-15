@@ -6,6 +6,22 @@
 
 ## 📜 Sprint & Evolution Log
 
+### Langkah 28: React Aria Swipeable Tabs Carousel & 1:1 Sliding Indicator Motion
+- **Architecture & Pattern (`https://react-aria.adobe.com/examples/swipeable-tabs`)**:
+  - Implemented CSS scroll-snapping horizontal carousel (`flex overflow-x-auto snap-x snap-mandatory scrollbar-hide overscroll-x-contain touch-pan-x touch-pan-y`) hosting `Overview`, `Accounts`, and `Activity & Ledger` side-by-side (`w-full min-w-full shrink-0 snap-start snap-always`).
+  - Retained clean, modern visual identity: sleek dark pill indicator (`bg-stone-900 text-white shadow-xs rounded-xl`).
+- **Pure Math & Calculations (`lib/swipe-tabs.ts`)**:
+  - `calculateIndicatorPosition`: Continuously interpolates tab button `offsetLeft` and `offsetWidth` proportional to the scroll progress (`scrollLeft / clientWidth`).
+  - `calculateSnappedTabIndex`: Computes settled tab index on scroll snap with boundary clamping.
+  - 13/13 dedicated unit tests in `tests/finance/swipeable-tabs.test.ts`.
+- **Custom React Hook (`hooks/useSwipeableTabs.ts`)**:
+  - 1:1 real-time indicator tracking: runs inside `requestAnimationFrame` using hardware-accelerated `transform: translateX(...)` for buttery 120fps motion with zero React re-render overhead during finger dragging.
+  - Touch-only swipe: mobile and tablet screens swipe horizontally with native momentum physics; desktop PC mouse uses tab button clicks. Accidental horizontal trackpad scroll on PC is prevented by intercepting `deltaX` on fine-pointer devices (`(pointer: fine)`).
+  - Settle debounce: updates React active tab state and switches text colors cleanly when the scroll snaps to a tab.
+  - Smooth programmatic transitions: tab clicks and post-transaction redirects to Accounts smoothly slide the carousel to the target panel.
+  - Safe hydration via `useSyncExternalStore` ensuring zero cascading renders and 100% React 19 compliance.
+- **Verification**: 209/209 Vitest unit tests pass across 17 test suites, 0 ESLint warnings, Next.js Turbopack production build succeeds with 0 errors.
+
 ### Langkah 27: Staged Pre-Roll Delay (710ms), 2500ms Roll & 730ms Calm Hold (3940ms Highlight)
 - **710ms Pre-Roll Staging Delay**:
   - User feedback: Exact timing tuned to `710ms jeda + 2500ms putaran + 730ms jeda baca akhir`.

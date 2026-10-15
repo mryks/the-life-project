@@ -34,6 +34,9 @@ import {
   writeFinancialEvents,
 } from "@/lib/finance";
 import { useTransactionReorder } from "@/hooks/useTransactionReorder";
+import { useSwipeableTabs } from "@/hooks/useSwipeableTabs";
+
+const FINANCE_TABS = ['dashboard', 'accounts', 'ledger'] as const;
 import MonthNavigator from "@/components/finance/MonthNavigator";
 import RefundModal from "@/components/finance/RefundModal";
 import TransactionFilters from "@/components/finance/TransactionFilters";
@@ -300,6 +303,18 @@ export default function FinancePage() {
 
   // Navigation State
   const [view, setView] = useState<'dashboard' | 'accounts' | 'ledger'>('dashboard');
+  const {
+    carouselRef,
+    tabNavRef,
+    indicatorRef,
+    setTabButtonRef,
+    goToTab,
+    isMounted,
+  } = useSwipeableTabs({
+    tabs: FINANCE_TABS,
+    activeTab: view,
+    onTabChange: setView,
+  });
   const [accountViewMode, setAccountViewMode] = useState<'card' | 'ledger'>('card');
   const [filterAccountId, setFilterAccountId] = useState<AccountId | null>(null);
 
@@ -365,7 +380,7 @@ export default function FinancePage() {
     prevBalances?: Record<AccountId, number>,
     prevStats?: { liquidBalance: number; investmentBalance: number; netWorth: number }
   ) => {
-    setView('accounts');
+    goToTab('accounts');
     setImpactedAccountIds(accountsToHighlight);
     if (prevBalances) setPreviousBalancesSnapshot(prevBalances);
     if (prevStats) setPreviousStatsSnapshot(prevStats);
@@ -1215,7 +1230,7 @@ export default function FinancePage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#FBF9F4] text-stone-900 pb-28 relative">
+    <main className="min-h-screen bg-[#FBF9F4] text-stone-900 pb-28 relative overflow-x-hidden">
       
       {/* ================= HEADER BAR (ARC + DUOLINGO FUSION) ================= */}
       <header className="bg-white/95 backdrop-blur-md border-b border-stone-200/80 sticky top-0 z-30 shadow-2xs">
@@ -1307,40 +1322,58 @@ export default function FinancePage() {
           </div>
         </div>
 
-        {/* Floating Arc-Style Segmented Navigation Pill */}
+        {/* Floating Arc-Style Segmented Navigation Pill with 1:1 Sliding Motion */}
         <div className="max-w-5xl mx-auto px-4 sm:px-6 flex gap-2 overflow-x-auto scrollbar-hide pt-1 pb-2.5">
-          <div className="bg-stone-100/90 p-1 rounded-2xl border border-stone-200/70 flex gap-1 shadow-2xs">
+          <div 
+            ref={tabNavRef}
+            className="relative bg-stone-100/90 p-1 rounded-2xl border border-stone-200/70 flex gap-1 shadow-2xs overflow-hidden select-none"
+          >
+            {/* Sliding Pill Indicator (1:1 Motion Tracking) */}
+            <div
+              ref={indicatorRef}
+              className={`absolute top-1 bottom-1 bg-stone-900 rounded-xl shadow-xs pointer-events-none will-change-transform ${
+                isMounted ? 'opacity-100' : 'opacity-0'
+              }`}
+              style={{
+                transform: 'translateX(0px)',
+                width: '0px',
+              }}
+            />
+
             <button
+              ref={setTabButtonRef(0)}
               type="button"
-              onClick={() => setView('dashboard')}
-              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer active:scale-95 ${
+              onClick={() => goToTab('dashboard')}
+              className={`relative z-10 flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-colors duration-200 cursor-pointer active:scale-95 ${
                 view === 'dashboard'
-                  ? 'bg-stone-900 text-white shadow-xs'
-                  : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/70'
+                  ? 'text-white'
+                  : 'text-stone-600 hover:text-stone-900'
               }`}
             >
               <SquaresFour className="w-4 h-4" weight={view === 'dashboard' ? "fill" : "duotone"} />
               <span>Overview</span>
             </button>
             <button
+              ref={setTabButtonRef(1)}
               type="button"
-              onClick={() => setView('accounts')}
-              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer active:scale-95 ${
+              onClick={() => goToTab('accounts')}
+              className={`relative z-10 flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-colors duration-200 cursor-pointer active:scale-95 ${
                 view === 'accounts'
-                  ? 'bg-stone-900 text-white shadow-xs'
-                  : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/70'
+                  ? 'text-white'
+                  : 'text-stone-600 hover:text-stone-900'
               }`}
             >
               <PhWallet className="w-4 h-4" weight={view === 'accounts' ? "fill" : "duotone"} />
               <span>Accounts</span>
             </button>
             <button
+              ref={setTabButtonRef(2)}
               type="button"
-              onClick={() => setView('ledger')}
-              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer active:scale-95 ${
+              onClick={() => goToTab('ledger')}
+              className={`relative z-10 flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-colors duration-200 cursor-pointer active:scale-95 ${
                 view === 'ledger'
-                  ? 'bg-stone-900 text-white shadow-xs'
-                  : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/70'
+                  ? 'text-white'
+                  : 'text-stone-600 hover:text-stone-900'
               }`}
             >
               <PhReceipt className="w-4 h-4" weight={view === 'ledger' ? "fill" : "duotone"} />
@@ -1350,12 +1383,15 @@ export default function FinancePage() {
         </div>
       </header>
 
-      {/* ================= MAIN CONTENT CONTAINER ================= */}
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-6 space-y-6">
-
-        {/* ================= 1. OVERVIEW VIEW ================= */}
-        {view === 'dashboard' && (
-          <div className="space-y-6">
+      {/* ================= MAIN CONTENT SWIPEABLE CAROUSEL ================= */}
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-6">
+        <div
+          ref={carouselRef}
+          className="flex flex-row items-start w-full overflow-x-auto snap-x snap-mandatory scrollbar-hide overscroll-x-contain"
+          style={{ WebkitOverflowScrolling: 'touch' }}
+        >
+          {/* ================= 1. OVERVIEW VIEW ================= */}
+          <div className="w-full min-w-full shrink-0 snap-start space-y-6">
             <MonthNavigator
               selectedMonth={selectedMonth}
               onPrevMonth={handlePrevMonth}
@@ -1372,7 +1408,7 @@ export default function FinancePage() {
               netWorth={stats.netWorth}
               savingsRate={stats.savingsRate}
               formatRupiah={formatRupiah}
-              onViewAccounts={() => setView('accounts')}
+              onViewAccounts={() => goToTab('accounts')}
             />
 
             {/* 4 TACTILE PLAYFUL KPI CARDS */}
@@ -1560,7 +1596,7 @@ export default function FinancePage() {
             <div className="text-center pt-2">
               <button
                 type="button"
-                onClick={() => setView('ledger')}
+                onClick={() => goToTab('ledger')}
                 className="btn-tactile-neutral px-5 py-2.5 text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
               >
                 <span>View Full Activity & Ledger</span>
@@ -1568,11 +1604,9 @@ export default function FinancePage() {
               </button>
             </div>
           </div>
-        )}
 
-        {/* ================= 2. ACCOUNTS VIEW (CLEAN, NO NOISY BADGES) ================= */}
-        {view === 'accounts' && (
-          <div className="space-y-6">
+          {/* ================= 2. ACCOUNTS VIEW (CLEAN, NO NOISY BADGES) ================= */}
+          <div className="w-full min-w-full shrink-0 snap-start space-y-6">
             <div className="flex items-center justify-between pb-3 border-b border-stone-200">
               <div>
                 <h2 className="text-xl sm:text-2xl font-black tracking-tight text-stone-900">
@@ -1584,7 +1618,7 @@ export default function FinancePage() {
               </div>
               <button
                 type="button"
-                onClick={() => setView('dashboard')}
+                onClick={() => goToTab('dashboard')}
                 className="btn-tactile-neutral px-3.5 py-1.5 text-xs font-bold cursor-pointer"
               >
                 ← Back to Overview
@@ -1774,11 +1808,9 @@ export default function FinancePage() {
               </p>
             </div>
           </div>
-        )}
 
-        {/* ================= 3. ACTIVITY & LEDGER VIEW ================= */}
-        {view === 'ledger' && (
-          <div className="space-y-4">
+          {/* ================= 3. ACTIVITY & LEDGER VIEW ================= */}
+          <div className="w-full min-w-full shrink-0 snap-start space-y-4">
             
             {/* Active Account Filter Banner */}
             {filterAccountId && (() => {
@@ -2093,7 +2125,7 @@ export default function FinancePage() {
               </div>
             )}
           </div>
-        )}
+        </div>
       </div>
 
       {/* ================= FLOATING ACTION BUTTON (MOBILE) ================= */}

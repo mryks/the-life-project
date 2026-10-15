@@ -42,4 +42,11 @@ Custom CSS utilities in `app/globals.css`:
   - Strict Indonesian Rupiah dot grouping (e.g. `Rp 48.250.000`) with stable column keying from the right for organic numeric transitions.
   - Deployed on the Accounts page across Total Liquid, Total Investment, Total Net Worth, and all individual account cards.
   - Paired with an amber spring pulse ring (`ring-4 ring-amber-400`), card lift, `"UPDATED"` badge, and smooth viewport auto-scroll upon transaction completion.
+- **Swipeable Tabs Carousel (`hooks/useSwipeableTabs.ts` & `lib/swipe-tabs.ts`)**:
+  - Architecture inspired by React Aria (`https://react-aria.adobe.com/examples/swipeable-tabs`).
+  - Native CSS scroll-snap carousel (`flex overflow-x-auto snap-x snap-mandatory scrollbar-hide overscroll-x-contain touch-pan-x touch-pan-y`) hosting `Overview`, `Accounts`, and `Activity & Ledger` side-by-side.
+  - 1:1 hardware-accelerated continuous pill tracking: calculates exact button offset and width interpolation via `requestAnimationFrame` for stutter-free 120fps motion following the user's finger.
+  - Touch-only horizontal swipe: phone/tablet users can naturally swipe between tabs, while desktop PC mouse uses tab button clicks. Horizontal wheel delta on fine pointers (`(pointer: fine)`) is intercepted to prevent accidental trackpad page switching on desktop.
+  - Seamless transaction completion transition: saves trigger `goToTab('accounts')`, smoothly sliding into the Accounts view before triggering tactical highlight and `AnimatedNumber` rolling counters.
+
 
