@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import type { AccountId, BackupParseResult, ExpenseCategory, ExpenseEvent, FinancialEvent, IncomeCategory, RefundEvent } from "@/lib/types";
 import { 
   accounts, 
@@ -35,11 +35,12 @@ import {
 } from "@/lib/finance";
 import { useTransactionReorder } from "@/hooks/useTransactionReorder";
 import { useSwipeableTabs } from "@/hooks/useSwipeableTabs";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 const FINANCE_TABS = ['dashboard', 'accounts', 'ledger'] as const;
 import MonthNavigator from "@/components/finance/MonthNavigator";
 import RefundModal from "@/components/finance/RefundModal";
+import UndoDeleteToast from "@/components/finance/undo-delete-toast";
 import TransactionFilters from "@/components/finance/TransactionFilters";
 import HeroVaultCard from "@/components/finance/HeroVaultCard";
 import KpiGrid from "@/components/finance/KpiGrid";
@@ -308,13 +309,9 @@ export default function FinancePage() {
     containerRef,
     carouselRef,
     tabNavRef,
-    indicatorRef,
     setTabButtonRef,
     goToTab,
-    isMounted,
     isTouchDevice,
-    containerWidth,
-    currentTabIndex,
     settledTab,
     x,
     dragConstraints,
@@ -378,6 +375,64 @@ export default function FinancePage() {
   const undoTimerRef = useRef<number | null>(null);
   const [undoSnapshot, setUndoSnapshot] = useState<FinancialEvent[] | null>(null);
   const [undoToast, setUndoToast] = useState<string | null>(null);
+
+  // Undo Delete State (4-Second Linear Countdown)
+  const [undoDeleteState, setUndoDeleteState] = useState<{
+    event: FinancialEvent;
+    previousEvents: FinancialEvent[];
+    relatedEvents: FinancialEvent[];
+  } | null>(null);
+  const undoDeleteStateRef = useRef<{
+    event: FinancialEvent;
+    previousEvents: FinancialEvent[];
+    relatedEvents: FinancialEvent[];
+  } | null>(null);
+  const undoDeleteTimerRef = useRef<number | null>(null);
+
+  const commitPendingDelete = useCallback(() => {
+    if (undoDeleteTimerRef.current) {
+      window.clearTimeout(undoDeleteTimerRef.current);
+      undoDeleteTimerRef.current = null;
+    }
+    const pending = undoDeleteStateRef.current;
+    if (!pending) return;
+    undoDeleteStateRef.current = null;
+    setUndoDeleteState(null);
+
+    deleteFinancialEventWithSync(pending.event.id, pending.previousEvents).catch(() => {});
+  }, []);
+
+  const handleUndoDelete = useCallback(() => {
+    if (undoDeleteTimerRef.current) {
+      window.clearTimeout(undoDeleteTimerRef.current);
+      undoDeleteTimerRef.current = null;
+    }
+    const pending = undoDeleteStateRef.current;
+    if (!pending) return;
+    undoDeleteStateRef.current = null;
+    setUndoDeleteState(null);
+
+    writeFinancialEvents(pending.previousEvents);
+    if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+      try {
+        navigator.vibrate([10]);
+      } catch {
+        // Safe fallback
+      }
+    }
+  }, []);
+
+  // Ensure any pending delete is permanently committed before page unloads or reloads
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      commitPendingDelete();
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      commitPendingDelete();
+    };
+  }, [commitPendingDelete]);
 
   // Post-transaction Account Redirect & Impact Highlight State
   const [impactedAccountIds, setImpactedAccountIds] = useState<AccountId[]>([]);
@@ -490,6 +545,9 @@ export default function FinancePage() {
   );
 
   const handleReorder = (activeEventId: string, targetEventId: string, placement: "before" | "after") => {
+    if (undoDeleteStateRef.current) {
+      commitPendingDelete();
+    }
     const nextEvents = reorderFinancialEvents(events, activeEventId, targetEventId, placement);
     if (nextEvents === events) return;
     setUndoSnapshot(events);
@@ -594,6 +652,12 @@ export default function FinancePage() {
       setUndoSnapshot(null);
       setUndoToast(null);
       if (undoTimerRef.current) window.clearTimeout(undoTimerRef.current);
+      if (undoDeleteTimerRef.current) {
+        window.clearTimeout(undoDeleteTimerRef.current);
+        undoDeleteTimerRef.current = null;
+      }
+      undoDeleteStateRef.current = null;
+      setUndoDeleteState(null);
 
       if (isSupabaseConfigured()) {
         await forceUploadAllToCloud(restoredEvents);
@@ -806,6 +870,9 @@ export default function FinancePage() {
 
   const handleSaveRefund = ({ date: refDate, amount: refAmount, description: refDesc, accountId: refAccountId }: { date: string; amount: number; description: string; accountId: AccountId }) => {
     if (!refundParentExpense) return;
+    if (undoDeleteStateRef.current) {
+      commitPendingDelete();
+    }
 
     if (editingRefundEvent) {
       const updatedRefund: RefundEvent = {
@@ -1122,6 +1189,9 @@ export default function FinancePage() {
         if (cb) idsToUpsert.push(cb.id);
       }
       queuePendingUpserts(idsToUpsert);
+      if (undoDeleteStateRef.current) {
+        commitPendingDelete();
+      }
 
       writeFinancialEvents(nextEvents);
       if (isSupabaseConfigured()) {
@@ -1156,11 +1226,44 @@ export default function FinancePage() {
 
   const confirmDelete = () => {
     if (!pendingDeleteEventId) return;
-    deleteFinancialEventWithSync(pendingDeleteEventId, events);
+    const targetId = pendingDeleteEventId;
+    const targetEvent = events.find((e) => e.id === targetId);
     setPendingDeleteEventId(null);
+    if (!targetEvent) return;
+
+    // Flush any previous pending delete before starting a new one
+    if (undoDeleteStateRef.current) {
+      commitPendingDelete();
+    }
+
     setUndoSnapshot(null);
     setUndoToast(null);
     if (undoTimerRef.current) window.clearTimeout(undoTimerRef.current);
+
+    const relatedEvents = events.filter(
+      (e) => 'relatedEventId' in e && e.relatedEventId === targetEvent.id
+    );
+
+    const snapshot = {
+      event: targetEvent,
+      previousEvents: events,
+      relatedEvents,
+    };
+
+    const optimisticEvents = events.filter(
+      (e) => e.id !== targetEvent.id && ('relatedEventId' in e ? e.relatedEventId !== targetEvent.id : true)
+    );
+
+    undoDeleteStateRef.current = snapshot;
+    setUndoDeleteState(snapshot);
+    writeFinancialEvents(optimisticEvents);
+
+    if (undoDeleteTimerRef.current) {
+      window.clearTimeout(undoDeleteTimerRef.current);
+    }
+    undoDeleteTimerRef.current = window.setTimeout(() => {
+      commitPendingDelete();
+    }, 4000);
   };
 
   const handleEdit = () => {
@@ -2892,8 +2995,21 @@ export default function FinancePage() {
         </div>
       )}
 
-      {/* ================= UNDO TOAST ================= */}
-      {undoToast && (
+      {/* ================= UNDO DELETE TOAST (4-SECOND LINEAR COUNTDOWN) ================= */}
+      <AnimatePresence>
+        {undoDeleteState && (
+          <UndoDeleteToast
+            event={undoDeleteState.event}
+            relatedCount={undoDeleteState.relatedEvents.length}
+            onUndo={handleUndoDelete}
+            onDismiss={commitPendingDelete}
+            durationMs={4000}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* ================= UNDO REORDER TOAST ================= */}
+      {!undoDeleteState && undoToast && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-stone-900 text-white px-5 py-3 rounded-2xl shadow-xl flex items-center gap-3 font-bold text-xs sm:text-sm animate-bounce border-2 border-stone-800">
           <span>{undoToast}</span>
           <button

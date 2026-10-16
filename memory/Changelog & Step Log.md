@@ -6,6 +6,36 @@
 
 ## 📜 Sprint & Evolution Log
 
+### Langkah 33: Undo Delete Transaction with 4-Second Linear Countdown Bar (Option A)
+- **User Directive**:
+  - Add an undo notification with a 4-second timer when deleting transactions (even though confirmation warning exists).
+  - Selected Option A: Linear countdown progress bar (sleek, high-craft Arc + Duolingo aesthetic).
+- **Architecture & Implementation**:
+  1. **Optimistic Deletion with 4.0s Grace Period**:
+     - Deleting a transaction immediately unmounts it from active events state and persists to local storage optimistically.
+     - User sees instantaneous UI responsiveness without lag.
+     - Target transaction and all cascading children (cashback / refunds) are captured in `undoDeleteState` along with the complete `previousEvents` snapshot.
+  2. **Option A Undo Toast Component (`components/finance/undo-delete-toast.tsx`)**:
+     - Floating pill at bottom-center: `fixed bottom-6 left-1/2 z-50 w-[calc(100%-2rem)] max-w-md pb-[env(safe-area-inset-bottom,0px)]`.
+     - Dark stone-900 canvas (`bg-stone-900/95 backdrop-blur-md text-white rounded-2xl border border-stone-800 shadow-2xl`).
+     - Left: `Trash2` icon in stone-800 badge, "Transaction deleted" header (with linked event count badge e.g. `(+1 linked)`), truncated description, and tabular mono IDR formatted amount (`formatToastRupiah`).
+     - Right: 3D tactile push-down button "Undo" (`bg-amber-400 hover:bg-amber-300 text-stone-900 font-bold px-3.5 py-2 min-h-[36px] rounded-xl text-xs active:translate-y-0.5 shadow-xs flex items-center gap-1.5 cursor-pointer`).
+     - Explicit `X` button to immediately dismiss the toast and commit the deletion.
+     - Bottom: Linear countdown progress bar (`h-1 bg-amber-400/90 w-full`) animated with Framer Motion `scaleX: 1 -> 0` with `transformOrigin: "left"` over exactly 4.0 seconds linear duration.
+  3. **Relational Cascade Preservation & Mathematical Fidelity**:
+     - Clicking "Undo" restores both the parent event and all associated cashback/refunds identically with zero property drift.
+     - Triggers mobile haptic feedback (`navigator.vibrate?.([10])`).
+  4. **Flush & Tombstone Guards**:
+     - On timer expiry or explicit dismiss, `deleteFinancialEventWithSync` queues tombstones in `PENDING_DELETIONS_KEY` and syncs with Supabase PostgreSQL.
+     - Sequential delete: deleting transaction B while transaction A is in the undo window immediately commits transaction A's deletion before transaction B enters the window.
+     - Added `beforeunload` listener and unmount cleanup to commit any pending delete.
+  5. **ESLint & Code Hygiene**:
+     - Cleaned up 4 unused tab variables in `app/finance/page.tsx` (`indicatorRef`, `isMounted`, `containerWidth`, `currentTabIndex`).
+     - ESLint: 0 errors, 0 warnings. TypeScript: 0 errors.
+- **Verification**:
+  - Created comprehensive test suite `tests/finance/undo-delete.test.ts` (27 tests covering all 5 financial invariants).
+  - All 18 test suites passing: **244/244 tests passing (100%)**.
+
 ### Langkah 32: Buttery Smooth Gesture Physics & Zero Layout Thrashing (Apple Design Standard)
 - **User Problem & Precise Directive**:
   - Tab swipe works with strict single-step bounding, but motion feels slightly stuttery ("patah-patah").

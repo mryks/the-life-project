@@ -25,7 +25,7 @@
 - **Mobile PWA:**
   - `public/manifest.json` configured with standalone mode, oat milk theme `#FBF9F4`, and bespoke SVG icon.
   - Viewport optimized for mobile notch (`viewportFit: 'cover'`) and smooth touch drag interactions.
-- **Test Suite Status:** 100% passing (**16 test suites, 191 tests passed** via `npm test`).
+- **Test Suite Status:** 100% passing (**18 test suites, 244 tests passed** via `npm test`).
 - **Linter & Typecheck:** 0 errors, 0 warnings (`npm run lint`, `npx tsc --noEmit`).
 - **Sync Engine Hotfix (Resolved):**
   - Edit Persistence: Created outbox `queuePendingUpserts` so edited existing transactions are queued and pushed to Supabase (`upsert`), preventing cloud fetch from reverting edits.
@@ -68,6 +68,7 @@
 29. **Langkah 30: Glitch Elimination & Hardware-Accelerated Gesture Engine** (Framer Motion `<motion.div>` gesture engine, dynamic drag constraints, responsive height containment).
 30. **Langkah 31: Elimination of Tab Peeking / Bleed via Full-Bleed Viewport Hierarchy** (Moved outer carousel to `w-full overflow-hidden`, inner padding `max-w-5xl mx-auto px-4 sm:px-6` moved inside each tab panel, 0px adjacent tab bleed).
 31. **Langkah 32: Buttery Smooth Gesture Physics & Zero Layout Thrashing** (Injected real finger velocity `info.velocity.x` into spring, eliminated mid-gesture height collapse with `settledTab`, synchronized Apple-grade spring physics, GPU compositor promotion).
+32. **Langkah 33: Undo Delete Transaction with 4-Second Linear Countdown Bar (Option A)** (Optimistic deletion with 4.0s grace period, tactile floating pill with linear countdown bar `scaleX: 1 -> 0`, 3D push-down Undo button, haptic feedback, safe area containment, cascading cashback/refund restoration, sequential delete flush, `beforeunload` commit, and 27 comprehensive unit tests).
 
 ---
 

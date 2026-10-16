@@ -3,7 +3,7 @@
 ## Overall Status: STABLE PRODUCTION (OFFICIALLY GO-LIVE 🚀)
 - **Live Production URL:** [https://the-life-project-os.vercel.app/finance](https://the-life-project-os.vercel.app/finance)
 - **Backend Database:** Supabase PostgreSQL (`peydzblrtfgdoaisljkm.supabase.co`)
-- **Automated Test Suite:** 17 test suites, **217/217 tests passing (100%)**
+- **Automated Test Suite:** 18 test suites, **244/244 tests passing (100%)**
 - **Code Quality:** 0 ESLint errors, 0 TypeScript errors (`npx tsc --noEmit`)
 - **Session Boundary:** Permanently assigned as **Finance Domain Specialist**. All non-finance life domains (Habits, Journal, Tasks) are developed in separate dedicated chat sessions.
 
@@ -107,8 +107,14 @@
 ### 15. Tab Bleed Elimination & Kinetic Release Polish (Langkah 31–32)
 - Tab Bleed Zero Tolerance: Restructured swipe track layout so outer container is `w-full overflow-hidden`, and max-width gutters (`max-w-5xl mx-auto px-4 sm:px-6`) live inside individual tab panels. Adjacent tabs never peek when idle.
 - Kinetic Polish: Replaced basic CSS transition snapping with continuous Framer Motion `useMotionValue(0)` driving CSS `x: motionX` and release velocity injection via `animate(x, targetX, { velocity: releaseVelocity, stiffness: 280, damping: 32, mass: 0.8 })`.
-- Settled-tab DOM isolation: Non-active tabs are unmounted when settled (`settledTab === tab.id`) while rendering during touch drag for smooth 60fps gesture response without mid-swipe reflows.
 - Production parity verified on live Vercel deployment (commit `27ef84a`).
+
+### 16. Undo Delete Transaction with 4-Second Linear Countdown Bar (Langkah 33)
+- **Optimistic Delete with 4s Grace Period**: Deleting a transaction immediately hides it from the UI so balances and card views update instantaneously, while holding the permanent deletion in an undoable state.
+- **Option A Linear Countdown Bar (`components/finance/undo-delete-toast.tsx`)**: High-craft dark stone-900 floating pill with 3D tactile push-down "Undo" button (`bg-amber-400`), vector icons, mono tabular amount, and hardware-accelerated Framer Motion linear countdown bar (`scaleX: 1 -> 0`) running for exactly 4.0 seconds.
+- **Relational Cascade Preservation**: Deleting an expense with linked cashback or refunds tracks all cascading events; clicking "Undo" restores the entire event tree with 100% mathematical fidelity.
+- **Robust Expiration & Flush Guards**: If the 4-second timer elapses or the user clicks dismiss, `deleteFinancialEventWithSync` queues deletion tombstones for Supabase. Consecutive deletes automatically commit earlier pending deletions before entering the new window. Added `beforeunload` listener to prevent ghost transactions.
+- **Mobile Ergonomics & Clean Lint**: Enlarged touch targets ($\ge 36\text{px}$ height), safe-area bottom padding (`env(safe-area-inset-bottom)`), cleaned up all unused tab variables (0 lint errors/warnings), and added 27 comprehensive unit tests in `tests/finance/undo-delete.test.ts` (100% passing, 244 total tests).
 
 ---
 
