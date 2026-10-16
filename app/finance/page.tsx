@@ -35,6 +35,7 @@ import {
 } from "@/lib/finance";
 import { useTransactionReorder } from "@/hooks/useTransactionReorder";
 import { useSwipeableTabs } from "@/hooks/useSwipeableTabs";
+import { motion } from "framer-motion";
 
 const FINANCE_TABS = ['dashboard', 'accounts', 'ledger'] as const;
 import MonthNavigator from "@/components/finance/MonthNavigator";
@@ -304,12 +305,18 @@ export default function FinancePage() {
   // Navigation State
   const [view, setView] = useState<'dashboard' | 'accounts' | 'ledger'>('dashboard');
   const {
+    containerRef,
     carouselRef,
     tabNavRef,
     indicatorRef,
     setTabButtonRef,
     goToTab,
     isMounted,
+    isTouchDevice,
+    containerWidth,
+    currentTabIndex,
+    dragConstraints,
+    handleDragEnd,
   } = useSwipeableTabs({
     tabs: FINANCE_TABS,
     activeTab: view,
@@ -1322,24 +1329,12 @@ export default function FinancePage() {
           </div>
         </div>
 
-        {/* Floating Arc-Style Segmented Navigation Pill with 1:1 Sliding Motion */}
+        {/* Floating Arc-Style Segmented Navigation Pill */}
         <div className="max-w-5xl mx-auto px-4 sm:px-6 flex gap-2 overflow-x-auto scrollbar-hide pt-1 pb-2.5">
           <div 
             ref={tabNavRef}
             className="relative bg-stone-100/90 p-1 rounded-2xl border border-stone-200/70 flex gap-1 shadow-2xs overflow-hidden select-none"
           >
-            {/* Sliding Pill Indicator (1:1 Motion Tracking) */}
-            <div
-              ref={indicatorRef}
-              className={`absolute top-1 bottom-1 bg-stone-900 rounded-xl shadow-xs pointer-events-none will-change-transform ${
-                isMounted ? 'opacity-100' : 'opacity-0'
-              }`}
-              style={{
-                transform: 'translateX(0px)',
-                width: '0px',
-              }}
-            />
-
             <button
               ref={setTabButtonRef(0)}
               type="button"
@@ -1350,6 +1345,13 @@ export default function FinancePage() {
                   : 'text-stone-600 hover:text-stone-900'
               }`}
             >
+              {view === 'dashboard' && (
+                <motion.div
+                  layoutId="activeTabBadge"
+                  className="absolute inset-0 bg-stone-900 rounded-xl -z-10 shadow-xs"
+                  transition={{ type: "spring", stiffness: 450, damping: 35 }}
+                />
+              )}
               <SquaresFour className="w-4 h-4" weight={view === 'dashboard' ? "fill" : "duotone"} />
               <span>Overview</span>
             </button>
@@ -1363,6 +1365,13 @@ export default function FinancePage() {
                   : 'text-stone-600 hover:text-stone-900'
               }`}
             >
+              {view === 'accounts' && (
+                <motion.div
+                  layoutId="activeTabBadge"
+                  className="absolute inset-0 bg-stone-900 rounded-xl -z-10 shadow-xs"
+                  transition={{ type: "spring", stiffness: 450, damping: 35 }}
+                />
+              )}
               <PhWallet className="w-4 h-4" weight={view === 'accounts' ? "fill" : "duotone"} />
               <span>Accounts</span>
             </button>
@@ -1376,6 +1385,13 @@ export default function FinancePage() {
                   : 'text-stone-600 hover:text-stone-900'
               }`}
             >
+              {view === 'ledger' && (
+                <motion.div
+                  layoutId="activeTabBadge"
+                  className="absolute inset-0 bg-stone-900 rounded-xl -z-10 shadow-xs"
+                  transition={{ type: "spring", stiffness: 450, damping: 35 }}
+                />
+              )}
               <PhReceipt className="w-4 h-4" weight={view === 'ledger' ? "fill" : "duotone"} />
               <span>Activity<span className="hidden sm:inline"> & Ledger</span></span>
             </button>
@@ -1384,14 +1400,20 @@ export default function FinancePage() {
       </header>
 
       {/* ================= MAIN CONTENT SWIPEABLE CAROUSEL ================= */}
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-6">
-        <div
+      <div ref={containerRef} className="max-w-5xl mx-auto px-4 sm:px-6 pt-6 overflow-hidden">
+        <motion.div
           ref={carouselRef}
-          className="flex flex-row items-start w-full overflow-x-auto snap-x snap-mandatory scrollbar-hide overscroll-x-contain"
-          style={{ WebkitOverflowScrolling: 'touch' }}
+          drag={isTouchDevice ? "x" : false}
+          dragDirectionLock
+          dragConstraints={dragConstraints}
+          dragElastic={0.2}
+          onDragEnd={handleDragEnd}
+          animate={{ x: -currentTabIndex * (containerWidth || 0) }}
+          transition={{ type: "spring", stiffness: 350, damping: 32, mass: 0.8 }}
+          className="flex flex-row items-start w-full touch-pan-y"
         >
           {/* ================= 1. OVERVIEW VIEW ================= */}
-          <div className="w-full min-w-full shrink-0 snap-start space-y-6">
+          <div className={`w-full min-w-full shrink-0 space-y-6 ${view === 'dashboard' ? '' : 'max-h-[85vh] overflow-hidden'}`}>
             <MonthNavigator
               selectedMonth={selectedMonth}
               onPrevMonth={handlePrevMonth}
@@ -1606,7 +1628,7 @@ export default function FinancePage() {
           </div>
 
           {/* ================= 2. ACCOUNTS VIEW (CLEAN, NO NOISY BADGES) ================= */}
-          <div className="w-full min-w-full shrink-0 snap-start space-y-6">
+          <div className={`w-full min-w-full shrink-0 space-y-6 ${view === 'accounts' ? '' : 'max-h-[85vh] overflow-hidden'}`}>
             <div className="flex items-center justify-between pb-3 border-b border-stone-200">
               <div>
                 <h2 className="text-xl sm:text-2xl font-black tracking-tight text-stone-900">
@@ -1810,7 +1832,7 @@ export default function FinancePage() {
           </div>
 
           {/* ================= 3. ACTIVITY & LEDGER VIEW ================= */}
-          <div className="w-full min-w-full shrink-0 snap-start space-y-4">
+          <div className={`w-full min-w-full shrink-0 space-y-4 ${view === 'ledger' ? '' : 'max-h-[85vh] overflow-hidden'}`}>
             
             {/* Active Account Filter Banner */}
             {filterAccountId && (() => {
@@ -2125,7 +2147,7 @@ export default function FinancePage() {
               </div>
             )}
           </div>
-        </div>
+        </motion.div>
       </div>
 
       {/* ================= FLOATING ACTION BUTTON (MOBILE) ================= */}
