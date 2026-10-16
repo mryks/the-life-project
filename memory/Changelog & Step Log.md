@@ -6,6 +6,32 @@
 
 ## 📜 Sprint & Evolution Log
 
+### Langkah 32: Buttery Smooth Gesture Physics & Zero Layout Thrashing (Apple Design Standard)
+- **User Problem & Precise Directive**:
+  - Tab swipe works with strict single-step bounding, but motion feels slightly stuttery ("patah-patah").
+  - Directive: Make it significantly smoother, fluid, and seamless.
+- **Root Cause Diagnosis**:
+  1. *Zero Velocity Brick Wall*: When using declarative `animate={{ x: -currentTabIndex * w }}`, Framer Motion started the spring with initial velocity $v = 0\,\text{px/s}$. A finger moving at $600\,\text{px/s}$ suddenly experienced a velocity discontinuity to $0$ on release, causing an abrupt physical hitch before accelerating to the destination.
+  2. *Mid-Gesture Layout Thrashing*: On release, `onTabChange(nextTab)` triggered an immediate React re-render where panels flipped `max-h-[85vh]` classes. Accounts jumped from 412px to 1427px, Overview collapsed from 1564px to 412px, and Activity had to layout a 14,000px DOM tree — all while Framer Motion was trying to animate `x` on the compositor thread. Synchronous DOM reflow blocked the main thread for 40ms, dropping 2-3 frames at release.
+  3. *Mismatched Spring Constants*: Tab badge indicator used `stiffness: 450, damping: 35` (settled in ~250ms) while the carousel used `stiffness: 350, damping: 32` (settled in ~450ms), creating visual desynchronization.
+- **Fluid Gesture Architecture (`hooks/useSwipeableTabs.ts` & `app/finance/page.tsx`)**:
+  1. **Continuous MotionValue with Touch Velocity Inheritance**:
+     - Bound `<motion.div>` to `style={{ x }}` via `useMotionValue(0)`.
+     - In `handleDragEnd`, projected real touch release velocity into the spring via `animate(x, targetX, { velocity: releaseVelocity, stiffness: 280, damping: 32, mass: 0.8 })`.
+     - Zero velocity discontinuity — momentum glides naturally into the destination like native iOS / Android.
+  2. **Zero Layout Thrashing with `settledTab`**:
+     - Overview (1564px) and Accounts (1427px) now use natural height (`w-full min-w-full shrink-0`) with zero height clamping during swiping.
+     - Activity (14,434px) is capped at `max-h-[1600px]` when inactive and only uncaps after the gesture completely settles (`settledTab === 'ledger'`).
+     - Zero layout reflow or height jumps during motion.
+  3. **Harmonious Spring Physics**:
+     - Both tab badge indicator and carousel share matching Apple-standard fluid spring physics (`stiffness: 320, damping: 32` and `stiffness: 280, damping: 32`).
+  4. **GPU Hardware Compositor Promotion**:
+     - Added `will-change-transform transform-gpu` and `translate-z-0` on moving containers.
+- **Empirical Verification (Chrome CDP & Vitest)**:
+  - 336 screencast frames recorded across all 7 test scenarios (normal swipes, edge rubberbanding, fast 80ms flicks).
+  - Single-step invariant strictly verified: fast flicks across the entire screen still cap at $\pm 1$ tab max.
+  - Test suite: 217/217 passing. Next.js Turbopack production build: 0 errors.
+
 ### Langkah 31: Elimination of Tab Peeking / Bleed via Full-Bleed Carousel & Internal Panel Padding
 - **User Issue & Optical Analysis**:
   - While resting on `Overview` (Tab 0), a 16px sliver of `Accounts` (Tab 1) card border and text ("Fi", "10", "inv") peeked into the right viewport edge.

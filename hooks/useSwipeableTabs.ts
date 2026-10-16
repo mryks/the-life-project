@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import type { PanInfo } from "framer-motion";
+import { useMotionValue, animate, type PanInfo } from "framer-motion";
 import { calculateBoundedSwipeTarget } from "@/lib/swipe-tabs";
 
 const emptySubscribe = () => () => {};
@@ -26,6 +26,11 @@ export function useSwipeableTabs<T extends string>({
   const isMounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
   const [containerWidth, setContainerWidth] = useState(0);
   const [isTouchDevice, setIsTouchDevice] = useState(false);
+  const [settledTab, setSettledTab] = useState<T>(activeTab);
+
+  // Dedicated MotionValue for continuous hardware-accelerated X translation
+  const x = useMotionValue(0);
+  const isGestureActiveRef = useRef(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -41,7 +46,6 @@ export function useSwipeableTabs<T extends string>({
       setIsTouchDevice(hasTouch);
     };
     updateSize();
-    // Re-check after mount to ensure layout is settled
     const timer = setTimeout(updateSize, 50);
     window.addEventListener("resize", updateSize);
     return () => {
@@ -55,9 +59,32 @@ export function useSwipeableTabs<T extends string>({
     return idx === -1 ? 0 : idx;
   }, [activeTab, tabs]);
 
+  // Spring animation transition sync (for button clicks, window resize, or external tab changes)
+  useEffect(() => {
+    // If a gesture release animation is currently driving x with touch velocity, do not override it
+    if (isGestureActiveRef.current) return;
+
+    const w = containerWidth || (typeof window !== "undefined" ? window.innerWidth : 390);
+    if (w <= 0) return;
+
+    const targetX = -currentTabIndex * w;
+    const controls = animate(x, targetX, {
+      type: "spring",
+      stiffness: 280,
+      damping: 32,
+      mass: 0.8,
+      onComplete: () => {
+        setSettledTab(activeTab);
+      },
+    });
+
+    return () => controls.stop();
+  }, [activeTab, currentTabIndex, containerWidth, x]);
+
   const goToTab = useCallback(
     (tab: T) => {
       if (tab !== activeTab) {
+        isGestureActiveRef.current = false;
         onTabChange(tab);
       }
     },
@@ -74,19 +101,39 @@ export function useSwipeableTabs<T extends string>({
     };
   }, [containerWidth, currentTabIndex, tabs.length]);
 
-  // Strictly enforce SINGLE-STEP pagination invariant (max ±1 tab per swipe gesture)
+  const handleDragStart = useCallback(() => {
+    isGestureActiveRef.current = true;
+  }, []);
+
+  // Strictly enforce SINGLE-STEP pagination invariant with FLUID TOUCH VELOCITY HANDOFF
   const handleDragEnd = useCallback(
     (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
       const w = containerWidth || (typeof window !== "undefined" ? window.innerWidth : 390);
       const deltaX = info.offset.x;
-      const velocity = Math.abs(info.velocity.x) / 1000;
+      const releaseVelocity = info.velocity.x; // in px/second
 
       const targetIndex = calculateBoundedSwipeTarget({
         startIndex: currentTabIndex,
         deltaX,
-        velocity,
+        velocity: Math.abs(releaseVelocity) / 1000,
         clientWidth: w,
         totalTabs: tabs.length,
+      });
+
+      const targetX = -targetIndex * w;
+      isGestureActiveRef.current = true;
+
+      // Silky smooth momentum handoff: project real touch velocity into spring!
+      animate(x, targetX, {
+        type: "spring",
+        stiffness: 280,
+        damping: 32,
+        mass: 0.8,
+        velocity: releaseVelocity,
+        onComplete: () => {
+          isGestureActiveRef.current = false;
+          setSettledTab(tabs[targetIndex] || activeTab);
+        },
       });
 
       const targetTab = tabs[targetIndex];
@@ -94,7 +141,7 @@ export function useSwipeableTabs<T extends string>({
         onTabChange(targetTab);
       }
     },
-    [activeTab, containerWidth, currentTabIndex, onTabChange, tabs]
+    [activeTab, containerWidth, currentTabIndex, onTabChange, tabs, x]
   );
 
   const setTabButtonRef = useCallback((index: number) => {
@@ -116,7 +163,10 @@ export function useSwipeableTabs<T extends string>({
     isTouchDevice,
     containerWidth,
     currentTabIndex,
+    settledTab,
+    x,
     dragConstraints,
+    handleDragStart,
     handleDragEnd,
     updateIndicator,
   };

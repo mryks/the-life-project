@@ -315,7 +315,10 @@ export default function FinancePage() {
     isTouchDevice,
     containerWidth,
     currentTabIndex,
+    settledTab,
+    x,
     dragConstraints,
+    handleDragStart,
     handleDragEnd,
   } = useSwipeableTabs({
     tabs: FINANCE_TABS,
@@ -1349,7 +1352,7 @@ export default function FinancePage() {
                 <motion.div
                   layoutId="activeTabBadge"
                   className="absolute inset-0 bg-stone-900 rounded-xl -z-10 shadow-xs"
-                  transition={{ type: "spring", stiffness: 450, damping: 35 }}
+                  transition={{ type: "spring", stiffness: 320, damping: 32 }}
                 />
               )}
               <SquaresFour className="w-4 h-4" weight={view === 'dashboard' ? "fill" : "duotone"} />
@@ -1369,7 +1372,7 @@ export default function FinancePage() {
                 <motion.div
                   layoutId="activeTabBadge"
                   className="absolute inset-0 bg-stone-900 rounded-xl -z-10 shadow-xs"
-                  transition={{ type: "spring", stiffness: 450, damping: 35 }}
+                  transition={{ type: "spring", stiffness: 320, damping: 32 }}
                 />
               )}
               <PhWallet className="w-4 h-4" weight={view === 'accounts' ? "fill" : "duotone"} />
@@ -1389,7 +1392,7 @@ export default function FinancePage() {
                 <motion.div
                   layoutId="activeTabBadge"
                   className="absolute inset-0 bg-stone-900 rounded-xl -z-10 shadow-xs"
-                  transition={{ type: "spring", stiffness: 450, damping: 35 }}
+                  transition={{ type: "spring", stiffness: 320, damping: 32 }}
                 />
               )}
               <PhReceipt className="w-4 h-4" weight={view === 'ledger' ? "fill" : "duotone"} />
@@ -1403,17 +1406,17 @@ export default function FinancePage() {
       <div ref={containerRef} className="w-full overflow-hidden pt-6">
         <motion.div
           ref={carouselRef}
+          style={{ x }}
           drag={isTouchDevice ? "x" : false}
           dragDirectionLock
           dragConstraints={dragConstraints}
-          dragElastic={0.2}
+          dragElastic={0.3}
+          onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
-          animate={{ x: -currentTabIndex * (containerWidth || 0) }}
-          transition={{ type: "spring", stiffness: 350, damping: 32, mass: 0.8 }}
-          className="flex flex-row items-start w-full touch-pan-y"
+          className="flex flex-row items-start w-full touch-pan-y will-change-transform transform-gpu"
         >
           {/* ================= 1. OVERVIEW VIEW ================= */}
-          <div className={`w-full min-w-full shrink-0 ${view === 'dashboard' ? '' : 'max-h-[85vh] overflow-hidden'}`}>
+          <div className="w-full min-w-full shrink-0">
             <div className="max-w-5xl mx-auto px-4 sm:px-6 space-y-6">
             <MonthNavigator
               selectedMonth={selectedMonth}
@@ -1630,7 +1633,7 @@ export default function FinancePage() {
           </div>
 
           {/* ================= 2. ACCOUNTS VIEW (CLEAN, NO NOISY BADGES) ================= */}
-          <div className={`w-full min-w-full shrink-0 ${view === 'accounts' ? '' : 'max-h-[85vh] overflow-hidden'}`}>
+          <div className="w-full min-w-full shrink-0">
             <div className="max-w-5xl mx-auto px-4 sm:px-6 space-y-6">
             <div className="flex items-center justify-between pb-3 border-b border-stone-200">
               <div>
@@ -1836,7 +1839,7 @@ export default function FinancePage() {
           </div>
 
           {/* ================= 3. ACTIVITY & LEDGER VIEW ================= */}
-          <div className={`w-full min-w-full shrink-0 ${view === 'ledger' ? '' : 'max-h-[85vh] overflow-hidden'}`}>
+          <div className={`w-full min-w-full shrink-0 ${settledTab === 'ledger' ? '' : 'max-h-[1600px] overflow-hidden'}`}>
             <div className="max-w-5xl mx-auto px-4 sm:px-6 space-y-4">
             
             {/* Active Account Filter Banner */}
