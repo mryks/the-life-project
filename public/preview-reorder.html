@@ -1,0 +1,1402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Live Reorder Motion & Physics Prototype — The Life Project</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+            sora: ['"Sora"', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              emerald: '#10B981',
+              dark: '#1C1917',
+              canvas: '#FBF9F4',
+              stone: '#78716C',
+              amber: '#D97706',
+              rose: '#F43F5E',
+              blue: '#2563EB',
+              violet: '#7C3AED',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --canvas-bg: #FBF9F4;
+      --card-bg: #FFFFFF;
+      --border-subtle: #E7E2D7;
+      --border-hover: #D5CEBF;
+      --spring-curve: cubic-bezier(0.2, 0.9, 0.3, 1);
+      --spring-duration: 0.28s;
+    }
+
+    body {
+      background-color: #F4F1EA;
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      color: #1C1917;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .font-mono-numbers {
+      font-family: 'JetBrains Mono', monospace;
+      font-feature-settings: "tnum" 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .font-sora {
+      font-family: 'Sora', sans-serif;
+    }
+
+    /* Custom Sleek Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #A8A29E;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #78716C;
+    }
+
+    /* Tactile 3D Buttons */
+    .btn-tactile {
+      background-color: #FFFFFF;
+      color: #1C1917;
+      border: 1px solid #E7E2D7;
+      border-bottom: 3px solid #D5CEBF;
+      border-radius: 0.75rem;
+      font-weight: 700;
+      transition: all 0.08s ease-in-out;
+    }
+    .btn-tactile:active {
+      border-bottom-width: 1px;
+      transform: translateY(2px);
+    }
+
+    .btn-tactile-primary {
+      background-color: #10B981;
+      color: #FFFFFF;
+      border-bottom: 3.5px solid #047857;
+      border-radius: 0.75rem;
+      font-weight: 700;
+      transition: all 0.08s ease-in-out;
+    }
+    .btn-tactile-primary:active {
+      border-bottom-width: 0px;
+      transform: translateY(3.5px);
+    }
+
+    /* Phone Mockup Frame */
+    .phone-chassis {
+      width: 390px;
+      height: 820px;
+      border-radius: 54px;
+      background: #1C1917;
+      padding: 12px;
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.35), 0 0 0 4px #44403C, 0 0 0 6px #1C1917;
+      position: relative;
+    }
+    .phone-screen {
+      width: 100%;
+      height: 100%;
+      border-radius: 42px;
+      background: #FBF9F4;
+      overflow-y: auto;
+      overflow-x: hidden;
+      position: relative;
+      overscroll-behavior-y: contain;
+    }
+    .dynamic-island {
+      width: 110px;
+      height: 28px;
+      background: #000000;
+      border-radius: 20px;
+      position: sticky;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 50;
+    }
+    .home-bar {
+      width: 130px;
+      height: 5px;
+      background: #1C1917;
+      border-radius: 9999px;
+      position: sticky;
+      bottom: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      opacity: 0.6;
+      z-index: 50;
+      pointer-events: none;
+    }
+
+    /* Auto-Scroll Edge Zones */
+    .edge-glow-top {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 80px;
+      pointer-events: none;
+      background: linear-gradient(to bottom, rgba(16, 185, 129, 0.22), transparent);
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      z-index: 30;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding-top: 8px;
+    }
+    .edge-glow-bottom {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 80px;
+      pointer-events: none;
+      background: linear-gradient(to top, rgba(16, 185, 129, 0.22), transparent);
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      z-index: 30;
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      padding-bottom: 12px;
+    }
+    .edge-glow-active {
+      opacity: 1 !important;
+    }
+
+    /* Reorder Drag Items */
+    .reorder-item {
+      transition: transform var(--spring-duration) var(--spring-curve), opacity 0.2s ease;
+      touch-action: pan-y;
+      user-select: none;
+      -webkit-user-select: none;
+      cursor: grab;
+      position: relative;
+    }
+    .reorder-item:active {
+      cursor: grabbing;
+    }
+
+    /* Hold Progress Ring Overlay */
+    .hold-pulse {
+      animation: holdProgress 300ms cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
+    }
+    @keyframes holdProgress {
+      0% {
+        transform: scale(0.99);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+      }
+      50% {
+        transform: scale(0.98);
+        box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.25);
+      }
+      100% {
+        transform: scale(0.975);
+        box-shadow: 0 0 0 6px rgba(16, 185, 129, 0.35);
+      }
+    }
+
+    /* Dragging Mirror Clone */
+    .drag-mirror {
+      position: fixed;
+      pointer-events: none;
+      z-index: 9999;
+      box-shadow: 0 24px 45px -10px rgba(0, 0, 0, 0.25), 0 12px 20px -6px rgba(0, 0, 0, 0.15), 0 0 0 2px #10B981;
+      transform-origin: center center;
+      transition: none;
+      will-change: transform, box-shadow;
+      border-radius: 1.25rem;
+      background: #FFFFFF;
+    }
+
+    /* Target Slot Ghost */
+    .slot-ghost {
+      border: 2px dashed #10B981 !important;
+      background-color: rgba(16, 185, 129, 0.06) !important;
+      opacity: 0.85;
+      box-shadow: inset 0 2px 8px rgba(16, 185, 129, 0.08);
+      border-radius: 1.25rem;
+    }
+
+    /* Undo Toast */
+    .toast-slide-up {
+      animation: toastIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes toastIn {
+      from {
+        opacity: 0;
+        transform: translate(-50%, 20px) scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: translate(-50%, 0) scale(1);
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <!-- Header & Navigation Bar -->
+  <header class="sticky top-0 z-40 bg-stone-900 text-white px-4 sm:px-6 py-3.5 border-b border-stone-800 shadow-md">
+    <div class="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-xl bg-emerald-500 flex items-center justify-center font-black text-stone-900 text-base shadow-sm">
+          LP
+        </div>
+        <div>
+          <h1 class="text-sm sm:text-base font-bold tracking-tight text-white flex items-center gap-2">
+            <span>Live Reorder Motion & Physics Prototype</span>
+            <span class="text-[11px] font-semibold bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-500/40">Duolingo + Arc Aesthetic</span>
+          </h1>
+          <p class="text-xs text-stone-400 hidden sm:block">Real-time FLIP spring displacement, 300ms hold gesture & edge auto-scrolling</p>
+        </div>
+      </div>
+
+      <!-- Viewport Mode Switcher -->
+      <div class="flex items-center bg-stone-800 p-1 rounded-2xl border border-stone-700">
+        <button 
+          id="btnModeDesktop" 
+          onclick="switchViewport('desktop')" 
+          class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2 bg-white text-stone-900 shadow-xs cursor-pointer"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+          <span>Desktop View</span>
+        </button>
+        <button 
+          id="btnModePhone" 
+          onclick="switchViewport('phone')" 
+          class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2 text-stone-400 hover:text-white cursor-pointer"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+          <span>Phone Mode (Mockup)</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="py-8 px-4 sm:px-6">
+
+    <!-- ======================================================== -->
+    <!-- DESKTOP VIEW CONTAINER                                   -->
+    <!-- ======================================================== -->
+    <div id="desktopView" class="max-w-6xl mx-auto space-y-8 transition-all">
+
+      <!-- Hero Callout & Interactive Control Panel -->
+      <div class="bg-white p-6 rounded-3xl border border-stone-200/90 shadow-sm space-y-5">
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">Interactive Physical Motion</span>
+              <span class="text-xs font-semibold text-stone-500">Task-Ready Implementation</span>
+            </div>
+            <h2 class="text-xl sm:text-2xl font-black text-stone-900 mt-1">Live FLIP Reorder with Edge Auto-Scroll</h2>
+            <p class="text-xs sm:text-sm text-stone-600 mt-0.5">
+              Hold any transaction card for <strong class="text-stone-900 font-bold">300ms</strong> to lift, then drag up/down. Sibling cards dynamically slide out of the way in real time via FLIP spring physics <em>before</em> releasing.
+            </p>
+          </div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <button onclick="resetTransactions()" class="btn-tactile px-3.5 py-2 text-xs flex items-center gap-1.5 cursor-pointer">
+              <svg class="w-3.5 h-3.5 text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+              <span>Reset Order</span>
+            </button>
+            <button onclick="switchViewport('phone')" class="bg-stone-900 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-stone-800 transition flex items-center gap-1.5 shadow-sm cursor-pointer">
+              <span>Test on Mobile Frame</span>
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Controls Toolbar: Physics, View Mode, Auto-Scroll Speed -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-3 border-t border-stone-100">
+          
+          <!-- Control 1: Spring Physics Profile -->
+          <div class="bg-[#FBF9F4] p-3 rounded-2xl border border-stone-200">
+            <label class="text-[11px] font-bold text-stone-500 uppercase tracking-wider block mb-1.5 flex items-center gap-1">
+              <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+              <span>Spring Physics Curve</span>
+            </label>
+            <select id="selectPhysics" onchange="updatePhysicsProfile(this.value)" class="w-full bg-white text-xs font-bold text-stone-800 border border-stone-300 rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-emerald-500 cursor-pointer">
+              <option value="apple">Apple Critically Damped (Smooth 0.28s)</option>
+              <option value="arc">Arc Snappy Kinetic (Quick 0.20s)</option>
+              <option value="float">Gentle Tactile Bouncy (Spring 0.36s)</option>
+            </select>
+          </div>
+
+          <!-- Control 2: Hold Delay -->
+          <div class="bg-[#FBF9F4] p-3 rounded-2xl border border-stone-200">
+            <label class="text-[11px] font-bold text-stone-500 uppercase tracking-wider block mb-1.5 flex items-center gap-1">
+              <svg class="w-3.5 h-3.5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              <span>Long-Press Trigger</span>
+            </label>
+            <select id="selectHoldDelay" onchange="updateHoldDelay(this.value)" class="w-full bg-white text-xs font-bold text-stone-800 border border-stone-300 rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-emerald-500 cursor-pointer">
+              <option value="300">300ms (Production Standard)</option>
+              <option value="150">150ms (Rapid Tap-Hold)</option>
+              <option value="0">0ms (Instant Drag Handle)</option>
+            </select>
+          </div>
+
+          <!-- Control 3: View Mode -->
+          <div class="bg-[#FBF9F4] p-3 rounded-2xl border border-stone-200">
+            <label class="text-[11px] font-bold text-stone-500 uppercase tracking-wider block mb-1.5 flex items-center gap-1">
+              <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+              <span>Transaction Presentation</span>
+            </label>
+            <div class="flex items-center gap-1 bg-stone-200/60 p-0.5 rounded-xl">
+              <button id="btnViewCard" onclick="switchPresentation('card')" class="flex-1 py-1 text-center rounded-lg text-xs font-bold bg-white text-stone-900 shadow-xs cursor-pointer">
+                Card View
+              </button>
+              <button id="btnViewLedger" onclick="switchPresentation('ledger')" class="flex-1 py-1 text-center rounded-lg text-xs font-bold text-stone-600 hover:text-stone-900 cursor-pointer">
+                Ledger View
+              </button>
+            </div>
+          </div>
+
+          <!-- Control 4: Edge Auto-Scroll Speed -->
+          <div class="bg-[#FBF9F4] p-3 rounded-2xl border border-stone-200">
+            <label class="text-[11px] font-bold text-stone-500 uppercase tracking-wider block mb-1.5 flex items-center gap-1">
+              <svg class="w-3.5 h-3.5 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/></svg>
+              <span>Edge Auto-Scroll Sensitivity</span>
+            </label>
+            <select id="selectAutoScroll" onchange="updateAutoScrollSensitivity(this.value)" class="w-full bg-white text-xs font-bold text-stone-800 border border-stone-300 rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-emerald-500 cursor-pointer">
+              <option value="16">Normal (16px max per frame)</option>
+              <option value="26">Aggressive (26px max per frame)</option>
+              <option value="8">Gentle (8px max per frame)</option>
+              <option value="0">Disabled</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Interactive Layout: Main List (Left) + Real-Time Telemetry & Reference Panel (Right) -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        <!-- LEFT COLUMN: Reorderable Transaction List Container (7 Cols) -->
+        <div class="lg:col-span-7 space-y-4">
+          <div class="flex items-center justify-between px-1">
+            <div class="flex items-center gap-2">
+              <h3 class="text-sm font-bold text-stone-800 uppercase tracking-wider">Today's Transactions</h3>
+              <span id="transactionCountBadge" class="text-[11px] font-mono-numbers font-bold bg-stone-200 text-stone-700 px-2 py-0.5 rounded-full">8 items</span>
+            </div>
+            <div class="flex items-center gap-2 text-xs text-stone-500">
+              <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span>Live FLIP Engine Active</span>
+            </div>
+          </div>
+
+          <!-- The Scrollable Transaction List Surface -->
+          <div 
+            id="desktopListScrollContainer" 
+            class="relative bg-[#FBF9F4] rounded-3xl border border-stone-200/90 p-4 sm:p-5 shadow-xs overflow-y-auto max-h-[640px]"
+          >
+            <!-- Top Edge Auto-Scroll Zone Indicator -->
+            <div id="desktopEdgeGlowTop" class="edge-glow-top rounded-t-3xl">
+              <span class="text-[11px] font-bold text-emerald-800 bg-white/95 px-3 py-1 rounded-full shadow-md border border-emerald-300/60 flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5 animate-bounce text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/></svg>
+                <span>Edge Auto-Scrolling Up</span>
+              </span>
+            </div>
+
+            <!-- List Root Container -->
+            <div id="desktopItemsList" class="space-y-3 relative">
+              <!-- Dynamically rendered via JS -->
+            </div>
+
+            <!-- Bottom Edge Auto-Scroll Zone Indicator -->
+            <div id="desktopEdgeGlowBottom" class="edge-glow-bottom rounded-b-3xl">
+              <span class="text-[11px] font-bold text-emerald-800 bg-white/95 px-3 py-1 rounded-full shadow-md border border-emerald-300/60 flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5 animate-bounce text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
+                <span>Edge Auto-Scrolling Down</span>
+              </span>
+            </div>
+          </div>
+
+          <div class="text-xs text-stone-500 bg-white p-3.5 rounded-2xl border border-stone-200 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              <span>Tip: Drag near the top or bottom of the box to experience smooth edge auto-scrolling!</span>
+            </div>
+            <span class="font-mono-numbers text-[11px] text-stone-400">IDR Standards</span>
+          </div>
+        </div>
+
+        <!-- RIGHT COLUMN: Real-Time Telemetry & Reference Benchmarks (5 Cols) -->
+        <div class="lg:col-span-5 space-y-6">
+
+          <!-- Telemetry HUD Card -->
+          <div class="bg-stone-900 text-white p-5 rounded-3xl border border-stone-800 shadow-md space-y-4">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <div class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></div>
+                <h4 class="text-xs font-bold uppercase tracking-wider text-stone-300">Physics & Gesture HUD</h4>
+              </div>
+              <span id="telemetryStatus" class="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-stone-800 text-stone-400 border border-stone-700">IDLE</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 text-xs">
+              <div class="bg-stone-800/80 p-3 rounded-xl border border-stone-700">
+                <div class="text-[10px] text-stone-400 uppercase font-semibold">Active Drag Item</div>
+                <div id="telemetryActiveItem" class="font-bold text-white mt-1 truncate">None</div>
+              </div>
+              <div class="bg-stone-800/80 p-3 rounded-xl border border-stone-700">
+                <div class="text-[10px] text-stone-400 uppercase font-semibold">Slot Hover Index</div>
+                <div id="telemetryTargetIndex" class="font-mono-numbers font-bold text-emerald-400 mt-1">—</div>
+              </div>
+              <div class="bg-stone-800/80 p-3 rounded-xl border border-stone-700">
+                <div class="text-[10px] text-stone-400 uppercase font-semibold">Auto-Scroll Velocity</div>
+                <div id="telemetryScrollVelocity" class="font-mono-numbers font-bold text-stone-200 mt-1">0 px/frame</div>
+              </div>
+              <div class="bg-stone-800/80 p-3 rounded-xl border border-stone-700">
+                <div class="text-[10px] text-stone-400 uppercase font-semibold">Displacement $\Delta Y$</div>
+                <div id="telemetryDeltaY" class="font-mono-numbers font-bold text-stone-200 mt-1">0 px</div>
+              </div>
+            </div>
+
+            <!-- Live State Array Sequence -->
+            <div class="bg-stone-800/50 p-3 rounded-xl border border-stone-700/80 space-y-1.5">
+              <div class="text-[10px] text-stone-400 uppercase font-semibold flex items-center justify-between">
+                <span>Live Sequence Order</span>
+                <span class="text-[9px] text-stone-500 font-mono">array indices</span>
+              </div>
+              <div id="telemetrySequence" class="font-mono text-[11px] text-stone-300 flex flex-wrap gap-1.5">
+                <!-- Rendered dynamically -->
+              </div>
+            </div>
+          </div>
+
+          <!-- 4-5 Curated Industry References Showcase -->
+          <div class="bg-white p-5 rounded-3xl border border-stone-200 shadow-sm space-y-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <h4 class="text-sm font-bold text-stone-900">Curated Benchmark References</h4>
+                <p class="text-xs text-stone-500">Industry standards for live physical reordering</p>
+              </div>
+              <span class="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">5 Studied</span>
+            </div>
+
+            <div class="space-y-3">
+              
+              <!-- Reference 1: Framer Motion Reorder -->
+              <a href="https://motion.dev/docs/react-reorder" target="_blank" rel="noopener noreferrer" class="block p-3 rounded-2xl border border-stone-200 hover:border-emerald-500 hover:bg-emerald-50/20 transition group">
+                <div class="flex items-start justify-between">
+                  <div class="font-bold text-xs text-stone-900 group-hover:text-emerald-700 flex items-center gap-1.5">
+                    <span>1. Framer Motion Reorder</span>
+                    <svg class="w-3 h-3 text-stone-400 group-hover:text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                  </div>
+                  <span class="text-[10px] font-mono font-semibold bg-stone-100 text-stone-600 px-1.5 py-0.5 rounded">motion.dev</span>
+                </div>
+                <p class="text-[11px] text-stone-600 mt-1 leading-relaxed">
+                  Uses continuous coordinate layout projection (`layoutId`). Sibling items dynamically calculate target bounding boxes and glide into new slots via critically tuned FLIP springs (`stiffness: 450, damping: 35`).
+                </p>
+              </a>
+
+              <!-- Reference 2: Atlassian Pragmatic drag-and-drop -->
+              <a href="https://atlassian.design/components/pragmatic-drag-and-drop/examples" target="_blank" rel="noopener noreferrer" class="block p-3 rounded-2xl border border-stone-200 hover:border-emerald-500 hover:bg-emerald-50/20 transition group">
+                <div class="flex items-start justify-between">
+                  <div class="font-bold text-xs text-stone-900 group-hover:text-emerald-700 flex items-center gap-1.5">
+                    <span>2. Pragmatic Drag-and-Drop / React Beautiful DnD</span>
+                    <svg class="w-3 h-3 text-stone-400 group-hover:text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                  </div>
+                  <span class="text-[10px] font-mono font-semibold bg-stone-100 text-stone-600 px-1.5 py-0.5 rounded">atlassian.design</span>
+                </div>
+                <p class="text-[11px] text-stone-600 mt-1 leading-relaxed">
+                  Successor to React Beautiful DnD. Features instant bounding-box collision detection, live gap creation (sibling items slide apart by exact lifted height), and zero-lag edge auto-scrolling (`autoScroller`).
+                </p>
+              </a>
+
+              <!-- Reference 3: dnd-kit Sortable Presets -->
+              <a href="https://master--5fc05e08a4a65d0021ae0bf2.chromatic.com/?path=/story/presets-sortable-vertical--basic-setup" target="_blank" rel="noopener noreferrer" class="block p-3 rounded-2xl border border-stone-200 hover:border-emerald-500 hover:bg-emerald-50/20 transition group">
+                <div class="flex items-start justify-between">
+                  <div class="font-bold text-xs text-stone-900 group-hover:text-emerald-700 flex items-center gap-1.5">
+                    <span>3. dnd-kit Sortable Presets</span>
+                    <svg class="w-3 h-3 text-stone-400 group-hover:text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                  </div>
+                  <span class="text-[10px] font-mono font-semibold bg-stone-100 text-stone-600 px-1.5 py-0.5 rounded">dndkit.com</span>
+                </div>
+                <p class="text-[11px] text-stone-600 mt-1 leading-relaxed">
+                  `closestCenter` algorithm with offset translateY translations. Includes quadratic auto-scroll curves, touch sensors with 250-300ms delays, and smooth exit velocity preservation.
+                </p>
+              </a>
+
+              <!-- Reference 4: Apple iOS Reminders / Notes List Physics -->
+              <a href="https://developer.apple.com/design/human-interface-guidelines/drag-and-drop" target="_blank" rel="noopener noreferrer" class="block p-3 rounded-2xl border border-stone-200 hover:border-emerald-500 hover:bg-emerald-50/20 transition group">
+                <div class="flex items-start justify-between">
+                  <div class="font-bold text-xs text-stone-900 group-hover:text-emerald-700 flex items-center gap-1.5">
+                    <span>4. Apple iOS Reminders / Notes List Physics</span>
+                    <svg class="w-3 h-3 text-stone-400 group-hover:text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                  </div>
+                  <span class="text-[10px] font-mono font-semibold bg-stone-100 text-stone-600 px-1.5 py-0.5 rounded">Apple HIG</span>
+                </div>
+                <p class="text-[11px] text-stone-600 mt-1 leading-relaxed">
+                  300ms hold with tactile haptic thud. Card lifts along Z-axis with scale 1.025 and ambient drop shadow. Critically damped springs (damping = 1.0, zero overshoot) displace adjacent rows smoothly.
+                </p>
+              </a>
+
+              <!-- Reference 5: SortableJS Live Demo -->
+              <a href="https://sortablejs.github.io/Sortable/" target="_blank" rel="noopener noreferrer" class="block p-3 rounded-2xl border border-stone-200 hover:border-emerald-500 hover:bg-emerald-50/20 transition group">
+                <div class="flex items-start justify-between">
+                  <div class="font-bold text-xs text-stone-900 group-hover:text-emerald-700 flex items-center gap-1.5">
+                    <span>5. SortableJS Native DOM Engine</span>
+                    <svg class="w-3 h-3 text-stone-400 group-hover:text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                  </div>
+                  <span class="text-[10px] font-mono font-semibold bg-stone-100 text-stone-600 px-1.5 py-0.5 rounded">sortablejs.github.io</span>
+                </div>
+                <p class="text-[11px] text-stone-600 mt-1 leading-relaxed">
+                  Lightweight DOM FLIP reordering engine. Automatically manages ghost placeholders, in-place translateY recalculations, and container viewport edge auto-scrolling.
+                </p>
+              </a>
+
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- PHONE MODE (MOCKUP) CONTAINER                            -->
+    <!-- ======================================================== -->
+    <div id="phoneView" class="hidden max-w-sm mx-auto flex flex-col items-center justify-center transition-all pb-12">
+      
+      <div class="text-center mb-4 space-y-1">
+        <span class="text-xs font-bold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">Mobile Touch Physics</span>
+        <h3 class="text-base font-black text-stone-900">iPhone 16 Pro Viewport</h3>
+        <p class="text-xs text-stone-500">Touch or click & hold for 300ms, then drag up and down to trigger live FLIP and edge scrolling.</p>
+      </div>
+
+      <!-- Phone Chassis Frame -->
+      <div class="phone-chassis">
+        <!-- Phone Screen Inside -->
+        <div id="phoneScreenContainer" class="phone-screen flex flex-col">
+          
+          <!-- Dynamic Island -->
+          <div class="dynamic-island flex items-center justify-between px-3">
+            <div class="w-2.5 h-2.5 rounded-full bg-stone-900"></div>
+            <div class="w-2 h-2 rounded-full bg-emerald-500/80"></div>
+          </div>
+
+          <!-- Top Edge Auto-Scroll Glow Indicator for Phone -->
+          <div id="phoneEdgeGlowTop" class="edge-glow-top">
+            <span class="text-[10px] font-bold text-emerald-800 bg-white/95 px-2.5 py-0.5 rounded-full shadow-md border border-emerald-300 flex items-center gap-1">
+              <svg class="w-3 h-3 animate-bounce text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/></svg>
+              <span>Auto-Scroll Up</span>
+            </span>
+          </div>
+
+          <!-- Phone Header Content -->
+          <div class="p-4 pt-6 space-y-3">
+            <div class="flex items-center justify-between">
+              <div>
+                <span class="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Today, Oct 16</span>
+                <h3 class="text-base font-extrabold text-stone-900">Transactions</h3>
+              </div>
+              <button onclick="resetTransactions()" class="btn-tactile p-2 rounded-xl text-stone-600 hover:text-stone-900">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+              </button>
+            </div>
+
+            <!-- Total Net Stat Chip -->
+            <div class="bg-white p-3 rounded-2xl border border-stone-200/90 shadow-2xs flex items-center justify-between">
+              <div>
+                <div class="text-[10px] font-semibold text-stone-400 uppercase">Net Today</div>
+                <div class="text-sm font-bold font-mono-numbers text-stone-900">+Rp 16.039.500</div>
+              </div>
+              <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">Balanced</span>
+            </div>
+
+            <!-- Phone Items List Root -->
+            <div id="phoneItemsList" class="space-y-2.5 relative pt-1 pb-16">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- Bottom Edge Auto-Scroll Glow Indicator for Phone -->
+          <div id="phoneEdgeGlowBottom" class="edge-glow-bottom">
+            <span class="text-[10px] font-bold text-emerald-800 bg-white/95 px-2.5 py-0.5 rounded-full shadow-md border border-emerald-300 flex items-center gap-1">
+              <svg class="w-3 h-3 animate-bounce text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
+              <span>Auto-Scroll Down</span>
+            </span>
+          </div>
+
+          <!-- iOS Home Bar Indicator -->
+          <div class="home-bar"></div>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- ======================================================== -->
+  <!-- FLOATING DRAG MIRROR (Cloned on active drag)             -->
+  <!-- ======================================================== -->
+  <div id="dragMirror" class="drag-mirror hidden"></div>
+
+  <!-- ======================================================== -->
+  <!-- UNDO REORDER TOAST (Slides up on drop)                  -->
+  <!-- ======================================================== -->
+  <div id="undoToastContainer" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 hidden">
+    <div class="toast-slide-up bg-stone-900 text-white px-4 py-3 rounded-2xl shadow-xl border border-stone-800 flex items-center gap-3.5 min-w-[320px]">
+      <div class="w-6 h-6 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 flex-shrink-0">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+      </div>
+      <div class="flex-1">
+        <p class="text-xs font-bold text-white">Transaction reordered</p>
+        <p id="undoToastSub" class="text-[11px] text-stone-400">Restored in real-time sequence</p>
+      </div>
+      <button onclick="performUndo()" class="bg-stone-800 hover:bg-stone-700 text-emerald-400 hover:text-emerald-300 px-3 py-1.5 rounded-xl text-xs font-bold transition border border-stone-700 flex items-center gap-1 cursor-pointer">
+        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a5 5 0 015 5v2M3 10l6 6m-6-6l6-6"/></svg>
+        <span>Undo</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- JAVASCRIPT: ENGINE FOR FLIP PHYSICS, TOUCH & AUTO-SCROLL -->
+  <!-- ======================================================== -->
+  <script>
+    // 1. Initial State & Data
+    const INITIAL_TRANSACTIONS = [
+      {
+        id: 'tx-1',
+        title: 'Family Mart Groceries',
+        category: 'Food & Drinks',
+        account: 'BCA Main',
+        type: 'expense',
+        amount: -64500,
+        time: '14:30',
+        icon: 'utensils',
+        color: 'emerald',
+      },
+      {
+        id: 'tx-2',
+        title: 'Monthly Salary',
+        category: 'Salary & Income',
+        account: 'BCA Main',
+        type: 'income',
+        amount: 18500000,
+        time: '09:00',
+        icon: 'income',
+        color: 'emerald',
+      },
+      {
+        id: 'tx-3',
+        title: 'Tokopedia Mech Keyboard',
+        subtitle: '+Rp 75.000 Linked Cashback',
+        category: 'Shopping',
+        account: 'Mandiri',
+        type: 'expense-cashback',
+        amount: -1450000,
+        cashbackAmount: 75000,
+        time: '11:15',
+        icon: 'shopping',
+        color: 'amber',
+        isAtomicUnit: true,
+      },
+      {
+        id: 'tx-4',
+        title: 'Transfer to SeaBank',
+        category: 'Transfer',
+        account: 'BCA Main -> SeaBank',
+        type: 'transfer',
+        amount: 3000000,
+        time: '13:00',
+        icon: 'transfer',
+        color: 'blue',
+      },
+      {
+        id: 'tx-5',
+        title: 'Starbucks Cold Brew',
+        category: 'Food & Drinks',
+        account: 'GoPay',
+        type: 'expense',
+        amount: -58000,
+        time: '15:10',
+        icon: 'coffee',
+        color: 'emerald',
+      },
+      {
+        id: 'tx-6',
+        title: 'Netflix Subscription',
+        category: 'Entertainment',
+        account: 'Jenius',
+        type: 'expense',
+        amount: -186000,
+        time: '08:45',
+        icon: 'film',
+        color: 'rose',
+      },
+      {
+        id: 'tx-7',
+        title: 'Apotek Kimia Farma',
+        category: 'Healthcare',
+        account: 'Cash',
+        type: 'expense',
+        amount: -112000,
+        time: '16:20',
+        icon: 'pill',
+        color: 'rose',
+      },
+      {
+        id: 'tx-8',
+        title: 'Gym Membership Renewal',
+        category: 'Fitness',
+        account: 'Mandiri',
+        type: 'expense',
+        amount: -450000,
+        time: '17:00',
+        icon: 'dumbbell',
+        color: 'amber',
+      }
+    ];
+
+    let transactions = JSON.parse(JSON.stringify(INITIAL_TRANSACTIONS));
+    let previousStateBeforeReorder = null;
+
+    // Configuration Settings
+    let currentViewport = 'desktop'; // 'desktop' | 'phone'
+    let currentPresentation = 'card'; // 'card' | 'ledger'
+    let holdDurationMs = 300;
+    let autoScrollMaxSpeed = 16; // px per frame
+    let springProfile = 'apple';
+
+    // Drag Interaction Engine State
+    let isDragging = false;
+    let holdTimer = null;
+    let holdPrimedElement = null;
+    let startPointerPos = { x: 0, y: 0 };
+    let activeItemData = null;
+    let activeItemOriginIndex = -1;
+    let currentHoverTargetIndex = -1;
+    let grabOffset = { x: 0, y: 0 };
+    let initialItemRect = null;
+    let itemSlotHeights = [];
+    let autoScrollRafId = null;
+    let currentScrollVelocity = 0;
+    let activeScrollContainer = null;
+    let undoToastTimer = null;
+
+    // Formatting Helpers
+    function formatCurrency(amount) {
+      const isNegative = amount < 0;
+      const absVal = Math.abs(amount);
+      const formatted = 'Rp ' + absVal.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+      return isNegative ? `-${formatted}` : `+${formatted}`;
+    }
+
+    // Lucide Icon SVG Generators (Zero Emojis!)
+    function getIconSvg(iconName, colorClass = "text-stone-700") {
+      switch (iconName) {
+        case 'utensils':
+          return `<svg class="w-4 h-4 ${colorClass}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>`;
+        case 'income':
+          return `<svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>`;
+        case 'shopping':
+          return `<svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>`;
+        case 'transfer':
+          return `<svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>`;
+        case 'coffee':
+          return `<svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 8h1a4 4 0 010 8h-1M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8zM6 1v3M10 1v3M14 1v3"/></svg>`;
+        case 'film':
+          return `<svg class="w-4 h-4 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z"/></svg>`;
+        case 'pill':
+          return `<svg class="w-4 h-4 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>`;
+        case 'dumbbell':
+          return `<svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 3m0 0l-3 3m3-3h12m0 0l3-3m-3 3l3 3M6 6v12M18 6v12"/></svg>`;
+        default:
+          return `<svg class="w-4 h-4 ${colorClass}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
+      }
+    }
+
+    // 2. Render Functions for Cards and Ledger
+    function renderTransactions() {
+      renderListToContainer('desktopItemsList', 'desktop');
+      renderListToContainer('phoneItemsList', 'phone');
+      updateTelemetrySequence();
+    }
+
+    function renderListToContainer(containerId, mode) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+
+      container.innerHTML = '';
+
+      transactions.forEach((tx, index) => {
+        const itemEl = document.createElement('div');
+        itemEl.id = `${mode}-tx-${tx.id}`;
+        itemEl.className = 'reorder-item';
+        itemEl.setAttribute('data-id', tx.id);
+        itemEl.setAttribute('data-index', index);
+
+        if (currentPresentation === 'card') {
+          // Card Layout
+          const isAtomic = tx.isAtomicUnit;
+          itemEl.innerHTML = `
+            <div class="bg-white rounded-2xl p-3.5 sm:p-4 border border-[#E7E2D7] hover:border-[#D5CEBF] shadow-xs flex items-center justify-between gap-3 group transition-colors">
+              <div class="flex items-center gap-3 min-w-0">
+                <!-- Drag Grip Icon -->
+                <div class="cursor-grab active:cursor-grabbing text-stone-300 group-hover:text-stone-500 transition-colors p-1 -ml-1">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/></svg>
+                </div>
+                <!-- Category Icon Avatar -->
+                <div class="w-9 h-9 rounded-xl bg-stone-100 flex items-center justify-center flex-shrink-0">
+                  ${getIconSvg(tx.icon)}
+                </div>
+                <!-- Transaction Info -->
+                <div class="min-w-0">
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    <h5 class="text-xs sm:text-sm font-bold text-stone-900 truncate">${tx.title}</h5>
+                    ${isAtomic ? `<span class="text-[9px] font-bold bg-amber-50 text-amber-700 px-1.5 py-0.2 rounded border border-amber-200">Atomic Unit</span>` : ''}
+                  </div>
+                  <div class="flex items-center gap-2 text-[11px] text-stone-500 mt-0.5">
+                    <span class="font-medium text-stone-600">${tx.account}</span>
+                    <span>•</span>
+                    <span>${tx.category}</span>
+                    <span>•</span>
+                    <span class="font-mono-numbers text-stone-400">${tx.time}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Amount & Status -->
+              <div class="text-right flex-shrink-0">
+                <div class="font-mono-numbers text-xs sm:text-sm font-bold ${
+                  tx.type === 'income' ? 'text-emerald-600' : tx.type === 'transfer' ? 'text-blue-600' : 'text-stone-900'
+                }">
+                  ${formatCurrency(tx.amount)}
+                </div>
+                ${tx.cashbackAmount ? `<div class="font-mono-numbers text-[10px] font-bold text-emerald-600 mt-0.5">+Rp 75.000 cb</div>` : ''}
+              </div>
+            </div>
+          `;
+        } else {
+          // Ledger Journal Row Layout
+          itemEl.innerHTML = `
+            <div class="bg-white rounded-xl p-3 border border-[#E7E2D7] hover:border-[#D5CEBF] shadow-2xs flex items-center justify-between gap-2 text-xs group">
+              <div class="flex items-center gap-2.5 min-w-0">
+                <div class="cursor-grab active:cursor-grabbing text-stone-300 group-hover:text-stone-500">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/></svg>
+                </div>
+                <div class="w-2 h-2 rounded-full ${tx.type === 'income' ? 'bg-emerald-500' : tx.type === 'transfer' ? 'bg-blue-500' : 'bg-stone-400'}"></div>
+                <span class="font-mono-numbers text-[11px] text-stone-400">${tx.time}</span>
+                <span class="font-bold text-stone-800 truncate">${tx.title}</span>
+                <span class="text-stone-400 text-[11px]">(${tx.account})</span>
+              </div>
+              <div class="font-mono-numbers font-bold text-right ${tx.type === 'income' ? 'text-emerald-600' : 'text-stone-900'}">
+                ${formatCurrency(tx.amount)}
+              </div>
+            </div>
+          `;
+        }
+
+        // Attach pointer & touch event listeners
+        bindDragEvents(itemEl, tx, index, mode);
+
+        container.appendChild(itemEl);
+      });
+    }
+
+    // 3. Bind Touch & Pointer Drag Gestures
+    function bindDragEvents(el, tx, index, mode) {
+      const handlePointerDown = (e) => {
+        // Only primary mouse button or touch
+        if (e.button && e.button !== 0) return;
+
+        startPointerPos = { x: e.clientX, y: e.clientY };
+        holdPrimedElement = el;
+
+        // Visual priming
+        el.classList.add('hold-pulse');
+
+        if (holdDurationMs === 0) {
+          // Instant lift
+          triggerLift(el, tx, index, mode, e.clientX, e.clientY);
+          return;
+        }
+
+        // 300ms hold timer
+        holdTimer = setTimeout(() => {
+          triggerLift(el, tx, index, mode, e.clientX, e.clientY);
+        }, holdDurationMs);
+      };
+
+      el.addEventListener('pointerdown', handlePointerDown);
+    }
+
+    // Trigger Lift Activation
+    function triggerLift(el, tx, index, mode, clientX, clientY) {
+      if (isDragging) return;
+
+      isDragging = true;
+      activeItemData = tx;
+      activeItemOriginIndex = index;
+      currentHoverTargetIndex = index;
+
+      // Haptic Vibration Feedback
+      if ('vibrate' in navigator) {
+        try {
+          navigator.vibrate(40);
+        } catch (_) {}
+      }
+
+      // Determine active scroll container
+      activeScrollContainer = mode === 'phone'
+        ? document.getElementById('phoneScreenContainer')
+        : document.getElementById('desktopListScrollContainer');
+
+      // Prevent native body/touch scroll while actively dragging
+      document.body.style.userSelect = 'none';
+      document.body.style.touchAction = 'none';
+
+      // Measure dimensions
+      initialItemRect = el.getBoundingClientRect();
+      grabOffset = {
+        x: clientX - initialItemRect.left,
+        y: clientY - initialItemRect.top
+      };
+
+      // Measure all slot heights for FLIP offsets
+      measureSlotHeights(mode);
+
+      // Setup Floating Mirror
+      const mirror = document.getElementById('dragMirror');
+      mirror.innerHTML = el.innerHTML;
+      mirror.style.width = `${initialItemRect.width}px`;
+      mirror.style.height = `${initialItemRect.height}px`;
+      mirror.style.left = `${initialItemRect.left}px`;
+      mirror.style.top = `${initialItemRect.top}px`;
+      mirror.style.transform = `scale(1.03) rotate(-1.2deg)`;
+      mirror.classList.remove('hidden');
+
+      // Mark original as target slot ghost
+      el.classList.add('slot-ghost');
+      el.classList.remove('hold-pulse');
+
+      // Update Telemetry HUD
+      updateTelemetryStatus('DRAGGING', tx.title, index);
+
+      // Start Auto-Scroll RAF Loop
+      startAutoScrollLoop(mode);
+    }
+
+    function measureSlotHeights(mode) {
+      const containerId = mode === 'phone' ? 'phoneItemsList' : 'desktopItemsList';
+      const container = document.getElementById(containerId);
+      const items = Array.from(container.children);
+      itemSlotHeights = items.map(item => item.getBoundingClientRect().height);
+    }
+
+    // 4. Global Pointer & Touch Handlers
+    window.addEventListener('pointermove', (e) => {
+      // Tremor cancel during hold timer
+      if (!isDragging && holdTimer) {
+        const dist = Math.hypot(e.clientX - startPointerPos.x, e.clientY - startPointerPos.y);
+        if (dist > (e.pointerType === 'touch' ? 18 : 8)) {
+          clearTimeout(holdTimer);
+          holdTimer = null;
+          if (holdPrimedElement) {
+            holdPrimedElement.classList.remove('hold-pulse');
+            holdPrimedElement = null;
+          }
+        }
+        return;
+      }
+
+      if (!isDragging) return;
+
+      // Update floating mirror position
+      const mirror = document.getElementById('dragMirror');
+      const newX = e.clientX - grabOffset.x;
+      const newY = e.clientY - grabOffset.y;
+      mirror.style.left = `${newX}px`;
+      mirror.style.top = `${newY}px`;
+
+      // Update Telemetry coordinates
+      const deltaY = e.clientY - startPointerPos.y;
+      document.getElementById('telemetryDeltaY').innerText = `${Math.round(deltaY)} px`;
+
+      // Calculate new target slot index via FLIP
+      updateHoverSlot(e.clientY);
+
+      // Evaluate edge auto-scroll proximity
+      evaluateEdgeProximity(e.clientY);
+    });
+
+    window.addEventListener('pointerup', endDrag);
+    window.addEventListener('pointercancel', endDrag);
+
+    // 5. Live FLIP Displacement Engine ("Geser-Geser")
+    function updateHoverSlot(clientY) {
+      if (!isDragging || !activeScrollContainer) return;
+
+      const mode = currentViewport === 'phone' ? 'phone' : 'desktop';
+      const containerId = mode === 'phone' ? 'phoneItemsList' : 'desktopItemsList';
+      const container = document.getElementById(containerId);
+      const items = Array.from(container.children);
+
+      // Compute floating card vertical center
+      const mirror = document.getElementById('dragMirror');
+      const mirrorRect = mirror.getBoundingClientRect();
+      const mirrorCenterY = mirrorRect.top + mirrorRect.height / 2;
+
+      let targetIndex = activeItemOriginIndex;
+
+      // Find closest slot
+      for (let i = 0; i < items.length; i++) {
+        const rect = items[i].getBoundingClientRect();
+        const itemMidY = rect.top + rect.height / 2;
+
+        if (i < activeItemOriginIndex) {
+          // Dragging UP: if mirror is above item mid
+          if (mirrorCenterY < itemMidY) {
+            targetIndex = i;
+            break;
+          }
+        } else if (i > activeItemOriginIndex) {
+          // Dragging DOWN: if mirror is below item mid
+          if (mirrorCenterY > itemMidY) {
+            targetIndex = i;
+          }
+        }
+      }
+
+      if (targetIndex !== currentHoverTargetIndex) {
+        currentHoverTargetIndex = targetIndex;
+        applyFlipDisplacement(mode);
+        document.getElementById('telemetryTargetIndex').innerText = `${currentHoverTargetIndex}`;
+      }
+    }
+
+    function applyFlipDisplacement(mode) {
+      const containerId = mode === 'phone' ? 'phoneItemsList' : 'desktopItemsList';
+      const container = document.getElementById(containerId);
+      const items = Array.from(container.children);
+
+      const draggedHeight = initialItemRect.height + 12; // Height + gap
+
+      items.forEach((item, index) => {
+        if (index === activeItemOriginIndex) {
+          // Dragged item itself
+          const offsetSlots = currentHoverTargetIndex - activeItemOriginIndex;
+          item.style.transform = `translateY(${offsetSlots * draggedHeight}px)`;
+          return;
+        }
+
+        let translateY = 0;
+        if (activeItemOriginIndex < currentHoverTargetIndex) {
+          // Dragging downwards
+          if (index > activeItemOriginIndex && index <= currentHoverTargetIndex) {
+            translateY = -draggedHeight;
+          }
+        } else if (activeItemOriginIndex > currentHoverTargetIndex) {
+          // Dragging upwards
+          if (index < activeItemOriginIndex && index >= currentHoverTargetIndex) {
+            translateY = draggedHeight;
+          }
+        }
+
+        item.style.transform = `translateY(${translateY}px)`;
+      });
+    }
+
+    // 6. Smooth Auto-Scroll on Edge Drag
+    function evaluateEdgeProximity(pointerY) {
+      if (!activeScrollContainer || autoScrollMaxSpeed === 0) {
+        currentScrollVelocity = 0;
+        setEdgeGlow(0);
+        return;
+      }
+
+      const rect = activeScrollContainer.getBoundingClientRect();
+      const edgeThreshold = 80; // px zone
+
+      const distTop = pointerY - rect.top;
+      const distBottom = rect.bottom - pointerY;
+
+      if (distTop > 0 && distTop < edgeThreshold) {
+        // Near Top Edge -> Scroll UP
+        const ratio = (edgeThreshold - distTop) / edgeThreshold;
+        currentScrollVelocity = -Math.round(Math.pow(ratio, 2) * autoScrollMaxSpeed);
+        setEdgeGlow(-1);
+      } else if (distBottom > 0 && distBottom < edgeThreshold) {
+        // Near Bottom Edge -> Scroll DOWN
+        const ratio = (edgeThreshold - distBottom) / edgeThreshold;
+        currentScrollVelocity = Math.round(Math.pow(ratio, 2) * autoScrollMaxSpeed);
+        setEdgeGlow(1);
+      } else {
+        currentScrollVelocity = 0;
+        setEdgeGlow(0);
+      }
+
+      document.getElementById('telemetryScrollVelocity').innerText = `${currentScrollVelocity} px/frame`;
+    }
+
+    function setEdgeGlow(direction) {
+      const mode = currentViewport === 'phone' ? 'phone' : 'desktop';
+      const topGlow = document.getElementById(`${mode}EdgeGlowTop`);
+      const bottomGlow = document.getElementById(`${mode}EdgeGlowBottom`);
+
+      if (direction === -1) {
+        topGlow?.classList.add('edge-glow-active');
+        bottomGlow?.classList.remove('edge-glow-active');
+      } else if (direction === 1) {
+        bottomGlow?.classList.add('edge-glow-active');
+        topGlow?.classList.remove('edge-glow-active');
+      } else {
+        topGlow?.classList.remove('edge-glow-active');
+        bottomGlow?.classList.remove('edge-glow-active');
+      }
+    }
+
+    function startAutoScrollLoop(mode) {
+      const step = () => {
+        if (!isDragging) return;
+
+        if (currentScrollVelocity !== 0 && activeScrollContainer) {
+          activeScrollContainer.scrollTop += currentScrollVelocity;
+          // Re-evaluate hover index while list scrolls beneath stationary pointer
+          const mirror = document.getElementById('dragMirror');
+          const mirrorRect = mirror.getBoundingClientRect();
+          updateHoverSlot(mirrorRect.top + mirrorRect.height / 2);
+        }
+
+        autoScrollRafId = requestAnimationFrame(step);
+      };
+
+      autoScrollRafId = requestAnimationFrame(step);
+    }
+
+    // 7. Drop & Settling Animation
+    function endDrag() {
+      // Clear hold timer if released early
+      if (holdTimer) {
+        clearTimeout(holdTimer);
+        holdTimer = null;
+      }
+      if (holdPrimedElement) {
+        holdPrimedElement.classList.remove('hold-pulse');
+        holdPrimedElement = null;
+      }
+
+      if (!isDragging) return;
+
+      isDragging = false;
+      if (autoScrollRafId) cancelAnimationFrame(autoScrollRafId);
+      currentScrollVelocity = 0;
+      setEdgeGlow(0);
+
+      // Restore body touch actions
+      document.body.style.userSelect = '';
+      document.body.style.touchAction = '';
+
+      const mode = currentViewport === 'phone' ? 'phone' : 'desktop';
+      const containerId = mode === 'phone' ? 'phoneItemsList' : 'desktopItemsList';
+      const container = document.getElementById(containerId);
+      const items = Array.from(container.children);
+
+      const mirror = document.getElementById('dragMirror');
+
+      // Drop Haptic
+      if ('vibrate' in navigator) {
+        try {
+          navigator.vibrate(20);
+        } catch (_) {}
+      }
+
+      // Check if item order changed
+      if (currentHoverTargetIndex !== -1 && currentHoverTargetIndex !== activeItemOriginIndex) {
+        // Record undo state
+        previousStateBeforeReorder = JSON.parse(JSON.stringify(transactions));
+
+        // Reorder data array
+        const reordered = [...transactions];
+        const [moved] = reordered.splice(activeItemOriginIndex, 1);
+        reordered.splice(currentHoverTargetIndex, 0, moved);
+        transactions = reordered;
+
+        // Animate Mirror directly to Target Slot Position
+        const targetElement = items[currentHoverTargetIndex];
+        const targetRect = targetElement.getBoundingClientRect();
+
+        mirror.style.transition = 'all 0.22s cubic-bezier(0.2, 1, 0.3, 1)';
+        mirror.style.left = `${targetRect.left}px`;
+        mirror.style.top = `${targetRect.top}px`;
+        mirror.style.transform = 'scale(1) rotate(0deg)';
+        mirror.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+
+        setTimeout(() => {
+          mirror.classList.add('hidden');
+          mirror.style.transition = 'none';
+          renderTransactions();
+          showUndoToast(moved.title);
+        }, 220);
+      } else {
+        // Snapped back to original slot
+        mirror.style.transition = 'all 0.22s cubic-bezier(0.2, 1, 0.3, 1)';
+        mirror.style.left = `${initialItemRect.left}px`;
+        mirror.style.top = `${initialItemRect.top}px`;
+        mirror.style.transform = 'scale(1) rotate(0deg)';
+
+        setTimeout(() => {
+          mirror.classList.add('hidden');
+          mirror.style.transition = 'none';
+          items.forEach(item => {
+            item.style.transform = '';
+            item.classList.remove('slot-ghost');
+          });
+        }, 220);
+      }
+
+      updateTelemetryStatus('IDLE', 'None', -1);
+    }
+
+    // 8. Undo Toast Notification
+    function showUndoToast(itemTitle) {
+      const toast = document.getElementById('undoToastContainer');
+      const sub = document.getElementById('undoToastSub');
+      sub.innerText = `Moved "${itemTitle}"`;
+      toast.classList.remove('hidden');
+
+      if (undoToastTimer) clearTimeout(undoToastTimer);
+      undoToastTimer = setTimeout(() => {
+        toast.classList.add('hidden');
+      }, 5000);
+    }
+
+    function performUndo() {
+      if (!previousStateBeforeReorder) return;
+      transactions = JSON.parse(JSON.stringify(previousStateBeforeReorder));
+      previousStateBeforeReorder = null;
+      renderTransactions();
+
+      const toast = document.getElementById('undoToastContainer');
+      toast.classList.add('hidden');
+    }
+
+    function resetTransactions() {
+      transactions = JSON.parse(JSON.stringify(INITIAL_TRANSACTIONS));
+      previousStateBeforeReorder = null;
+      renderTransactions();
+    }
+
+    // 9. Telemetry Updates
+    function updateTelemetryStatus(status, itemTitle, targetIndex) {
+      const statusEl = document.getElementById('telemetryStatus');
+      statusEl.innerText = status;
+      if (status === 'DRAGGING') {
+        statusEl.className = 'text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40';
+      } else {
+        statusEl.className = 'text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-stone-800 text-stone-400 border border-stone-700';
+      }
+
+      document.getElementById('telemetryActiveItem').innerText = itemTitle;
+      document.getElementById('telemetryTargetIndex').innerText = targetIndex === -1 ? '—' : `${targetIndex}`;
+    }
+
+    function updateTelemetrySequence() {
+      const seqEl = document.getElementById('telemetrySequence');
+      if (!seqEl) return;
+      seqEl.innerHTML = transactions.map((t, i) => `
+        <span class="px-1.5 py-0.5 bg-stone-800 rounded border border-stone-700 font-mono text-[10px]">
+          ${i}:${t.id.replace('tx-', '')}
+        </span>
+      `).join('');
+    }
+
+    // 10. Switchers & Configuration Handlers
+    function switchViewport(mode) {
+      currentViewport = mode;
+      const desktopView = document.getElementById('desktopView');
+      const phoneView = document.getElementById('phoneView');
+      const btnDesktop = document.getElementById('btnModeDesktop');
+      const btnPhone = document.getElementById('btnModePhone');
+
+      if (mode === 'desktop') {
+        desktopView.classList.remove('hidden');
+        phoneView.classList.add('hidden');
+        btnDesktop.className = 'px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2 bg-white text-stone-900 shadow-xs cursor-pointer';
+        btnPhone.className = 'px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2 text-stone-400 hover:text-white cursor-pointer';
+      } else {
+        desktopView.classList.add('hidden');
+        phoneView.classList.remove('hidden');
+        btnPhone.className = 'px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2 bg-white text-stone-900 shadow-xs cursor-pointer';
+        btnDesktop.className = 'px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2 text-stone-400 hover:text-white cursor-pointer';
+      }
+
+      renderTransactions();
+    }
+
+    function switchPresentation(pres) {
+      currentPresentation = pres;
+      const btnCard = document.getElementById('btnViewCard');
+      const btnLedger = document.getElementById('btnViewLedger');
+
+      if (pres === 'card') {
+        btnCard.className = 'flex-1 py-1 text-center rounded-lg text-xs font-bold bg-white text-stone-900 shadow-xs cursor-pointer';
+        btnLedger.className = 'flex-1 py-1 text-center rounded-lg text-xs font-bold text-stone-600 hover:text-stone-900 cursor-pointer';
+      } else {
+        btnLedger.className = 'flex-1 py-1 text-center rounded-lg text-xs font-bold bg-white text-stone-900 shadow-xs cursor-pointer';
+        btnCard.className = 'flex-1 py-1 text-center rounded-lg text-xs font-bold text-stone-600 hover:text-stone-900 cursor-pointer';
+      }
+
+      renderTransactions();
+    }
+
+    function updatePhysicsProfile(val) {
+      springProfile = val;
+      const root = document.documentElement;
+      if (val === 'apple') {
+        root.style.setProperty('--spring-curve', 'cubic-bezier(0.25, 1, 0.35, 1)');
+        root.style.setProperty('--spring-duration', '0.28s');
+      } else if (val === 'arc') {
+        root.style.setProperty('--spring-curve', 'cubic-bezier(0.16, 1, 0.3, 1)');
+        root.style.setProperty('--spring-duration', '0.20s');
+      } else if (val === 'float') {
+        root.style.setProperty('--spring-curve', 'cubic-bezier(0.34, 1.3, 0.64, 1)');
+        root.style.setProperty('--spring-duration', '0.36s');
+      }
+    }
+
+    function updateHoldDelay(val) {
+      holdDurationMs = parseInt(val, 10);
+    }
+
+    function updateAutoScrollSensitivity(val) {
+      autoScrollMaxSpeed = parseInt(val, 10);
+    }
+
+    // Initialize on load
+    window.addEventListener('DOMContentLoaded', () => {
+      renderTransactions();
+    });
+  </script>
+</body>
+</html>
