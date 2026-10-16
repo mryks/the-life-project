@@ -1400,7 +1400,7 @@ export default function FinancePage() {
       </header>
 
       {/* ================= MAIN CONTENT SWIPEABLE CAROUSEL ================= */}
-      <div ref={containerRef} className="max-w-5xl mx-auto px-4 sm:px-6 pt-6 overflow-hidden">
+      <div ref={containerRef} className="w-full overflow-hidden pt-6">
         <motion.div
           ref={carouselRef}
           drag={isTouchDevice ? "x" : false}
@@ -1413,7 +1413,8 @@ export default function FinancePage() {
           className="flex flex-row items-start w-full touch-pan-y"
         >
           {/* ================= 1. OVERVIEW VIEW ================= */}
-          <div className={`w-full min-w-full shrink-0 space-y-6 ${view === 'dashboard' ? '' : 'max-h-[85vh] overflow-hidden'}`}>
+          <div className={`w-full min-w-full shrink-0 ${view === 'dashboard' ? '' : 'max-h-[85vh] overflow-hidden'}`}>
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 space-y-6">
             <MonthNavigator
               selectedMonth={selectedMonth}
               onPrevMonth={handlePrevMonth}
@@ -1625,10 +1626,12 @@ export default function FinancePage() {
                 <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </div>
+            </div>
           </div>
 
           {/* ================= 2. ACCOUNTS VIEW (CLEAN, NO NOISY BADGES) ================= */}
-          <div className={`w-full min-w-full shrink-0 space-y-6 ${view === 'accounts' ? '' : 'max-h-[85vh] overflow-hidden'}`}>
+          <div className={`w-full min-w-full shrink-0 ${view === 'accounts' ? '' : 'max-h-[85vh] overflow-hidden'}`}>
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 space-y-6">
             <div className="flex items-center justify-between pb-3 border-b border-stone-200">
               <div>
                 <h2 className="text-xl sm:text-2xl font-black tracking-tight text-stone-900">
@@ -1829,10 +1832,12 @@ export default function FinancePage() {
                 Combined balance across all 10 liquid cash accounts and 7 investment holdings.
               </p>
             </div>
+            </div>
           </div>
 
           {/* ================= 3. ACTIVITY & LEDGER VIEW ================= */}
-          <div className={`w-full min-w-full shrink-0 space-y-4 ${view === 'ledger' ? '' : 'max-h-[85vh] overflow-hidden'}`}>
+          <div className={`w-full min-w-full shrink-0 ${view === 'ledger' ? '' : 'max-h-[85vh] overflow-hidden'}`}>
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 space-y-4">
             
             {/* Active Account Filter Banner */}
             {filterAccountId && (() => {
@@ -2146,6 +2151,7 @@ export default function FinancePage() {
                 </table>
               </div>
             )}
+            </div>
           </div>
         </motion.div>
       </div>

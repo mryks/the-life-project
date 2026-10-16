@@ -6,6 +6,45 @@
 
 ## 📜 Sprint & Evolution Log
 
+### Langkah 31: Elimination of Tab Peeking / Bleed via Full-Bleed Carousel & Internal Panel Padding
+- **User Issue & Optical Analysis**:
+  - While resting on `Overview` (Tab 0), a 16px sliver of `Accounts` (Tab 1) card border and text ("Fi", "10", "inv") peeked into the right viewport edge.
+  - While resting on `Accounts` (Tab 1), "Financial Accounts" was shifted left by 32px ("nancial Accounts"), and a 64px sliver of `Activity` (Tab 2) cards and search button peeked into the right viewport edge.
+  - While resting on `Activity` (Tab 2), the search magnifying icon was cut off by 64px to the left.
+- **Root Cause Identified**:
+  - The carousel container had `className="max-w-5xl mx-auto px-4 sm:px-6 pt-6 overflow-hidden"`.
+  - In CSS, `overflow: hidden` clips children at its **padding-box edge**, NOT its content-box edge.
+  - Because `px-4` (`padding: 0 16px`) was applied to the clipping container, the content box was $W - 32\text{px}$ (e.g. $390 - 32 = 358\text{px}$).
+  - Child panels with `w-full min-w-full shrink-0` resolved `100%` against the $358\text{px}$ content box.
+  - Panel 0 occupied $[16\text{px}, 374\text{px}]$. But the container's visible padding box extended to $390\text{px}$. Therefore, from $374\text{px}$ to $390\text{px}$ ($16\text{px}$ wide strip), Panel 1 was rendered and exposed.
+  - Furthermore, `containerWidth` measured `el.clientWidth` ($390\text{px}$). Translating by $-k \times 390\text{px}$ against $358\text{px}$ panels caused a cumulative $32\text{px} \times k$ horizontal misalignment!
+- **Architectural Solution (Full-Bleed Container + Internal Panel Containers)**:
+  - Carousel container set to full viewport width with zero horizontal padding:
+    `<div ref={containerRef} className="w-full overflow-hidden pt-6">`
+  - Each tab panel spans the full viewport width:
+    `<div className="w-full min-w-full shrink-0 ...">`
+  - Inner responsive constraints and padding moved INSIDE each tab panel:
+    `<div className="max-w-5xl mx-auto px-4 sm:px-6 space-y-6">`
+  - With this structure:
+    - Panel width === `containerWidth` === $W$ ($390\text{px}$).
+    - Tab 0: Panel 0 occupies $[0, 390]$. Panel 1 starts at $390$ (100% offscreen, exactly 0px peeking).
+    - Tab 1: Panel 1 occupies $[0, 390]$. Panel 0 is at $[-390, 0]$, Panel 2 is at $[390, 780]$ (0px peeking).
+    - Tab 2: Panel 2 occupies $[0, 390]$. Panel 1 is at $[-390, 0]$ (0px peeking).
+- **Empirical Visual Verification (CDP Screencast & High-Res Screenshots)**:
+  - Verified resting states via Chrome CDP:
+    - `tab0_overview_initial.png`: Exactly 0px of Accounts, perfectly symmetrical margins.
+    - `tab1_accounts_resting.png`: "Financial Accounts" title fully visible, exactly 0px of Activity.
+    - `tab2_activity_resting.png`: Magnifying glass search icon fully visible with symmetric 16px padding, exactly 0px of Accounts.
+  - Verified continuous swiping and flick tests:
+    - Test 1 (Overview -> Accounts): lands at $x = -390\text{px}$, Panel 1 bounds $[0, 390]$.
+    - Test 2 (Accounts -> Activity): lands at $x = -780\text{px}$, Panel 2 bounds $[0, 390]$.
+    - Test 3 (Swipe beyond Activity): elastic resistance, stays at $x = -780\text{px}$.
+    - Test 4 (Activity -> Accounts): lands at $x = -390\text{px}$.
+    - Test 5 (Accounts -> Overview): lands at $x = 0\text{px}$.
+    - Test 6 (Fast 80ms Flick Overview -> Left across whole screen): strictly bounded to Accounts ($x = -390\text{px}$).
+    - Test 7 (Fast 80ms Flick Accounts -> Right across whole screen): strictly bounded to Overview ($x = 0\text{px}$).
+- **Verification Suite**: 217/217 Vitest tests passing, Turbopack production build succeeds with 0 errors.
+
 ### Langkah 30: Glitch Elimination & Hardware-Accelerated Gesture Tabs (Framer Motion)
 - **User Problem & Precise Directive**:
   - Mobile swipe still glitched, stuttered, and high-velocity flicks could skip across tabs from end to end.
