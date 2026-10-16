@@ -25,7 +25,7 @@
 - **Mobile PWA:**
   - `public/manifest.json` configured with standalone mode, oat milk theme `#FBF9F4`, and bespoke SVG icon.
   - Viewport optimized for mobile notch (`viewportFit: 'cover'`) and smooth touch drag interactions.
-- **Test Suite Status:** 100% passing (**19 test suites, 289 tests passed** via `npm test`).
+- **Test Suite Status:** 100% passing (**20 test suites, 317 tests passed** via `npm test`).
 - **Linter & Typecheck:** 0 errors, 0 warnings (`npm run lint`, `npx tsc --noEmit`).
 - **Sync Engine Hotfix (Resolved):**
   - Edit Persistence: Created outbox `queuePendingUpserts` so edited existing transactions are queued and pushed to Supabase (`upsert`), preventing cloud fetch from reverting edits.
@@ -70,6 +70,7 @@
 31. **Langkah 32: Buttery Smooth Gesture Physics & Zero Layout Thrashing** (Injected real finger velocity `info.velocity.x` into spring, eliminated mid-gesture height collapse with `settledTab`, synchronized Apple-grade spring physics, GPU compositor promotion).
 32. **Langkah 33: Undo Delete Transaction with 4-Second Linear Countdown Bar (Option A)** (Optimistic deletion with 4.0s grace period, tactile floating pill with linear countdown bar `scaleX: 1 -> 0`, 3D push-down Undo button, haptic feedback, safe area containment, cascading cashback/refund restoration, sequential delete flush, `beforeunload` commit, and 27 comprehensive unit tests).
 33. **Langkah 34: Mechanical Gear Ratio & Units-First Cascade Rolling Counter (Option 2)** (Right-to-left cascading delays where units roll first at `delay = 0.71s`, physical gear ratio revolutions where units spin 2 full revolutions + delta and tens/hundreds spin 1 revolution, strict time budget bounding invariant `columnDelay + columnDuration <= delay + duration`, 45 automated unit tests in `tests/ui/animated-number.test.ts`, 289/289 total tests passing).
+34. **Langkah 35: Live Motion Reorder with Real-Time FLIP Displacement & Edge Auto-Scroll Hard Stop** (Framer Motion `<motion.div layout>` and `<motion.tr layout>` dynamic item parting with Apple Critically Damped spring, green dashed border `border-2 border-dashed border-emerald-500` applied strictly to the active held card without background placeholder clutter, same-date boundary locking with auto-scroll hard stop, atomic unit cohesion, and 28 comprehensive unit tests in `tests/finance/live-reorder.test.ts`, 317/317 total tests passing).
 
 ---
 

@@ -853,3 +853,117 @@ export const reorderFinancialEventsByUnitIndex = (
   const placement: 'before' | 'after' = fromUnitIndex < toUnitIndex ? 'after' : 'before';
   return reorderFinancialEvents(events, units[fromUnitIndex].id, targetUnit.id, placement);
 };
+
+export interface DateBoundaryStatus {
+  isAtTopBoundary: boolean;
+  isAtBottomBoundary: boolean;
+  canScrollUp: boolean;
+  canScrollDown: boolean;
+}
+
+/**
+ * Checks whether an active item/event is at the top or bottom boundary of its same-date group
+ * within a sequence of ordered items.
+ *
+ * Invariants:
+ * - At top boundary: scrolling UP is blocked (canScrollUp = false)
+ * - At bottom boundary: scrolling DOWN is blocked (canScrollDown = false)
+ * - In middle: both directions allowed (canScrollUp = true, canScrollDown = true)
+ * - Single item on date: both directions blocked (canScrollUp = false, canScrollDown = false)
+ */
+export const checkDateBoundary = (
+  items: Array<{ id: string; date?: string; primaryEvent?: { date: string } }>,
+  activeId: string
+): DateBoundaryStatus => {
+  const getItemDate = (item: { id: string; date?: string; primaryEvent?: { date: string } }) => {
+    return item.date ?? item.primaryEvent?.date ?? '';
+  };
+
+  const index = items.findIndex((item) => {
+    if (item.id === activeId) return true;
+    if ('events' in item && Array.isArray((item as unknown as { events: FinancialEvent[] }).events)) {
+      return (item as unknown as { events: FinancialEvent[] }).events.some((e) => e.id === activeId);
+    }
+    return false;
+  });
+
+  if (index === -1) {
+    return {
+      isAtTopBoundary: true,
+      isAtBottomBoundary: true,
+      canScrollUp: false,
+      canScrollDown: false,
+    };
+  }
+
+  const currentDate = getItemDate(items[index]);
+  const prev = items[index - 1];
+  const next = items[index + 1];
+
+  const prevDate = prev ? getItemDate(prev) : null;
+  const nextDate = next ? getItemDate(next) : null;
+
+  const isAtTopBoundary = prevDate === null || prevDate !== currentDate;
+  const isAtBottomBoundary = nextDate === null || nextDate !== currentDate;
+
+  return {
+    isAtTopBoundary,
+    isAtBottomBoundary,
+    canScrollUp: !isAtTopBoundary,
+    canScrollDown: !isAtBottomBoundary,
+  };
+};
+
+/**
+ * View-aware date boundary checker for Card View and Ledger View.
+ */
+export const checkEventDateBoundary = (
+  events: FinancialEvent[],
+  activeEventId: string,
+  viewMode: 'card' | 'ledger' = 'card'
+): DateBoundaryStatus => {
+  if (viewMode === 'ledger') {
+    const entries = deriveLedgerEntries(events);
+    const index = entries.findIndex((e) => e.eventId === activeEventId);
+    if (index === -1) {
+      return {
+        isAtTopBoundary: true,
+        isAtBottomBoundary: true,
+        canScrollUp: false,
+        canScrollDown: false,
+      };
+    }
+    const current = entries[index];
+    const prev = entries[index - 1];
+
+    let lastEventIndex = index;
+    while (lastEventIndex + 1 < entries.length && entries[lastEventIndex + 1].eventId === activeEventId) {
+      lastEventIndex++;
+    }
+    const next = entries[lastEventIndex + 1];
+
+    const isAtTopBoundary = !prev || prev.date !== current.date;
+    const isAtBottomBoundary = !next || next.date !== current.date;
+
+    return {
+      isAtTopBoundary,
+      isAtBottomBoundary,
+      canScrollUp: !isAtTopBoundary,
+      canScrollDown: !isAtBottomBoundary,
+    };
+  }
+
+  // Card view: primary by date DESC, secondary by recording order DESC
+  const indexed = events.map((event, originalIndex) => ({
+    event,
+    originalIndex,
+  }));
+  indexed.sort((a, b) => {
+    const dateCmp = b.event.date.localeCompare(a.event.date);
+    if (dateCmp !== 0) return dateCmp;
+    return b.originalIndex - a.originalIndex;
+  });
+  const cardEvents = indexed.map((item) => item.event);
+  return checkDateBoundary(cardEvents, activeEventId);
+};
+

@@ -590,8 +590,8 @@ export default function FinancePage() {
 
   const {
     isDragging,
+    provisionalEvents,
     isEventActive,
-    shouldShowDropIndicator,
     getItemProps,
   } = useTransactionReorder({
     events,
@@ -599,6 +599,8 @@ export default function FinancePage() {
     disabled: isFiltered,
     onReorder: handleReorder,
   });
+
+  const activeDisplayEvents = isDragging ? provisionalEvents : events;
 
   const handleExportBackup = () => {
     try {
@@ -738,7 +740,7 @@ export default function FinancePage() {
 
   // Card View Transactions
   const cardEvents = useMemo(() => {
-    let filtered = events;
+    let filtered = activeDisplayEvents;
     if (filterAccountId) {
       filtered = filtered.filter((event) =>
         event.type === 'transfer'
@@ -750,7 +752,7 @@ export default function FinancePage() {
       filtered = filtered.filter((event) => event.type === typeFilter);
     }
     if (categoryFilter !== 'all') {
-      const expensesById = new Map(events.filter((e) => e.type === 'expense').map((e) => [e.id, e]));
+      const expensesById = new Map(activeDisplayEvents.filter((e) => e.type === 'expense').map((e) => [e.id, e]));
       filtered = filtered.filter((event) => {
         if ('category' in event) return event.category === categoryFilter;
         if (event.type === 'refund') {
@@ -789,7 +791,7 @@ export default function FinancePage() {
 
     const indexed = filtered.map((event) => ({
       event,
-      originalIndex: events.indexOf(event),
+      originalIndex: activeDisplayEvents.indexOf(event),
     }));
     indexed.sort((a, b) => {
       const dateCmp = b.event.date.localeCompare(a.event.date);
@@ -797,17 +799,17 @@ export default function FinancePage() {
       return b.originalIndex - a.originalIndex;
     });
     return indexed.map((item) => item.event);
-  }, [events, filterAccountId, typeFilter, categoryFilter, searchQuery]);
+  }, [activeDisplayEvents, filterAccountId, typeFilter, categoryFilter, searchQuery]);
 
   // Ledger Entries
   const ledgerEntries = useMemo(() => {
-    let entries = deriveLedgerEntries(events);
+    let entries = deriveLedgerEntries(activeDisplayEvents);
     if (filterAccountId) {
       entries = entries.filter((entry) => entry.accountId === filterAccountId);
     }
     if (typeFilter !== 'all') {
       entries = entries.filter((entry) => {
-        const ev = events.find((e) => e.id === entry.eventId);
+        const ev = activeDisplayEvents.find((e) => e.id === entry.eventId);
         return ev?.type === typeFilter;
       });
     }
@@ -825,7 +827,7 @@ export default function FinancePage() {
       });
     }
     return entries;
-  }, [events, filterAccountId, typeFilter, categoryFilter, searchQuery]);
+  }, [activeDisplayEvents, filterAccountId, typeFilter, categoryFilter, searchQuery]);
 
   // Refund Calculation
   const refundCalculation = useMemo(() => {
@@ -2058,14 +2060,12 @@ export default function FinancePage() {
                   const netExpenseForEvent = event.type === 'expense' ? event.amount - totalRefundedForEvent : event.amount;
 
                   const isActive = isEventActive(event.id);
-                  const showDropAbove = shouldShowDropIndicator(event.id, 'above');
-                  const showDropBelow = shouldShowDropIndicator(event.id, 'below');
                   const itemProps = isFiltered ? {} : getItemProps(event.id);
 
                   return (
-                    <div key={event.id}>
+                    <Fragment key={`card-group-${event.id}`}>
                       {showMonthHeader && (
-                        <div className={`flex items-center gap-3 py-2 ${index > 0 ? 'mt-6 mb-2' : 'mb-2'}`}>
+                        <div key={`month-header-${currentEventMonth}`} className={`flex items-center gap-3 py-2 ${index > 0 ? 'mt-6 mb-2' : 'mb-2'}`}>
                           <div className="h-px bg-stone-200 flex-1" />
                           <span className="px-3.5 py-1 bg-amber-100 text-amber-900 font-bold text-xs rounded-full border border-amber-300/80 shadow-2xs">
                             {formatMonthName(currentEventMonth)}
@@ -2074,14 +2074,14 @@ export default function FinancePage() {
                         </div>
                       )}
                       {showDateHeader && (
-                        <h3 className={`text-xs font-bold text-stone-500 sticky top-[108px] bg-[#FBF9F4]/90 backdrop-blur-xs py-1.5 z-10 ${index > 0 && !showMonthHeader ? 'mt-4' : ''}`}>
+                        <h3 key={`date-header-${event.date}`} className={`text-xs font-bold text-stone-500 sticky top-[108px] bg-[#FBF9F4]/90 backdrop-blur-xs py-1.5 z-10 ${index > 0 && !showMonthHeader ? 'mt-4' : ''}`}>
                           {formatDateCard(event.date)}
                         </h3>
                       )}
-                      {showDropAbove && (
-                        <div className="h-1.5 bg-emerald-500 rounded-full mx-2 my-1 shadow-xs transition-all animate-pulse pointer-events-none" />
-                      )}
-                      <div
+                      <motion.div
+                        layout
+                        transition={{ type: "spring", stiffness: 450, damping: 35, mass: 0.8 }}
+                        key={event.id}
                         {...itemProps}
                         onContextMenu={(e) => { 
                           e.preventDefault(); 
@@ -2090,12 +2090,12 @@ export default function FinancePage() {
                         }}
                         onClick={() => {
                           if (isDragging) return;
-                          handleActionOpen(event.id);
+                          handleActionOpen(event.id); 
                         }}
-                        className={`bg-white p-4 rounded-2xl border border-stone-200/90 border-b-[3px] border-b-stone-300/80 shadow-xs flex justify-between items-center transition select-none hover:-translate-y-0.5 hover:shadow-sm ${
+                        className={`p-4 rounded-2xl flex justify-between items-center select-none transition-shadow ${
                           isActive 
-                            ? 'scale-[1.02] shadow-lg ring-2 ring-emerald-500 bg-white z-20 transition-transform duration-150 relative' 
-                            : 'active:bg-stone-50'
+                            ? 'border-2 border-dashed border-emerald-500 scale-[1.02] shadow-xl z-30 bg-white relative' 
+                            : 'bg-white border border-stone-200/90 border-b-[3px] border-b-stone-300/80 shadow-xs hover:-translate-y-0.5 hover:shadow-sm active:bg-stone-50'
                         } ${isFiltered ? 'cursor-pointer' : 'cursor-grab active:cursor-grabbing'}`}
                       >
                         <div className="flex items-center gap-3 min-w-0">
@@ -2152,11 +2152,8 @@ export default function FinancePage() {
                             </p>
                           )}
                         </div>
-                      </div>
-                      {showDropBelow && (
-                        <div className="h-1.5 bg-emerald-500 rounded-full mx-2 my-1 shadow-xs transition-all animate-pulse pointer-events-none" />
-                      )}
-                    </div>
+                      </motion.div>
+                    </Fragment>
                   );
                 })}
               </div>
@@ -2181,27 +2178,20 @@ export default function FinancePage() {
                       const showMonthHeader = index === 0 || currentEntryMonth !== prevEntryMonth;
                       const acc = getAccountById(entry.accountId);
                       const isActive = isEventActive(entry.eventId);
-                      const showDropAbove = shouldShowDropIndicator(entry.eventId, 'above', entry.direction);
-                      const showDropBelow = shouldShowDropIndicator(entry.eventId, 'below', entry.direction);
                       const itemProps = isFiltered ? {} : getItemProps(entry.eventId);
 
                       return (
                         <Fragment key={`${entry.eventId}-${entry.accountId}-${entry.direction}`}>
                           {showMonthHeader && (
-                            <tr className="bg-amber-50/70 font-bold text-amber-950 text-xs">
+                            <tr key={`month-header-${currentEntryMonth}`} className="bg-amber-50/70 font-bold text-amber-950 text-xs">
                               <td colSpan={6} className="px-4 py-2 uppercase tracking-wider">
                                 {formatMonthName(currentEntryMonth)}
                               </td>
                             </tr>
                           )}
-                          {showDropAbove && (
-                            <tr className="pointer-events-none">
-                              <td colSpan={6} className="p-0 border-none">
-                                <div className="h-1.5 bg-emerald-500 rounded-full mx-2 my-0.5 animate-pulse" />
-                              </td>
-                            </tr>
-                          )}
-                          <tr
+                          <motion.tr
+                            layout
+                            transition={{ type: "spring", stiffness: 450, damping: 35, mass: 0.8 }}
                             {...itemProps}
                             onContextMenu={(e) => {
                               e.preventDefault();
@@ -2212,9 +2202,11 @@ export default function FinancePage() {
                               if (isDragging) return;
                               handleActionOpen(entry.eventId);
                             }}
-                            className={`hover:bg-stone-50 transition select-none cursor-pointer ${
-                              isActive ? 'bg-emerald-50/80 ring-2 ring-emerald-500 font-semibold shadow-xs' : ''
-                            }`}
+                            className={`transition select-none ${
+                              isActive
+                                ? 'border-2 border-dashed border-emerald-500 scale-[1.02] shadow-xl z-30 bg-white relative'
+                                : 'hover:bg-stone-50'
+                            } ${isFiltered ? 'cursor-pointer' : 'cursor-grab active:cursor-grabbing'}`}
                           >
                             <td className="px-4 py-3 text-stone-500 whitespace-nowrap text-xs font-mono-numbers">
                               {formatDateLedger(entry.date)}
@@ -2242,14 +2234,7 @@ export default function FinancePage() {
                                 {entry.category || '-'}
                               </span>
                             </td>
-                          </tr>
-                          {showDropBelow && (
-                            <tr className="pointer-events-none">
-                              <td colSpan={6} className="p-0 border-none">
-                                <div className="h-1.5 bg-emerald-500 rounded-full mx-2 my-0.5 animate-pulse" />
-                              </td>
-                            </tr>
-                          )}
+                          </motion.tr>
                         </Fragment>
                       );
                     })}

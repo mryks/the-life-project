@@ -6,6 +6,38 @@
 
 ## 📜 Sprint & Evolution Log
 
+### Langkah 35: Live Motion Reorder with Real-Time FLIP Displacement & Edge Auto-Scroll Hard Stop
+- **User Directive**:
+  - Live moving animation when reordering transactions: cards actively part open and slide out of the way in real time while dragging ("geser-geser"), before releasing.
+  - Holding and dragging near screen top/bottom triggers auto-scroll.
+  - Strict same-date constraint: clamped to the same date, auto-scroll hard-stops when reaching the first or last transaction of that date.
+  - Physics: Apple Critically Damped (`stiffness: 450, damping: 35, mass: 0.8`).
+  - Scope: applied to both Card View and Ledger View.
+  - Visual Feedback: NO separate background/ghost placeholder box in the list; ONLY the card being held receives a green dashed border (`border-2 border-dashed border-emerald-500`).
+- **Architecture & Implementation**:
+  1. **Provisional Reorder State (`hooks/useTransactionReorder.ts`)**:
+     - Added `provisionalEvents: FinancialEvent[]` state. When dragging, calculates candidate target and derives `nextEvents = reorderFinancialEvents(baseEventsRef.current, ...)` in memory at 60-120fps.
+     - Filtered `activeUnitId` from `elementsFromPoint` hit-testing so lifted card never blocks target detection.
+     - Strictly validates `targetUnit.primaryEvent.date === activeUnit.primaryEvent.date`.
+  2. **Edge Auto-Scroll with Same-Date Hard Stop Guard**:
+     - Auto-scroll runs via `requestAnimationFrame` within 100px of viewport edge with quadratic acceleration ($v = \pm \text{ratio}^{1.5} \times v_{\max}$).
+     - Hard-Stop Guard: blocks scrolling up if active card is already at the first transaction of its date; blocks scrolling down if active card is at the last transaction of its date.
+     - Continuously hit-tests underlying items during auto-scroll so cards sliding into view under a stationary thumb are dynamically displaced.
+  3. **Click Suppression Shield**:
+     - Window capture-phase click interceptor + 400ms timestamp guard completely prevents accidental opening of the Transaction Options modal upon releasing a drag.
+  4. **Card View & Ledger View FLIP Integration (`app/finance/page.tsx`)**:
+     - Wrapped cards and ledger rows with Framer Motion `<motion.div layout>` and `<motion.tr layout>`.
+     - Active held card receives `border-2 border-dashed border-emerald-500 scale-[1.02] shadow-xl z-30 bg-white relative`.
+     - Date headers are kept outside layout-swapped elements with stable keys, completely eliminating header jitter.
+     - Removed legacy green drop indicator lines.
+     - Atomic units (Expense with Cashback and paired Transfer rows) move together as cohesive blocks.
+- **Verification**:
+  - 28 unit tests in `tests/finance/live-reorder.test.ts` covering same-date invariants, atomic integrity, non-drift idempotency, auto-scroll boundary detection, and Supabase upsert queueing.
+  - 20 test suites, **317/317 tests passing (100%)**.
+  - TypeScript: 0 errors (`npx tsc --noEmit`).
+  - ESLint: 0 errors, 0 warnings (`npm run lint`).
+  - Production build (`npm run build`): 100% green.
+
 ### Langkah 34: Mechanical Gear Ratio & Units-First Cascade Rolling Counter (Option 2)
 - **User Directive**:
   - Replace the simultaneous rolling number animation with a mechanical odometer motion starting from **units ("satuan dulu")**.
