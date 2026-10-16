@@ -3,7 +3,7 @@
 ## Overall Status: STABLE PRODUCTION (OFFICIALLY GO-LIVE 🚀)
 - **Live Production URL:** [https://the-life-project-os.vercel.app/finance](https://the-life-project-os.vercel.app/finance)
 - **Backend Database:** Supabase PostgreSQL (`peydzblrtfgdoaisljkm.supabase.co`)
-- **Automated Test Suite:** 18 test suites, **244/244 tests passing (100%)**
+- **Automated Test Suite:** 19 test suites, **289/289 tests passing (100%)**
 - **Code Quality:** 0 ESLint errors, 0 TypeScript errors (`npx tsc --noEmit`)
 - **Session Boundary:** Permanently assigned as **Finance Domain Specialist**. All non-finance life domains (Habits, Journal, Tasks) are developed in separate dedicated chat sessions.
 
@@ -114,7 +114,14 @@
 - **Option A Linear Countdown Bar (`components/finance/undo-delete-toast.tsx`)**: High-craft dark stone-900 floating pill with 3D tactile push-down "Undo" button (`bg-amber-400`), vector icons, mono tabular amount, and hardware-accelerated Framer Motion linear countdown bar (`scaleX: 1 -> 0`) running for exactly 4.0 seconds.
 - **Relational Cascade Preservation**: Deleting an expense with linked cashback or refunds tracks all cascading events; clicking "Undo" restores the entire event tree with 100% mathematical fidelity.
 - **Robust Expiration & Flush Guards**: If the 4-second timer elapses or the user clicks dismiss, `deleteFinancialEventWithSync` queues deletion tombstones for Supabase. Consecutive deletes automatically commit earlier pending deletions before entering the new window. Added `beforeunload` listener to prevent ghost transactions.
-- **Mobile Ergonomics & Clean Lint**: Enlarged touch targets ($\ge 36\text{px}$ height), safe-area bottom padding (`env(safe-area-inset-bottom)`), cleaned up all unused tab variables (0 lint errors/warnings), and added 27 comprehensive unit tests in `tests/finance/undo-delete.test.ts` (100% passing, 244 total tests).
+### 17. Mechanical Gear Ratio & Units-First Cascade Rolling Counter (Langkah 34)
+- **Units-First Cascade ("Satuan Dulu")**: Digit columns calculate position from the right (`colFromRight`). Column 0 (units/satuan) rolls first at base `delay` (0.71s), cascading sequentially to tens (+50ms), hundreds (+100ms), and thousands (+150ms).
+- **Physical Mechanical Gear Ratio (Reel Multiplier)**:
+  * For active delta columns ($\text{colFromRight} \le \text{maxChangedCol}$), lower gears spin through full revolutions: units wheel spins 2 full revolutions ($20\text{ steps}$), tens and hundreds spin 1 full revolution ($10\text{ steps}$).
+  * Even when starting and ending on the same digit (e.g. `0` to `0` in a Rp 1.000 expense), the units wheel physically spins full mechanical cycles rather than remaining static.
+  * Higher digits above the change (e.g. millions in a Rp 1.000 change) remain static without unnecessary spinning.
+- **Strict Time-Budget Invariant**: Total animation is strictly bounded by `duration` (2.5s). Column durations scale proportionally: $\text{columnDuration} = \max(0.8, \text{duration} - \text{colFromRight} \times 0.05)$, ensuring all columns decelerate and lock in together with Apple-grade cubic-bezier `[0.16, 1, 0.3, 1]`.
+- **45 Automated Unit Tests**: Comprehensive suite in `tests/ui/animated-number.test.ts` testing IDR formatting, right-to-left cascading delay timing, mechanical revolutions, 100-pair modulo wrap-around, and real-world expense/salary scenarios (289/289 total tests passing).
 
 ---
 

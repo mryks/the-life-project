@@ -21,7 +21,7 @@ export interface AnimatedNumberProps {
   className?: string;
 }
 
-const formatIDR = (val: number): string => {
+export const formatIDR = (val: number): string => {
   const safeVal = Math.round(Number.isFinite(val) ? val : 0);
   const abs = Math.abs(safeVal);
   const formattedInt = abs.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
@@ -29,52 +29,165 @@ const formatIDR = (val: number): string => {
   return `${sign}${formattedInt}`;
 };
 
-// Single Digit Rolling Column
-const DigitColumn: React.FC<{
-  digit: string;
-  fromDigit?: string;
-  duration?: number;
-  delay?: number;
-}> = ({ digit, fromDigit, duration = 2.5, delay = 0.71 }) => {
-  const isNumber = !isNaN(parseInt(digit, 10));
-  const numValue = isNumber ? parseInt(digit, 10) : 0;
+/**
+ * Extracts the single digit at place value 10^col (0 for units, 1 for tens, etc.)
+ */
+export const getDigitAtCol = (val: number, col: number): number => {
+  const abs = Math.abs(Math.round(Number.isFinite(val) ? val : 0));
+  return Math.floor(abs / Math.pow(10, col)) % 10;
+};
 
-  const initialDigit =
-    fromDigit !== undefined && !isNaN(parseInt(fromDigit, 10))
-      ? parseInt(fromDigit, 10)
-      : undefined;
+/**
+ * Builds the sequence of digits for the mechanical rolling reel
+ */
+export const buildReelDigits = (
+  fromDigit: number,
+  targetDigit: number,
+  revolutions: number,
+  isIncreasing: boolean
+): number[] => {
+  const deltaSteps = isIncreasing
+    ? (targetDigit - fromDigit + 10) % 10
+    : (fromDigit - targetDigit + 10) % 10;
 
-  if (!isNumber) {
+  const totalSteps = revolutions * 10 + deltaSteps;
+
+  if (totalSteps === 0) {
+    return [targetDigit];
+  }
+
+  const digits: number[] = [fromDigit];
+  let current = fromDigit;
+
+  for (let step = 1; step <= totalSteps; step++) {
+    if (isIncreasing) {
+      current = (current + 1) % 10;
+    } else {
+      current = (current - 1 + 10) % 10;
+    }
+    digits.push(current);
+  }
+
+  return digits;
+};
+
+/**
+ * Calculates cascading delay and duration for a given column from the right
+ */
+export const calculateColumnTiming = (
+  colFromRight: number,
+  baseDuration = 2.5,
+  baseDelay = 0.71,
+  staggerStep = 0.05
+): { columnDelay: number; columnDuration: number } => {
+  const columnDelay = baseDelay + colFromRight * staggerStep;
+  const columnDuration = Math.max(0.8, baseDuration - colFromRight * staggerStep);
+  return { columnDelay, columnDuration };
+};
+
+/**
+ * Calculates highest changed place value (0 for units, 1 for tens, etc.)
+ */
+export const calculateMaxChangedCol = (
+  value: number,
+  fromValue?: number
+): number => {
+  if (fromValue === undefined || fromValue === value) return -1;
+  const delta = Math.abs(value - fromValue);
+  let maxChangedCol = delta > 0 ? Math.floor(Math.log10(delta)) : 0;
+
+  const maxNum = Math.max(Math.abs(value), Math.abs(fromValue));
+  const maxPlaces = maxNum > 0 ? Math.floor(Math.log10(maxNum)) + 1 : 1;
+
+  for (let c = maxPlaces; c >= 0; c--) {
+    if (getDigitAtCol(value, c) !== getDigitAtCol(fromValue, c)) {
+      if (c > maxChangedCol) {
+        maxChangedCol = c;
+      }
+      break;
+    }
+  }
+  return maxChangedCol;
+};
+
+/**
+ * Determines mechanical gear ratio revolutions for a given column
+ */
+export const calculateRevolutions = (
+  colFromRight: number,
+  maxChangedCol: number,
+  hasChange: boolean
+): number => {
+  if (!hasChange || colFromRight > maxChangedCol) {
+    return 0;
+  }
+  if (colFromRight === 0) {
+    return 2; // Units wheel spins 2 full revolutions + delta
+  }
+  if (colFromRight === 1 || colFromRight === 2) {
+    return 1; // Tens & hundreds spin 1 full revolution + delta
+  }
+  return 0; // Higher digits (colFromRight >= 3) take direct step (0 revolutions)
+};
+
+interface DigitColumnProps {
+  char: string;
+  isDigit: boolean;
+  colFromRight: number;
+  reelDigits: number[];
+  duration: number;
+  delay: number;
+}
+
+const DigitColumn: React.FC<DigitColumnProps> = React.memo(
+  ({ char, isDigit, reelDigits, duration, delay }) => {
+    if (!isDigit) {
+      return (
+        <span className="inline-block px-[0.5px] select-none font-mono-numbers">
+          {char}
+        </span>
+      );
+    }
+
+    if (reelDigits.length <= 1) {
+      return (
+        <span className="inline-block relative overflow-hidden h-[1.15em] leading-[1.15em] w-[0.62em] text-center select-none font-mono-numbers align-baseline">
+          <span className="h-[1.15em] leading-[1.15em] flex items-center justify-center">
+            {char}
+          </span>
+        </span>
+      );
+    }
+
+    const targetTranslateY = `-${((reelDigits.length - 1) / reelDigits.length) * 100}%`;
+
     return (
-      <span className="inline-block px-[0.5px] select-none font-mono-numbers">
-        {digit}
+      <span className="inline-block relative overflow-hidden h-[1.15em] leading-[1.15em] w-[0.62em] text-center select-none font-mono-numbers align-baseline">
+        <motion.span
+          initial={{ y: '0%' }}
+          animate={{ y: ['0%', targetTranslateY] }}
+          transition={{
+            duration,
+            delay,
+            ease: [0.16, 1, 0.3, 1], // Smooth Apple-grade physical deceleration
+          }}
+          className="flex flex-col select-none"
+        >
+          {reelDigits.map((d, idx) => (
+            <span
+              key={idx}
+              className="h-[1.15em] leading-[1.15em] flex items-center justify-center shrink-0"
+            >
+              {d}
+            </span>
+          ))}
+        </motion.span>
       </span>
     );
   }
+);
 
-  const shouldAnimateOnMount = initialDigit !== undefined && initialDigit !== numValue;
-
-  return (
-    <span className="inline-block relative overflow-hidden h-[1.15em] leading-[1.15em] w-[0.62em] text-center select-none font-mono-numbers align-baseline">
-      <motion.span
-        initial={shouldAnimateOnMount ? { y: `-${initialDigit * 10}%` } : false}
-        animate={{ y: `-${numValue * 10}%` }}
-        transition={{
-          duration,
-          delay: shouldAnimateOnMount ? delay : 0,
-          ease: [0.16, 1, 0.3, 1], // Smooth Apple-grade physical deceleration
-        }}
-        className="flex flex-col select-none"
-      >
-        {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
-          <span key={n} className="h-[1.15em] flex items-center justify-center">
-            {n}
-          </span>
-        ))}
-      </motion.span>
-    </span>
-  );
-};
+DigitColumn.displayName = 'DigitColumn';
 
 export const AnimatedNumber: React.FC<AnimatedNumberProps> = ({
   value,
@@ -88,10 +201,23 @@ export const AnimatedNumber: React.FC<AnimatedNumberProps> = ({
   const targetFormatted = formatIDR(value);
   const targetChars = targetFormatted.split('');
 
-  // If fromValue is provided and differs from value, compute starting digit for each column
-  const hasFrom = fromValue !== undefined && fromValue !== value;
-  const fromFormatted = hasFrom ? formatIDR(fromValue) : undefined;
-  const fromChars = fromFormatted ? fromFormatted.split('') : null;
+  const hasChange = fromValue !== undefined && fromValue !== value;
+  const isIncreasing = value >= (fromValue ?? value);
+
+  // Compute colFromRight (0 for units, 1 for tens, etc., skipping punctuation)
+  const colFromRightMap: number[] = new Array(targetChars.length).fill(-1);
+  let digitCounter = 0;
+  for (let i = targetChars.length - 1; i >= 0; i--) {
+    const c = targetChars[i];
+    if (c >= '0' && c <= '9') {
+      colFromRightMap[i] = digitCounter;
+      digitCounter++;
+    }
+  }
+
+  // Determine highest changed place value (maxChangedCol)
+  const maxChangedCol = calculateMaxChangedCol(value, fromValue);
+  const staggerStep = 0.05; // 50ms stagger step for units-first cascade
 
   return (
     <span
@@ -104,26 +230,52 @@ export const AnimatedNumber: React.FC<AnimatedNumberProps> = ({
       {prefix && <span className="mr-0.5 select-none">{prefix}</span>}
       <span className="inline-flex items-baseline overflow-hidden">
         {targetChars.map((char, index) => {
-          const colFromRight = targetChars.length - 1 - index;
-          const keyType = char === '.' ? 'dot' : char === '-' ? 'minus' : 'd';
+          const colFromRight = colFromRightMap[index];
+          const isDigit = colFromRight >= 0;
 
-          let fromDigit: string | undefined = undefined;
-          if (fromChars && char >= '0' && char <= '9') {
-            const fromIndex = fromChars.length - 1 - colFromRight;
-            if (fromIndex >= 0 && fromChars[fromIndex] >= '0' && fromChars[fromIndex] <= '9') {
-              fromDigit = fromChars[fromIndex];
-            } else {
-              fromDigit = '0';
-            }
+          if (!isDigit) {
+            return (
+              <DigitColumn
+                key={`punct-${index}-${char}`}
+                char={char}
+                isDigit={false}
+                colFromRight={-1}
+                reelDigits={[]}
+                duration={0}
+                delay={0}
+              />
+            );
           }
+
+          const targetDigit = parseInt(char, 10);
+          const fromDigit = hasChange
+            ? getDigitAtCol(fromValue!, colFromRight)
+            : targetDigit;
+
+          // Gear Ratio Revolutions
+          const revolutions = calculateRevolutions(colFromRight, maxChangedCol, hasChange);
+
+          const reelDigits = hasChange
+            ? buildReelDigits(fromDigit, targetDigit, revolutions, isIncreasing)
+            : [targetDigit];
+
+          // Units-first cascade timing
+          const { columnDelay, columnDuration } = calculateColumnTiming(
+            colFromRight,
+            duration,
+            delay,
+            staggerStep
+          );
 
           return (
             <DigitColumn
-              key={`col-${colFromRight}-${keyType}`}
-              digit={char}
-              fromDigit={fromDigit}
-              duration={duration}
-              delay={delay}
+              key={`col-${colFromRight}-${targetDigit}-${fromDigit}-${reelDigits.length}`}
+              char={char}
+              isDigit={true}
+              colFromRight={colFromRight}
+              reelDigits={reelDigits}
+              duration={columnDuration}
+              delay={columnDelay}
             />
           );
         })}

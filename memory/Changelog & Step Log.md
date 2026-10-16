@@ -6,6 +6,41 @@
 
 ## 📜 Sprint & Evolution Log
 
+### Langkah 34: Mechanical Gear Ratio & Units-First Cascade Rolling Counter (Option 2)
+- **User Directive**:
+  - Replace the simultaneous rolling number animation with a mechanical odometer motion starting from **units ("satuan dulu")**.
+  - Example: an expense of Rp 1.000 starts moving from the units wheel first, rather than immediately flipping the thousands digit.
+  - Total rolling duration must remain bounded within the current limit (`duration: 2.5s`, `delay: 0.71s`), with digit velocity scaling proportionally.
+  - Selected Option 2: Mechanical Gear Ratio (Reel Multiplier).
+- **Architecture & Implementation (`components/ui/animated-number.tsx`)**:
+  1. **Units-First Staggered Delay Cascade ("Satuan Dulu")**:
+     - Computes column position from the right: `colFromRight` (0 for units/satuan, 1 for tens, 2 for hundreds, 3 for thousands, etc., ignoring punctuation like `.` and `-`).
+     - Units wheel ($colFromRight = 0$) begins moving first at base `delay` (`0.71s`).
+     - Higher place-value columns start with cascading delay:
+       $$\text{columnDelay} = \text{delay} + (\text{colFromRight} \times 0.05)$$
+     - Strict Time Budget Invariant: Column duration scales down:
+       $$\text{columnDuration} = \max(0.8, \text{duration} - (\text{colFromRight} \times 0.05))$$
+       Guarantees $\text{columnDelay} + \text{columnDuration} \le \text{delay} + \text{duration} = 3.21\text{s}$. All digits arrive and settle together with the Apple-grade deceleration curve `[0.16, 1, 0.3, 1]`.
+  2. **Mechanical Gear Ratio (Reel Multiplier)**:
+     - Detects the highest changed place value ($\text{maxChangedCol}$).
+     - For columns at or below $\text{maxChangedCol}$:
+       * **Units ($col = 0$)**: 2 full revolutions ($20\text{ steps}$) + delta steps to target. Even on transactions like Rp 1.000 where the units digit starts and ends at `0`, the units wheel visibly spins through 2 complete mechanical revolutions.
+       * **Tens ($col = 1$)**: 1 full revolution ($10\text{ steps}$) + delta steps to target.
+       * **Hundreds ($col = 2$)**: 1 full revolution ($10\text{ steps}$) + delta steps to target.
+       * **Thousands and Higher ($col \ge 3$)**: Direct step ($0\text{ extra revolutions}$) from `fromDigit` to `targetDigit`.
+       * **Columns above the change**: Remain completely static with single-digit rendering without spinning unneeded revolutions.
+     - `buildReelDigits` produces a clean array of digits stepping upward or downward depending on transaction direction (`value >= fromValue`).
+  3. **High-Craft Aesthetics & Zero Layout Shift**:
+     - Fixed `h-[1.15em] w-[0.62em]` container with `font-mono-numbers tabular-nums`.
+     - Static rendering for non-digits (`.`, `-`) and unchanged columns above the delta.
+     - 100% English copy and comments, zero Unicode emojis, strict TypeScript with zero `any`.
+- **Verification**:
+  - Created comprehensive test suite in `tests/ui/animated-number.test.ts` with 45 unit tests covering IDR dot formatting, units-first delay cascades, time-budget bounding invariants, mechanical revolutions, 100-pair modulo wrap-around, and real-world expense/salary simulations.
+  - All 19 test suites passing: **289/289 tests passing (100%)**.
+  - TypeScript (`npx tsc --noEmit`): 0 errors.
+  - ESLint (`npm run lint`): 0 errors, 0 warnings.
+  - Production build (`npm run build`): 100% green.
+
 ### Langkah 33: Undo Delete Transaction with 4-Second Linear Countdown Bar (Option A)
 - **User Directive**:
   - Add an undo notification with a 4-second timer when deleting transactions (even though confirmation warning exists).
