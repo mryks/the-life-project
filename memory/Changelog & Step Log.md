@@ -6,6 +6,33 @@
 
 ## 📜 Sprint & Evolution Log
 
+### Langkah 30: Glitch Elimination & Hardware-Accelerated Gesture Tabs (Framer Motion)
+- **User Problem & Precise Directive**:
+  - Mobile swipe still glitched, stuttered, and high-velocity flicks could skip across tabs from end to end.
+  - Requirement: Be meticulous, test as a real mobile user swiping left and right, screen record and inspect every frame, and ensure zero glitch and strict single-step pagination.
+- **Root Cause Diagnosis**:
+  - In CSS scroll snap (`overflow-x: auto`), setting `carousel.scrollLeft` inside passive `touchmove` listeners fought the browser compositor's native touch pipeline, producing a high-frequency visual vibration/glitch.
+  - Calling `carousel.scrollTo({ behavior: 'smooth' })` inside `touchend` collided with native momentum deceleration, causing Blink/WebKit to abort the animation midway and leave tabs frozen cut in half (e.g. `scrollLeft = 240px, 384px, 450px`).
+  - Once frozen at fractional positions, subsequent swipes misinterpreted `startIndex`, allowing swipes to fly from Overview all the way to Activity.
+- **Framer Motion Hardware-Accelerated Gesture Architecture**:
+  - Replaced native `overflow-x: auto` with GPU-accelerated Framer Motion gesture engine (`<motion.div drag={isTouchDevice ? "x" : false} dragDirectionLock dragConstraints={dragConstraints} dragElastic={0.2} animate={{ x: -currentTabIndex * containerWidth }}>`).
+  - **Double-Layered Single-Step Invariant**:
+    1. Physical Gesture Bounds: `dragConstraints` dynamically bounds finger travel to $[\max(-(N-1)W, -(k+1)W), \min(0, -(k-1)W)]$, making it physically impossible to drag past adjacent tabs.
+    2. Release Math: `handleDragEnd` calculates destination strictly via `calculateBoundedSwipeTarget`, guaranteeing $|f(k) - k| \le 1$.
+  - **Sleek Fluid Tab Pill**: Upgraded tab bar indicator to Framer Motion `layoutId="activeTabBadge"` with spring physics (`stiffness: 450, damping: 35`), eliminating manual coordinate offset lag and layout thrashing.
+  - **Vertical Scroll Space Protection**: Added responsive height capping (`max-h-[85vh] overflow-hidden`) on inactive views, eliminating 14,000px empty scrollable space from background lists while keeping adjacent panels fully visible during swipes.
+- **Empirical Frame-by-Frame Verification (CDP Screencast)**:
+  - Recorded 326 frames via Chrome DevTools Protocol simulating mobile touch gestures (390x844 DPR 2).
+  - Verified 7 test scenarios:
+    1. Overview -> Accounts (Left): lands squarely at `Accounts` (`-358px`).
+    2. Accounts -> Activity (Left): lands squarely at `Activity` (`-716px`).
+    3. Swipe beyond Activity: elastic resistance, snaps back to `Activity`.
+    4. Activity -> Accounts (Right): lands squarely at `Accounts` (`-358px`).
+    5. Accounts -> Overview (Right): lands squarely at `Overview` (`0px`).
+    6. FAST AGGRESSIVE FLICK (Overview -> Left, 80ms flick): strictly lands on `Accounts`, zero overshoot to Activity.
+    7. FAST AGGRESSIVE FLICK (Accounts -> Right, 80ms flick): strictly lands on `Overview`, zero overshoot backwards.
+- **Verification Suite**: 217/217 Vitest tests passing across 17 test suites, Next.js Turbopack production build succeeds with 0 errors.
+
 ### Langkah 29: Single-Step Pagination Invariant (Max 1 Tab per Swipe) & Senior Frontend Skill
 - **User Directive**:
   - Install a comprehensive Senior Front-End & UI Engineer skill in `.agents/skills/senior-frontend-engineer/SKILL.md` and enforce its usage across all UI work.

@@ -42,13 +42,13 @@ Custom CSS utilities in `app/globals.css`:
   - Strict Indonesian Rupiah dot grouping (e.g. `Rp 48.250.000`) with stable column keying from the right for organic numeric transitions.
   - Deployed on the Accounts page across Total Liquid, Total Investment, Total Net Worth, and all individual account cards.
   - Paired with an amber spring pulse ring (`ring-4 ring-amber-400`), card lift, `"UPDATED"` badge, and smooth viewport auto-scroll upon transaction completion.
-- **Swipeable Tabs Carousel (`hooks/useSwipeableTabs.ts` & `lib/swipe-tabs.ts`)**:
-  - Architecture inspired by React Aria (`https://react-aria.adobe.com/examples/swipeable-tabs`).
-  - Native CSS scroll-snap carousel (`flex overflow-x-auto snap-x snap-mandatory scrollbar-hide overscroll-x-contain`) hosting `Overview`, `Accounts`, and `Activity & Ledger` side-by-side (`w-full min-w-full shrink-0 snap-start`).
+- **Hardware-Accelerated Swipeable Tabs (`hooks/useSwipeableTabs.ts` & `lib/swipe-tabs.ts`)**:
+  - GPU-accelerated gesture engine powered by Framer Motion (`<motion.div drag="x" dragDirectionLock dragConstraints={dragConstraints} dragElastic={0.2} animate={{ x: -currentTabIndex * containerWidth }}>`).
   - **Single-Step Pagination Invariant (`calculateBoundedSwipeTarget`)**: A single touch swipe gesture is strictly constrained to advance by **at most $\pm 1$ tab**. It can NEVER skip or fly over multiple screens regardless of how fast or hard the user flicks.
-  - **Gesture Boundary Clamping**: During `touchmove`, `carousel.scrollLeft` is physically clamped within $[(\text{startIndex} - 1) \times W, (\text{startIndex} + 1) \times W]$. The DOM cannot physically traverse beyond adjacent tabs during a single drag.
-  - **Velocity Gating**: Distance $\ge 18\%$ of screen width OR quick flick velocity $> 0.22\,\text{px/ms}$ commits the transition to the adjacent tab; sub-threshold drags smoothly snap back to the origin tab.
-  - **1:1 Hardware-Accelerated Indicator Motion**: Tracks exact button offset and width via `requestAnimationFrame` for buttery 120fps motion following the user's finger.
+  - **Dynamic Physical Drag Constraints**: `dragConstraints` dynamically bounds finger travel to $[\max(-(N-1)W, -(k+1)W), \min(0, -(k-1)W)]$. The finger cannot physically drag past adjacent tabs.
+  - **Velocity Gating**: Distance $\ge 18\%$ of screen width OR quick flick velocity $> 0.22\,\text{px/ms}$ commits the transition to the adjacent tab; sub-threshold drags smoothly snap back to the origin tab with elastic spring.
+  - **Fluid Tab Pill Badge**: Active tab indicator powered by Framer Motion `layoutId="activeTabBadge"` with spring physics (`stiffness: 450, damping: 35`), eliminating manual coordinate lag and resize thrashing.
+  - **Vertical Scroll Protection**: Responsive height capping (`max-h-[85vh] overflow-hidden`) on inactive views prevents 14,000px empty vertical scroll blowout from background transaction lists, while keeping adjacent panels fully visible during swipes.
   - **Senior Front-End Playbook**: Codified in `.agents/skills/senior-frontend-engineer/SKILL.md` and enforced in `AGENTS.md`.
 
 
