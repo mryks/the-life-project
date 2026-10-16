@@ -3,7 +3,7 @@
 ## Overall Status: STABLE PRODUCTION (OFFICIALLY GO-LIVE 🚀)
 - **Live Production URL:** [https://the-life-project-os.vercel.app/finance](https://the-life-project-os.vercel.app/finance)
 - **Backend Database:** Supabase PostgreSQL (`peydzblrtfgdoaisljkm.supabase.co`)
-- **Automated Test Suite:** 16 test suites, **196/196 tests passing (100%)**
+- **Automated Test Suite:** 17 test suites, **217/217 tests passing (100%)**
 - **Code Quality:** 0 ESLint errors, 0 TypeScript errors (`npx tsc --noEmit`)
 - **Session Boundary:** Permanently assigned as **Finance Domain Specialist**. All non-finance life domains (Habits, Journal, Tasks) are developed in separate dedicated chat sessions.
 
@@ -96,7 +96,19 @@
 - Automatic view redirect to "Accounts" page upon saving Expense, Income, Transfer, or Refund.
 - EasyUI AnimatedNumber component (`components/ui/animated-number.tsx`) with Framer Motion spring physics and IDR dot formatting (`Rp 48.250.000`).
 - Animated numbers across Total Liquid, Total Investment, Total Net Worth, and impacted account cards.
-- Tactile amber pulse highlight and smooth auto-scroll to updated account card.
+### 14. Senior Front-End Engineering & Single-Step Swipeable Tabs (Langkah 22–30)
+- Installed `.agents/skills/senior-frontend-engineer/SKILL.md` enforcing rigorous mobile gesture physics and production parity.
+- Implemented React-Aria inspired swipeable tab carousel across Overview, Accounts, and Activity (`finance/page.tsx`).
+- Single-Step Pagination Invariant enforced: users can swipe at most $\pm 1$ tab per gesture regardless of swipe length or flick velocity.
+- Rubber-band resistance at boundaries (Overview swiping right, Activity swiping left).
+- Directional lock (`Math.abs(dx) > Math.abs(dy)`) to prevent conflict with vertical scrolling.
+- Automated tests: 21 unit tests covering swipe physics, thresholds, velocity, and single-step boundary clamping (`test/finance-swipe.test.ts`).
+
+### 15. Tab Bleed Elimination & Kinetic Release Polish (Langkah 31–32)
+- Tab Bleed Zero Tolerance: Restructured swipe track layout so outer container is `w-full overflow-hidden`, and max-width gutters (`max-w-5xl mx-auto px-4 sm:px-6`) live inside individual tab panels. Adjacent tabs never peek when idle.
+- Kinetic Polish: Replaced basic CSS transition snapping with continuous Framer Motion `useMotionValue(0)` driving CSS `x: motionX` and release velocity injection via `animate(x, targetX, { velocity: releaseVelocity, stiffness: 280, damping: 32, mass: 0.8 })`.
+- Settled-tab DOM isolation: Non-active tabs are unmounted when settled (`settledTab === tab.id`) while rendering during touch drag for smooth 60fps gesture response without mid-swipe reflows.
+- Production parity verified on live Vercel deployment (commit `27ef84a`).
 
 ---
 

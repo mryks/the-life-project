@@ -61,6 +61,13 @@
 22. **Langkah 23: Comprehensive Codebase & Financial Engine Audit** (Offline deletion tombstone shield, force upload parity soft-delete, Recharts negative pie arc clamp, zero-emoji verification).
 23. **Langkah 24: Obsidian Finance Memory Vault Expansion** (Dedicated notes: `Accounts & Portfolio.md`, `Refunds & Relations.md`, `Agreements & Historical Context.md`, bidirectional `[[Wikilinks]]`).
 24. **Langkah 25: Post-Transaction Redirect to Accounts & EasyUI Animated Number Motion** (Redirect on transaction/refund save, Framer Motion physics-based rolling digits with IDR dot formatting, tactile amber card pulse, smooth auto-scroll).
+25. **Langkah 26: Animated Number Duration Calibration & Timing Cadence** (710ms delay + 2500ms spin + 730ms post-read buffer).
+26. **Langkah 27: Animated Number Deceleration Curve Polish** (Smooth settling curve, stable numeric morphing).
+27. **Langkah 28: React Aria Swipeable Tabs Carousel Prototype** (Horizontal tab carousel hosting Overview, Accounts, Activity).
+28. **Langkah 29: Senior Front-End Playbook & Single-Step Invariant Math** (Installed `.agents/skills/senior-frontend-engineer/SKILL.md`, `lib/swipe-tabs.ts` `calculateBoundedSwipeTarget` strictly constraining gestures to $\pm 1$ tab).
+29. **Langkah 30: Glitch Elimination & Hardware-Accelerated Gesture Engine** (Framer Motion `<motion.div>` gesture engine, dynamic drag constraints, responsive height containment).
+30. **Langkah 31: Elimination of Tab Peeking / Bleed via Full-Bleed Viewport Hierarchy** (Moved outer carousel to `w-full overflow-hidden`, inner padding `max-w-5xl mx-auto px-4 sm:px-6` moved inside each tab panel, 0px adjacent tab bleed).
+31. **Langkah 32: Buttery Smooth Gesture Physics & Zero Layout Thrashing** (Injected real finger velocity `info.velocity.x` into spring, eliminated mid-gesture height collapse with `settledTab`, synchronized Apple-grade spring physics, GPU compositor promotion).
 
 ---
 
