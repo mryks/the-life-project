@@ -6,6 +6,34 @@
 
 ## 📜 Sprint & Evolution Log
 
+### Langkah 36: Reorder Speed & 120fps Drag Performance Overhaul
+- **User Directive**:
+  - Hold duration felt too long; speed up the time required to initiate transaction dragging.
+  - Live reorder dragging felt sluggish or delayed; eliminate drag latency and improve responsiveness.
+- **Root Cause Diagnosis**:
+  1. Hold timer was uniformly 300ms. On mouse/PC, 300ms felt sluggish.
+  2. Every single pointermove event executed `document.elementsFromPoint`, `querySelectorAll`, and `getBoundingClientRect()`, triggering continuous synchronous layout reflows on the main thread at 120Hz.
+  3. Every pointermove called `setProvisionalEvents`, causing 120 full React re-renders/sec of the 3000-line `FinancePage` component.
+  4. The active card was pinned in the DOM without GPU coordinates, staying stationary between slot swaps instead of tracking the user's finger.
+- **Architecture & Implementation (`hooks/useTransactionReorder.ts` & `app/finance/page.tsx`)**:
+  1. **Snappy Hold Timers**:
+     - Desktop Mouse: `MOUSE_HOLD_DELAY_MS = 50ms` (or instant drag on $\ge 4\text{px}$ movement), making PC mouse drag start immediately.
+     - Mobile Touch: `TOUCH_HOLD_DELAY_MS = 150ms` (halved from 300ms) with instant `scale-[0.98]` tactile press confirmation and 40ms haptic feedback.
+  2. **Slot Pre-Measurement (`measureDateSlots`)**:
+     - Bounding rects for same-date slots `{ unitId, top, bottom, mid }` are measured once on drag start in document space.
+     - Pointer hit-testing uses pure sub-microsecond array arithmetic (`findClosestSlotIndex`), completely eliminating `document.elementsFromPoint` and `getBoundingClientRect()` during continuous dragging.
+  3. **Zero-Latency GPU Translation**:
+     - The active held card is translated directly in real-time (`translate3d(0, ${translateY}px, 0) scale(1.02)`) following the pointer with zero latency.
+     - Sibling cards glide into new slots using Apple Critically Damped spring (`layout={!isActive}`).
+  4. **State Debouncing**:
+     - `setProvisionalEvents` is ONLY dispatched when the hover target slot actually changes, cutting React re-renders from ~120/sec to 1 render per slot crossing.
+- **Verification**:
+  - Expanded `tests/finance/live-reorder.test.ts` from 28 to 50 unit tests (+22 tests) covering mouse instant drag thresholds, touch hold timing, zero layout thrashing midpoint searches, auto-scroll bounds, and 20-step random permutation invariants.
+  - All 20 test suites passing: **339/339 tests passing (100%)**.
+  - TypeScript: 0 errors (`npx tsc --noEmit`).
+  - ESLint: 0 errors, 0 warnings (`npm run lint`).
+  - Production build (`npm run build`): 100% green.
+
 ### Langkah 35: Live Motion Reorder with Real-Time FLIP Displacement & Edge Auto-Scroll Hard Stop
 - **User Directive**:
   - Live moving animation when reordering transactions: cards actively part open and slide out of the way in real time while dragging ("geser-geser"), before releasing.

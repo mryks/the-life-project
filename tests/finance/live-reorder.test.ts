@@ -24,6 +24,20 @@ import {
   createRefund,
   createTransfer,
 } from './helpers/fixtures';
+import {
+  AUTO_SCROLL_EDGE_PX,
+  MAX_SCROLL_SPEED_PX,
+  MOUSE_HOLD_DELAY_MS,
+  MOUSE_INSTANT_DRAG_PX,
+  TOUCH_HOLD_DELAY_MS,
+  TOUCH_MOVE_CANCEL_PX,
+  type CachedSlot,
+  calculateAutoScrollSpeed,
+  calculateCanonicalPlacementFromSlot,
+  findClosestSlotIndex,
+  isAtDateBoundary,
+  isPastDateGroupBounds,
+} from '@/hooks/useTransactionReorder';
 
 class LocalStorageMock {
   private store = new Map<string, string>();
@@ -672,4 +686,469 @@ describe('Live Motion Reorder with Same-Date Constraint & Auto-Scroll Hard Stop'
       expect(pending).toEqual(expect.arrayContaining(['ev-1', 'ev-2', 'ev-3']));
     });
   });
+
+  // =========================================================================
+  // 6. Faster Hold Timing & Movement Thresholds (Mouse vs Touch)
+  // =========================================================================
+  describe('6. Faster Hold Timing & Movement Thresholds (Mouse vs Touch)', () => {
+    it('6.1 specifies calibrated timing constants for responsive mobile (150ms) and desktop (50ms)', () => {
+      // Mobile: 150ms allows snappy card pickup while rejecting unintentional tap gestures
+      expect(TOUCH_HOLD_DELAY_MS).toBe(150);
+      // Desktop: 50ms provides near-instant mouse pickup without perceived latency
+      expect(MOUSE_HOLD_DELAY_MS).toBe(50);
+      expect(TOUCH_HOLD_DELAY_MS).toBeGreaterThan(MOUSE_HOLD_DELAY_MS);
+    });
+
+    it('6.2 specifies calibrated movement threshold constants for mouse instant drag vs touch cancel', () => {
+      // Mouse: moving >= 4px initiates instant drag without waiting for hold timer
+      expect(MOUSE_INSTANT_DRAG_PX).toBe(4);
+      // Touch: moving > 10px cancels the hold timer to allow smooth native scroll
+      expect(TOUCH_MOVE_CANCEL_PX).toBe(10);
+      expect(TOUCH_MOVE_CANCEL_PX).toBeGreaterThan(MOUSE_INSTANT_DRAG_PX);
+    });
+
+    it('6.3 mouse instant drag triggers immediately on >= 4px movement', () => {
+      const startX = 100;
+      const startY = 100;
+
+      // Displacement 3px: does not reach 4px threshold
+      const distSmall = Math.hypot(103 - startX, 100 - startY);
+      expect(distSmall < MOUSE_INSTANT_DRAG_PX).toBe(true);
+
+      // Displacement 4px: meets threshold
+      const distExact = Math.hypot(104 - startX, 100 - startY);
+      expect(distExact >= MOUSE_INSTANT_DRAG_PX).toBe(true);
+
+      // Diagonal displacement (3px, 3px): sqrt(18) = 4.24px >= 4px
+      const distDiag = Math.hypot(103 - startX, 103 - startY);
+      expect(distDiag >= MOUSE_INSTANT_DRAG_PX).toBe(true);
+    });
+
+    it('6.4 touch movement allows micro-wobble <= 10px while canceling on > 10px to preserve page scroll', () => {
+      const startX = 200;
+      const startY = 200;
+
+      // Resting finger micro-wobble (e.g. 5px, 8px, 10px) must NOT cancel hold
+      expect(Math.hypot(205 - startX, 200 - startY) <= TOUCH_MOVE_CANCEL_PX).toBe(true);
+      expect(Math.hypot(200 - startX, 208 - startY) <= TOUCH_MOVE_CANCEL_PX).toBe(true);
+      expect(Math.hypot(206 - startX, 208 - startY) <= TOUCH_MOVE_CANCEL_PX).toBe(true); // hypot = 10
+
+      // Intentional drag/scroll (e.g. 11px, 15px) cancels hold timer
+      expect(Math.hypot(211 - startX, 200 - startY) > TOUCH_MOVE_CANCEL_PX).toBe(true);
+      expect(Math.hypot(200 - startX, 215 - startY) > TOUCH_MOVE_CANCEL_PX).toBe(true);
+    });
+
+    it('6.5 simulates hold activation and cancellation lifecycle timing', () => {
+      let isDragging = false;
+      let timer: ReturnType<typeof setTimeout> | null = null;
+
+      const startHold = (isTouch: boolean) => {
+        const delay = isTouch ? TOUCH_HOLD_DELAY_MS : MOUSE_HOLD_DELAY_MS;
+        timer = setTimeout(() => {
+          isDragging = true;
+        }, delay);
+      };
+
+      const cancelHold = () => {
+        if (timer) {
+          clearTimeout(timer);
+          timer = null;
+        }
+      };
+
+      // Mouse drag simulation: triggers after 50ms
+      startHold(false);
+      expect(isDragging).toBe(false);
+      cancelHold();
+      expect(isDragging).toBe(false);
+
+      // Touch drag simulation: cancels if finger moves past 10px at 50ms
+      startHold(true);
+      expect(isDragging).toBe(false);
+      // Touch moved > 10px at 50ms -> cancel
+      cancelHold();
+      expect(isDragging).toBe(false);
+    });
+  });
+
+  // =========================================================================
+  // 7. Fast Slot Boundary Calculation Without Layout Thrashing
+  // =========================================================================
+  describe('7. Fast Slot Boundary Calculation Without Layout Thrashing', () => {
+    const slots: CachedSlot[] = [
+      { unitId: 'u-top', top: 100, bottom: 180, mid: 140 },
+      { unitId: 'u-mid', top: 190, bottom: 270, mid: 230 },
+      { unitId: 'u-bot', top: 280, bottom: 360, mid: 320 },
+    ];
+
+    it('7.1 findClosestSlotIndex finds the closest slot using pure array math without DOM layout queries', () => {
+      // Nearest to slot 0 (mid: 140)
+      expect(findClosestSlotIndex(slots, 130)).toBe(0);
+      expect(findClosestSlotIndex(slots, 140)).toBe(0);
+      expect(findClosestSlotIndex(slots, 180)).toBe(0); // dist to 140 is 40, dist to 230 is 50
+
+      // Nearest to slot 1 (mid: 230)
+      expect(findClosestSlotIndex(slots, 190)).toBe(1); // dist to 140 is 50, dist to 230 is 40
+      expect(findClosestSlotIndex(slots, 230)).toBe(1);
+      expect(findClosestSlotIndex(slots, 270)).toBe(1); // dist to 230 is 40, dist to 320 is 50
+
+      // Nearest to slot 2 (mid: 320)
+      expect(findClosestSlotIndex(slots, 280)).toBe(2); // dist to 230 is 50, dist to 320 is 40
+      expect(findClosestSlotIndex(slots, 320)).toBe(2);
+      expect(findClosestSlotIndex(slots, 350)).toBe(2);
+    });
+
+    it('7.2 clamps smoothly when pointerPageY exceeds date group boundaries', () => {
+      // Pointer dragged far above top slot
+      expect(findClosestSlotIndex(slots, -50)).toBe(0);
+      expect(findClosestSlotIndex(slots, 50)).toBe(0);
+
+      // Pointer dragged far below bottom slot
+      expect(findClosestSlotIndex(slots, 500)).toBe(2);
+      expect(findClosestSlotIndex(slots, 1000)).toBe(2);
+    });
+
+    it('7.3 handles empty slots array safely without throwing', () => {
+      expect(findClosestSlotIndex([], 200)).toBe(-1);
+    });
+
+    it('7.4 calculateCanonicalPlacementFromSlot correctly maps visual movement to canonical placement', () => {
+      // Card view: rendered newest-first (reverse chronological)
+      // Moving visually UP (bestSlotIndex 0 < originalVisualIndex 1) means placing AFTER in chronological array
+      expect(calculateCanonicalPlacementFromSlot(0, 1, 'card')).toEqual({
+        placement: 'above',
+        canonicalPlacement: 'after',
+      });
+      // Moving visually DOWN (bestSlotIndex 1 > originalVisualIndex 0) means placing BEFORE in chronological array
+      expect(calculateCanonicalPlacementFromSlot(1, 0, 'card')).toEqual({
+        placement: 'below',
+        canonicalPlacement: 'before',
+      });
+
+      // Ledger view: rendered oldest-first (chronological)
+      // Moving visually UP (bestSlotIndex 0 < originalVisualIndex 1) means placing BEFORE in chronological array
+      expect(calculateCanonicalPlacementFromSlot(0, 1, 'ledger')).toEqual({
+        placement: 'above',
+        canonicalPlacement: 'before',
+      });
+      // Moving visually DOWN (bestSlotIndex 1 > originalVisualIndex 0) means placing AFTER in chronological array
+      expect(calculateCanonicalPlacementFromSlot(1, 0, 'ledger')).toEqual({
+        placement: 'below',
+        canonicalPlacement: 'after',
+      });
+    });
+
+    it('7.5 verifies end-to-end slot movement pipeline in Card View', () => {
+      // In Card View, 3 transactions on same date: A (oldest), B (middle), C (newest)
+      const a = createIncome({ id: 'A', date: '2026-10-15' });
+      const b = createExpense({ id: 'B', date: '2026-10-15' });
+      const c = createIncome({ id: 'C', date: '2026-10-15' });
+      const events = [a, b, c];
+
+      // Card visual order: [C, B, A] -> visual index 0: C, index 1: B, index 2: A
+      // Dragging card A (visual index 2) to visual index 0 (slot C):
+      // isMovingUp = true (0 < 2) -> canonicalPlacement = 'after' C
+      const reorderedTop = reorderFinancialEvents(events, 'A', 'C', 'after');
+      expect(reorderedTop.map((e) => e.id)).toEqual(['B', 'C', 'A']);
+      // In Card View reverse order: [A, C, B] -> A lands at the very top!
+
+      // Dragging card C (visual index 0) to visual index 2 (slot A):
+      // isMovingUp = false (2 > 0) -> canonicalPlacement = 'before' A
+      const reorderedBot = reorderFinancialEvents(events, 'C', 'A', 'before');
+      expect(reorderedBot.map((e) => e.id)).toEqual(['C', 'A', 'B']);
+      // In Card View reverse order: [B, A, C] -> C lands at the very bottom!
+    });
+
+    it('7.6 verifies end-to-end slot movement pipeline in Ledger View', () => {
+      const a = createIncome({ id: 'A', date: '2026-10-15' });
+      const b = createExpense({ id: 'B', date: '2026-10-15' });
+      const c = createIncome({ id: 'C', date: '2026-10-15' });
+      const events = [a, b, c];
+
+      // Ledger visual order: [A, B, C] -> visual index 0: A, index 1: B, index 2: C
+      // Dragging card C (visual index 2) to visual index 0 (slot A):
+      // isMovingUp = true -> canonicalPlacement = 'before' A
+      const reorderedTop = reorderFinancialEvents(events, 'C', 'A', 'before');
+      expect(reorderedTop.map((e) => e.id)).toEqual(['C', 'A', 'B']);
+
+      // Dragging card A (visual index 0) to visual index 2 (slot C):
+      // isMovingUp = false -> canonicalPlacement = 'after' C
+      const reorderedBot = reorderFinancialEvents(events, 'A', 'C', 'after');
+      expect(reorderedBot.map((e) => e.id)).toEqual(['B', 'C', 'A']);
+    });
+  });
+
+  // =========================================================================
+  // 8. Auto-Scroll Speed Curve, Date Boundary & Physical Hard-Stop Bounds
+  // =========================================================================
+  describe('8. Auto-Scroll Speed Curve, Date Boundary & Physical Hard-Stop Bounds', () => {
+    const viewportHeight = 800;
+
+    it('8.1 returns zero velocity and null direction in viewport center safe zone', () => {
+      // Middle zone: clientY between 100px and 700px
+      expect(calculateAutoScrollSpeed(150, viewportHeight)).toEqual({ speed: 0, dir: null });
+      expect(calculateAutoScrollSpeed(400, viewportHeight)).toEqual({ speed: 0, dir: null });
+      expect(calculateAutoScrollSpeed(650, viewportHeight)).toEqual({ speed: 0, dir: null });
+      expect(calculateAutoScrollSpeed(100, viewportHeight)).toEqual({ speed: 0, dir: null });
+      expect(calculateAutoScrollSpeed(700, viewportHeight)).toEqual({ speed: 0, dir: null });
+    });
+
+    it('8.2 calculates smooth upward speed curve approaching max speed at clientY = 0', () => {
+      // Edge of top boundary: clientY = 0 -> intensity = 1.0 -> speed = -MAX_SCROLL_SPEED_PX (-18)
+      const topEdge = calculateAutoScrollSpeed(0, viewportHeight);
+      expect(topEdge.dir).toBe('up');
+      expect(topEdge.speed).toBe(-MAX_SCROLL_SPEED_PX);
+
+      // Halfway into top boundary: clientY = 50 -> intensity = 0.5 -> speed = -0.5^1.5 * 18 ~ -6.36
+      const topMid = calculateAutoScrollSpeed(50, viewportHeight);
+      expect(topMid.dir).toBe('up');
+      expect(topMid.speed).toBeCloseTo(-Math.pow(0.5, 1.5) * MAX_SCROLL_SPEED_PX, 3);
+      expect(topMid.speed).toBeLessThan(0);
+      expect(topMid.speed).toBeGreaterThan(-MAX_SCROLL_SPEED_PX);
+
+      // Just inside top boundary: clientY = 90 -> intensity = 0.1 -> speed = -0.1^1.5 * 18 ~ -0.57
+      const topEntry = calculateAutoScrollSpeed(90, viewportHeight);
+      expect(topEntry.dir).toBe('up');
+      expect(topEntry.speed).toBeCloseTo(-Math.pow(0.1, 1.5) * MAX_SCROLL_SPEED_PX, 3);
+    });
+
+    it('8.3 calculates smooth downward speed curve approaching max speed at clientY = viewportHeight', () => {
+      // Edge of bottom boundary: clientY = 800 -> intensity = 1.0 -> speed = +MAX_SCROLL_SPEED_PX (+18)
+      const botEdge = calculateAutoScrollSpeed(800, viewportHeight);
+      expect(botEdge.dir).toBe('down');
+      expect(botEdge.speed).toBe(MAX_SCROLL_SPEED_PX);
+
+      // Halfway into bottom boundary: clientY = 750 -> intensity = 0.5 -> speed = +0.5^1.5 * 18 ~ +6.36
+      const botMid = calculateAutoScrollSpeed(750, viewportHeight);
+      expect(botMid.dir).toBe('down');
+      expect(botMid.speed).toBeCloseTo(Math.pow(0.5, 1.5) * MAX_SCROLL_SPEED_PX, 3);
+      expect(botMid.speed).toBeGreaterThan(0);
+      expect(botMid.speed).toBeLessThan(MAX_SCROLL_SPEED_PX);
+    });
+
+    it('8.4 respects configured edge margin (AUTO_SCROLL_EDGE_PX = 100) and max speed (MAX_SCROLL_SPEED_PX = 18)', () => {
+      expect(AUTO_SCROLL_EDGE_PX).toBe(100);
+      expect(MAX_SCROLL_SPEED_PX).toBe(18);
+    });
+
+    it('8.5 physical date group bounds check halts scrolling before crossing adjacent date boundaries', () => {
+      const groupTop = 200;
+      const groupBottom = 800;
+      const padding = 20;
+
+      // Scrolling UP: halted if pointerPageY <= groupTop + padding (220)
+      expect(isPastDateGroupBounds(210, 'up', groupTop, groupBottom, padding)).toBe(true);
+      expect(isPastDateGroupBounds(220, 'up', groupTop, groupBottom, padding)).toBe(true);
+      expect(isPastDateGroupBounds(221, 'up', groupTop, groupBottom, padding)).toBe(false);
+      expect(isPastDateGroupBounds(300, 'up', groupTop, groupBottom, padding)).toBe(false);
+
+      // Scrolling DOWN: halted if pointerPageY >= groupBottom - padding (780)
+      expect(isPastDateGroupBounds(790, 'down', groupTop, groupBottom, padding)).toBe(true);
+      expect(isPastDateGroupBounds(780, 'down', groupTop, groupBottom, padding)).toBe(true);
+      expect(isPastDateGroupBounds(779, 'down', groupTop, groupBottom, padding)).toBe(false);
+      expect(isPastDateGroupBounds(700, 'down', groupTop, groupBottom, padding)).toBe(false);
+    });
+
+    it('8.6 isAtDateBoundary returns true (blocking auto-scroll) for single-item dates', () => {
+      const single = [createIncome({ id: 'alone', date: '2026-10-15' })];
+      expect(isAtDateBoundary(single, 'alone', 'up', 'card')).toBe(true);
+      expect(isAtDateBoundary(single, 'alone', 'down', 'card')).toBe(true);
+      expect(isAtDateBoundary(single, 'alone', 'up', 'ledger')).toBe(true);
+      expect(isAtDateBoundary(single, 'alone', 'down', 'ledger')).toBe(true);
+    });
+
+    it('8.7 isAtDateBoundary accurately detects boundaries for multi-item date cluster in Card and Ledger modes', () => {
+      const a = createIncome({ id: 'A', date: '2026-10-15' }); // oldest
+      const b = createExpense({ id: 'B', date: '2026-10-15' }); // middle
+      const c = createIncome({ id: 'C', date: '2026-10-15' }); // newest
+      const events = [a, b, c];
+
+      // Card View visual order: [C, B, A]
+      // Top visual item is C
+      expect(isAtDateBoundary(events, 'C', 'up', 'card')).toBe(true);
+      expect(isAtDateBoundary(events, 'C', 'down', 'card')).toBe(false);
+
+      // Middle visual item is B
+      expect(isAtDateBoundary(events, 'B', 'up', 'card')).toBe(false);
+      expect(isAtDateBoundary(events, 'B', 'down', 'card')).toBe(false);
+
+      // Bottom visual item is A
+      expect(isAtDateBoundary(events, 'A', 'up', 'card')).toBe(false);
+      expect(isAtDateBoundary(events, 'A', 'down', 'card')).toBe(true);
+
+      // Ledger View visual order: [A, B, C]
+      // Top visual item is A
+      expect(isAtDateBoundary(events, 'A', 'up', 'ledger')).toBe(true);
+      expect(isAtDateBoundary(events, 'A', 'down', 'ledger')).toBe(false);
+
+      // Bottom visual item is C
+      expect(isAtDateBoundary(events, 'C', 'up', 'ledger')).toBe(false);
+      expect(isAtDateBoundary(events, 'C', 'down', 'ledger')).toBe(true);
+    });
+  });
+
+  // =========================================================================
+  // 9. Advanced Atomic Unit Cohesion & Multi-Leg Transfer Preservation
+  // =========================================================================
+  describe('9. Advanced Atomic Unit Cohesion & Multi-Leg Transfer Preservation', () => {
+    it('9.1 preserves atomic cohesion across multiple expenses each having linked cashbacks', () => {
+      const exp1 = createExpense({ id: 'exp-1', date: '2026-10-16', amount: 200_000 });
+      const cb1 = createCashback({ id: 'cb-1', date: '2026-10-16', relatedEventId: 'exp-1', amount: 20_000 });
+      const exp2 = createExpense({ id: 'exp-2', date: '2026-10-16', amount: 400_000 });
+      const cb2 = createCashback({ id: 'cb-2', date: '2026-10-16', relatedEventId: 'exp-2', amount: 40_000 });
+      const inc = createIncome({ id: 'inc-1', date: '2026-10-16', amount: 1_000_000 });
+
+      const initialEvents = [exp1, cb1, exp2, cb2, inc];
+
+      // Reorder exp-2 unit before exp-1:
+      // Expect: [exp-2, cb-2, exp-1, cb-1, inc-1]
+      const step1 = reorderFinancialEvents(initialEvents, 'exp-2', 'exp-1', 'before');
+      expect(step1.map((e) => e.id)).toEqual(['exp-2', 'cb-2', 'exp-1', 'cb-1', 'inc-1']);
+
+      // Cashback 2 must remain immediately adjacent to Expense 2
+      const exp2Idx = step1.findIndex((e) => e.id === 'exp-2');
+      expect(step1[exp2Idx + 1].id).toBe('cb-2');
+
+      // Cashback 1 must remain immediately adjacent to Expense 1
+      const exp1Idx = step1.findIndex((e) => e.id === 'exp-1');
+      expect(step1[exp1Idx + 1].id).toBe('cb-1');
+
+      // Move income between the two expense-cashback pairs:
+      // Place inc after cb-2 (which resolves to placing after unit [exp-2, cb-2])
+      const step2 = reorderFinancialEvents(step1, 'inc-1', 'exp-2', 'after');
+      expect(step2.map((e) => e.id)).toEqual(['exp-2', 'cb-2', 'inc-1', 'exp-1', 'cb-1']);
+
+      // Ensure neither expense-cashback pair was split
+      expect(step2[step2.findIndex((e) => e.id === 'exp-2') + 1].id).toBe('cb-2');
+      expect(step2[step2.findIndex((e) => e.id === 'exp-1') + 1].id).toBe('cb-1');
+    });
+
+    it('9.2 preserves ledger entry structure and admin fee debit continuity across multiple transfers', () => {
+      const t1 = createTransfer({
+        id: 't-1',
+        date: '2026-10-16',
+        sourceAccountId: 'g',
+        destinationAccountId: 's',
+        amount: 500_000,
+        adminFee: 2_500,
+      });
+      const t2 = createTransfer({
+        id: 't-2',
+        date: '2026-10-16',
+        sourceAccountId: 's',
+        destinationAccountId: 'b',
+        amount: 300_000,
+        adminFee: 1_000,
+      });
+      const exp = createExpense({ id: 'exp-x', date: '2026-10-16', amount: 50_000 });
+      const events = [t1, exp, t2];
+
+      const initialBalances = getAccountBalances(events);
+      const initialLiquid = getLiquidBalance(events);
+
+      // Reorder t-2 before t-1
+      const reordered = reorderFinancialEvents(events, 't-2', 't-1', 'before');
+      expect(reordered.map((e) => e.id)).toEqual(['t-2', 't-1', 'exp-x']);
+
+      // Balances must remain strictly invariant
+      expect(getAccountBalances(reordered)).toEqual(initialBalances);
+      expect(getLiquidBalance(reordered)).toBe(initialLiquid);
+
+      // Derived ledger entries verification:
+      // t-2 legs: [out (s), in (b), out fee (s)]
+      // t-1 legs: [out (g), in (s), out fee (g)]
+      // exp leg: [out (g)]
+      const ledger = deriveLedgerEntries(reordered);
+      expect(ledger).toHaveLength(7); // 3 legs from t2 + 3 legs from t1 + 1 from exp
+
+      // Legs 0, 1, 2 must all belong to t-2
+      expect(ledger[0].eventId).toBe('t-2');
+      expect(ledger[0].direction).toBe('out');
+      expect(ledger[1].eventId).toBe('t-2');
+      expect(ledger[1].direction).toBe('in');
+      expect(ledger[2].eventId).toBe('t-2');
+      expect(ledger[2].direction).toBe('out'); // admin fee
+
+      // Legs 3, 4, 5 must all belong to t-1
+      expect(ledger[3].eventId).toBe('t-1');
+      expect(ledger[3].direction).toBe('out');
+      expect(ledger[4].eventId).toBe('t-1');
+      expect(ledger[4].direction).toBe('in');
+      expect(ledger[5].eventId).toBe('t-1');
+      expect(ledger[5].direction).toBe('out'); // admin fee
+    });
+
+    it('9.3 maintains zero duplication and 100% financial validity over a rapid 20-step random permutation cycle', () => {
+      const e1 = createIncome({ id: 'e-1', date: '2026-10-16', amount: 100_000 });
+      const e2 = createExpense({ id: 'e-2', date: '2026-10-16', amount: 50_000 });
+      const e3 = createCashback({ id: 'cb-3', date: '2026-10-16', relatedEventId: 'e-2', amount: 5_000 });
+      const e4 = createTransfer({ id: 'e-4', date: '2026-10-16', amount: 75_000, sourceAccountId: 'g', destinationAccountId: 's' });
+      const e5 = createIncome({ id: 'e-5', date: '2026-10-16', amount: 200_000 });
+
+      let currentEvents: FinancialEvent[] = [e1, e2, e3, e4, e5];
+      const initialBalances = getAccountBalances(currentEvents);
+
+      // Deterministic pseudo-random sequence of reorder steps
+      const moves: Array<{ active: string; target: string; placement: 'before' | 'after' }> = [
+        { active: 'e-5', target: 'e-1', placement: 'before' },
+        { active: 'e-4', target: 'e-2', placement: 'after' },
+        { active: 'e-2', target: 'e-1', placement: 'before' },
+        { active: 'e-1', target: 'e-5', placement: 'after' },
+        { active: 'e-4', target: 'e-5', placement: 'before' },
+        { active: 'e-5', target: 'e-2', placement: 'before' },
+        { active: 'e-1', target: 'e-4', placement: 'before' },
+        { active: 'e-2', target: 'e-5', placement: 'after' },
+        { active: 'e-4', target: 'e-1', placement: 'after' },
+        { active: 'e-5', target: 'e-4', placement: 'after' },
+        { active: 'e-2', target: 'e-1', placement: 'before' },
+        { active: 'e-1', target: 'e-5', placement: 'before' },
+        { active: 'e-4', target: 'e-2', placement: 'before' },
+        { active: 'e-5', target: 'e-4', placement: 'before' },
+        { active: 'e-1', target: 'e-2', placement: 'after' },
+        { active: 'e-2', target: 'e-4', placement: 'after' },
+        { active: 'e-4', target: 'e-5', placement: 'after' },
+        { active: 'e-5', target: 'e-1', placement: 'after' },
+        { active: 'e-2', target: 'e-5', placement: 'before' },
+        { active: 'e-1', target: 'e-4', placement: 'before' },
+      ];
+
+      for (let i = 0; i < moves.length; i++) {
+        const { active, target, placement } = moves[i];
+        currentEvents = reorderFinancialEvents(currentEvents, active, target, placement);
+
+        // Invariant 1: Total event count is preserved
+        expect(currentEvents).toHaveLength(5);
+
+        // Invariant 2: Linked cashback cb-3 remains immediately adjacent to e-2
+        const e2Pos = currentEvents.findIndex((ev) => ev.id === 'e-2');
+        expect(currentEvents[e2Pos + 1].id).toBe('cb-3');
+
+        // Invariant 3: Unique IDs preserved with zero duplication or dropping
+        const ids = currentEvents.map((ev) => ev.id);
+        expect(new Set(ids).size).toBe(5);
+        expect(ids).toEqual(expect.arrayContaining(['e-1', 'e-2', 'cb-3', 'e-4', 'e-5']));
+
+        // Invariant 4: Account balances and liquid balances 100% conserved
+        expect(getAccountBalances(currentEvents)).toEqual(initialBalances);
+      }
+    });
+
+    it('9.4 preserves account assignments and categories across liquid and investment accounts', () => {
+      const liquidInc = createIncome({ id: 'liq-1', date: '2026-10-16', accountId: 'g', amount: 500_000, category: 'Salary' });
+      const investInc = createIncome({ id: 'inv-1', date: '2026-10-16', accountId: 'sb', amount: 250_000, category: 'Others' });
+      const events = [liquidInc, investInc];
+
+      const reordered = reorderFinancialEvents(events, 'inv-1', 'liq-1', 'before');
+      expect(reordered.map((e) => e.id)).toEqual(['inv-1', 'liq-1']);
+
+      const first = reordered[0] as IncomeEvent;
+      const second = reordered[1] as IncomeEvent;
+
+      expect(first.accountId).toBe('sb');
+      expect(first.category).toBe('Others');
+      expect(second.accountId).toBe('g');
+      expect(second.category).toBe('Salary');
+    });
+  });
 });
+

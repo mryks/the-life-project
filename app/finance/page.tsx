@@ -592,6 +592,7 @@ export default function FinancePage() {
     isDragging,
     provisionalEvents,
     isEventActive,
+    isEventPressed,
     getItemProps,
   } = useTransactionReorder({
     events,
@@ -2060,6 +2061,7 @@ export default function FinancePage() {
                   const netExpenseForEvent = event.type === 'expense' ? event.amount - totalRefundedForEvent : event.amount;
 
                   const isActive = isEventActive(event.id);
+                  const isPressed = isEventPressed(event.id);
                   const itemProps = isFiltered ? {} : getItemProps(event.id);
 
                   return (
@@ -2079,7 +2081,7 @@ export default function FinancePage() {
                         </h3>
                       )}
                       <motion.div
-                        layout
+                        layout={!isActive}
                         transition={{ type: "spring", stiffness: 450, damping: 35, mass: 0.8 }}
                         key={event.id}
                         {...itemProps}
@@ -2094,8 +2096,10 @@ export default function FinancePage() {
                         }}
                         className={`p-4 rounded-2xl flex justify-between items-center select-none transition-shadow ${
                           isActive 
-                            ? 'border-2 border-dashed border-emerald-500 scale-[1.02] shadow-xl z-30 bg-white relative' 
-                            : 'bg-white border border-stone-200/90 border-b-[3px] border-b-stone-300/80 shadow-xs hover:-translate-y-0.5 hover:shadow-sm active:bg-stone-50'
+                            ? 'border-2 border-dashed border-emerald-500 scale-[1.02] shadow-2xl z-40 bg-white relative' 
+                            : isPressed
+                              ? 'bg-white border border-stone-200/90 border-b-[3px] border-b-stone-300/80 shadow-xs scale-[0.98] transition-transform'
+                              : 'bg-white border border-stone-200/90 border-b-[3px] border-b-stone-300/80 shadow-xs hover:-translate-y-0.5 hover:shadow-sm active:scale-[0.98]'
                         } ${isFiltered ? 'cursor-pointer' : 'cursor-grab active:cursor-grabbing'}`}
                       >
                         <div className="flex items-center gap-3 min-w-0">
@@ -2178,6 +2182,7 @@ export default function FinancePage() {
                       const showMonthHeader = index === 0 || currentEntryMonth !== prevEntryMonth;
                       const acc = getAccountById(entry.accountId);
                       const isActive = isEventActive(entry.eventId);
+                      const isPressed = isEventPressed(entry.eventId);
                       const itemProps = isFiltered ? {} : getItemProps(entry.eventId);
 
                       return (
@@ -2190,7 +2195,7 @@ export default function FinancePage() {
                             </tr>
                           )}
                           <motion.tr
-                            layout
+                            layout={!isActive}
                             transition={{ type: "spring", stiffness: 450, damping: 35, mass: 0.8 }}
                             {...itemProps}
                             onContextMenu={(e) => {
@@ -2204,8 +2209,10 @@ export default function FinancePage() {
                             }}
                             className={`transition select-none ${
                               isActive
-                                ? 'border-2 border-dashed border-emerald-500 scale-[1.02] shadow-xl z-30 bg-white relative'
-                                : 'hover:bg-stone-50'
+                                ? 'border-2 border-dashed border-emerald-500 scale-[1.02] shadow-2xl z-40 bg-white relative'
+                                : isPressed
+                                  ? 'bg-stone-50 scale-[0.98] transition-transform'
+                                  : 'hover:bg-stone-50 active:scale-[0.98]'
                             } ${isFiltered ? 'cursor-pointer' : 'cursor-grab active:cursor-grabbing'}`}
                           >
                             <td className="px-4 py-3 text-stone-500 whitespace-nowrap text-xs font-mono-numbers">

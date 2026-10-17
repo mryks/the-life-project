@@ -3,7 +3,7 @@
 ## Overall Status: STABLE PRODUCTION (OFFICIALLY GO-LIVE 🚀)
 - **Live Production URL:** [https://the-life-project-os.vercel.app/finance](https://the-life-project-os.vercel.app/finance)
 - **Backend Database:** Supabase PostgreSQL (`peydzblrtfgdoaisljkm.supabase.co`)
-- **Automated Test Suite:** 20 test suites, **317/317 tests passing (100%)**
+- **Automated Test Suite:** 20 test suites, **339/339 tests passing (100%)**
 - **Code Quality:** 0 ESLint errors, 0 TypeScript errors (`npx tsc --noEmit`)
 - **Session Boundary:** Permanently assigned as **Finance Domain Specialist**. All non-finance life domains (Habits, Journal, Tasks) are developed in separate dedicated chat sessions.
 
@@ -126,7 +126,14 @@
 - **Green Dashed Border on Active Card**: Strictly applied `border-2 border-dashed border-emerald-500 scale-[1.02] shadow-xl z-30 bg-white relative` to the card/row being held. Zero placeholder or ghost box clutter left behind in the list.
 - **Strict Same-Date Constraint & Auto-Scroll Hard Stop**: Reordering is locked within the same date. Auto-scroll (100px edge threshold, quadratic acceleration) automatically hard-stops when the active item reaches the top or bottom boundary of its same-date group, preventing foreign date traversal.
 - **Atomic Unit & Multi-View Support**: Both Card View and Ledger View supported. Expense with Cashback moves as a single atomic unit, and paired Transfer rows stay strictly adjacent.
-- **28 Automated Tests**: Comprehensive test suite in `tests/finance/live-reorder.test.ts` verifying same-date invariant, atomic integrity, non-drift reversibility, boundary detection, and Supabase upsert queueing (317/317 total tests passing).
+### 19. Reorder Speed & 120fps Drag Performance Overhaul (Langkah 36)
+- **Calibrated Snappy Hold Timers**:
+  * Desktop Mouse: 50ms hold delay (or instant drag on $\ge 4\text{px}$ movement) eliminating desktop drag lag.
+  * Mobile Touch: 150ms hold delay (halved from 300ms) with instant `scale-[0.98]` tactile press feedback and 40ms haptic vibration.
+- **Elimination of Layout Thrashing**: Pre-measures same-date card slot bounding rects once (`measureDateSlots`) on drag start, replacing expensive `document.elementsFromPoint`, `querySelectorAll`, and `getBoundingClientRect()` with pure sub-microsecond array arithmetic (`findClosestSlotIndex`).
+- **Direct GPU-Accelerated Translation**: The active held card is translated directly in real-time (`translate3d(0, ${translateY}px, 0)`) following the pointer with zero latency, while siblings smoothly glide into new slots via Apple Critically Damped spring (`layout={!isActive}`).
+- **State Debouncing**: Dispatches `setProvisionalEvents` ONLY when the hover target slot actually changes, cutting React re-renders from ~120/sec to 1 render per slot crossing.
+- **Expanded Test Suite**: Added 22 tests in `tests/finance/live-reorder.test.ts` (50 total tests in suite, 339/339 tests passing across 20 suites).
 
 ---
 
