@@ -6,6 +6,29 @@
 
 ## 📜 Sprint & Evolution Log
 
+### Langkah 39: Complete Removal of Fingerprint / WebAuthn Biometrics in Favor of Pure, Fast Master PIN (Option 1)
+- **User Directive**:
+  - *"saya ingin fingerprint untuk akses masuk dibuat lebih cepat bisa? saya merasa justru lebih cepat kalo ketik pin deh. menurut anda gimana? apa hapus aja fingerprintnya?"* $\to$ Selected **Option 1**: Completely remove fingerprint/WebAuthn biometrics in favor of pure Master PIN access.
+- **Root Cause & Rationale**:
+  - W3C WebAuthn browser API requires multi-layer handshakes between the browser, OS security core, passkey dialog, and hardware sensor, inducing 1-2 second initialization latency and intrusive pop-up sheets that block the screen.
+  - The custom 6-digit tactile Master PIN keypad is optimized with `touch-manipulation` and zero touch delay, unlocking in < 0.8 seconds without system interruptions.
+- **Architecture & Implementation**:
+  1. **Lockscreen Simplification (`components/finance/MasterPinLockscreen.tsx`)**:
+     - Purged all WebAuthn sensor checks, platform authenticator detection, auto-trigger `useEffect`, setup modal dialogs, and biometric scan buttons.
+     - Kept tactile 3x4 numeric keypad with clean, balanced alignment (empty slot on bottom-left, digit `"0"` centered, Backspace on bottom-right).
+     - Instant unlock flow on 6-digit entry with 20ms tactile haptic feedback.
+  2. **Security Subsystem Cleanup (`lib/security.ts`)**:
+     - Removed `BIOMETRIC_ENABLED` and `WEBAUTHN_CREDENTIAL_ID` storage keys.
+     - Removed all WebAuthn registration, authentication, and status methods (`registerBiometrics`, `authenticateWithBiometrics`, etc.).
+     - Added auto-cleanup `cleanupLegacyBiometrics()` on load to cleanly remove stale keys from `localStorage`.
+  3. **Verification & Regression Invariants (`tests/finance/security.test.ts`)**:
+     - Expanded unit tests to 17 tests verifying deterministic Master PIN access, lockout timers, idle auto-lock, and legacy key isolation.
+- **Verification**:
+  - All 21 test suites passing: **367/367 tests passing (100%)**.
+  - TypeScript: 0 errors (`npx tsc --noEmit`).
+  - ESLint: 0 errors, 0 warnings (`npm run lint`).
+  - Production build (`npm run build`): 100% green.
+
 ### Langkah 38: Custom Categories for Income & Expense with Quick Inline Add & Unused Deletion (Option A)
 - **User Directive**:
   - Add the ability to create new custom categories for both Income and Expense transactions.

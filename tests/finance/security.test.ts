@@ -10,6 +10,7 @@ import {
   unlockSession,
   lockSession,
   touchActivity,
+  cleanupLegacyBiometrics,
   IDLE_TIMEOUT_MS,
   MAX_FAILED_ATTEMPTS,
   SECURITY_STORAGE_KEYS,
@@ -175,6 +176,63 @@ describe('Security & Master PIN Architecture', () => {
       vi.spyOn(Date, 'now').mockReturnValue(tenMinsLater);
 
       touchActivity();
+      expect(isSessionUnlocked()).toBe(true);
+    });
+  });
+
+  describe('Legacy Biometric Removal & Pure Master PIN Invariants', () => {
+    it('does not expose biometric keys in SECURITY_STORAGE_KEYS', () => {
+      // Biometric storage keys must be completely removed from SECURITY_STORAGE_KEYS
+      expect(SECURITY_STORAGE_KEYS).not.toHaveProperty('BIOMETRIC_ENABLED');
+      expect(SECURITY_STORAGE_KEYS).not.toHaveProperty('WEBAUTHN_CREDENTIAL_ID');
+      expect(Object.values(SECURITY_STORAGE_KEYS)).not.toContain('thelife-biometric-enabled');
+      expect(Object.values(SECURITY_STORAGE_KEYS)).not.toContain('thelife-webauthn-id');
+    });
+
+    it('cleans up legacy biometric keys from localStorage via cleanupLegacyBiometrics', () => {
+      mockLocalStorage.setItem('thelife-biometric-enabled', 'true');
+      mockLocalStorage.setItem('thelife-webauthn-id', 'test-credential-id-12345');
+
+      expect(mockLocalStorage.getItem('thelife-biometric-enabled')).toBe('true');
+      expect(mockLocalStorage.getItem('thelife-webauthn-id')).toBe('test-credential-id-12345');
+
+      cleanupLegacyBiometrics();
+
+      expect(mockLocalStorage.getItem('thelife-biometric-enabled')).toBeNull();
+      expect(mockLocalStorage.getItem('thelife-webauthn-id')).toBeNull();
+    });
+
+    it('ignores orphan legacy biometric keys in localStorage during session unlock checks', async () => {
+      // Inject orphaned legacy biometric keys into localStorage
+      mockLocalStorage.setItem('thelife-biometric-enabled', 'true');
+      mockLocalStorage.setItem('thelife-webauthn-id', 'stale-webauthn-key');
+
+      await setupMasterPin('654321');
+      lockSession();
+
+      // Ensure that having the legacy biometric keys present in localStorage NEVER unlocks the session
+      expect(isSessionUnlocked()).toBe(false);
+    });
+
+    it('enforces Master PIN as the sole, deterministic source of access control regardless of biometric traces', async () => {
+      // Set legacy biometric remnants
+      mockLocalStorage.setItem('thelife-biometric-enabled', 'true');
+      mockLocalStorage.setItem('thelife-webauthn-id', 'stale-cred');
+
+      await setupMasterPin('987654');
+      lockSession();
+
+      // Attempting access without entering the Master PIN must strictly fail
+      expect(isSessionUnlocked()).toBe(false);
+
+      // Wrong PIN must fail despite legacy biometric data
+      const wrongAttempt = await verifyMasterPin('111111');
+      expect(wrongAttempt.success).toBe(false);
+      expect(isSessionUnlocked()).toBe(false);
+
+      // Correct Master PIN is the only way to deterministically unlock
+      const correctAttempt = await verifyMasterPin('987654');
+      expect(correctAttempt.success).toBe(true);
       expect(isSessionUnlocked()).toBe(true);
     });
   });

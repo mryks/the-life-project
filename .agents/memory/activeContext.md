@@ -20,12 +20,12 @@
 - **Security & Access Control:**
   - Fixed Server-Side Master PIN configured via Vercel Secret `MASTER_PIN` + `/api/auth/verify-pin`.
   - Rate limiting active (5 failed attempts -> 30s lockout returning HTTP 429).
-  - WebAuthn Biometric quick-unlock strictly gated behind initial Master PIN verification on each device.
+  - Pure, instantaneous Master PIN access without slow browser WebAuthn / biometric prompt overhead.
   - Zero "Create Master PIN" setup forms exposed on untrusted/incognito windows.
 - **Mobile PWA:**
   - `public/manifest.json` configured with standalone mode, oat milk theme `#FBF9F4`, and bespoke SVG icon.
   - Viewport optimized for mobile notch (`viewportFit: 'cover'`) and smooth touch drag interactions.
-- **Test Suite Status:** 100% passing (**20 test suites, 339 tests passed** via `npm test`).
+- **Test Suite Status:** 100% passing (**21 test suites, 367 tests passed** via `npm test`).
 - **Linter & Typecheck:** 0 errors, 0 warnings (`npm run lint`, `npx tsc --noEmit`).
 - **Sync Engine Hotfix (Resolved):**
   - Edit Persistence: Created outbox `queuePendingUpserts` so edited existing transactions are queued and pushed to Supabase (`upsert`), preventing cloud fetch from reverting edits.
@@ -74,6 +74,7 @@
 35. **Langkah 36: Reorder Speed & 120fps Drag Performance Overhaul** (Snappy 50ms hold on desktop mouse with instant drag on $\ge 4\text{px}$ movement, 150ms hold on mobile touch with immediate tactile pickup, zero-latency direct GPU translation `translateY` tracking pointer, slot pre-measurement eliminating layout thrashing and reducing React re-renders from 120/sec to 1 per slot swap, expanded to 50 tests in `tests/finance/live-reorder.test.ts`, 339/339 total tests passing).
 36. **Langkah 37: Elimination of Unrequested Bounce/Squishy Scale from Transaction Hold** (Completely removed `scale-[0.98]` tactile press and `scale-[1.02]` lift expansion; locked card/row scale strictly to flat 1.0; active card uniquely signaled by green dashed border `border-2 border-dashed border-emerald-500` and drop shadow `shadow-xl` without rubbery geometric warping; 339/339 tests passing).
 37. **Langkah 38: Custom Categories for Income & Expense with Quick Inline Add & Unused Deletion (Option A)** (Created `lib/categories.ts` dynamic category registry with `thelife-custom-categories` localStorage persistence; open TypeScript union types `DefaultExpenseCategory | (string & {})` and `DefaultIncomeCategory | (string & {})`; quick inline `+ Add` category pill with `Enter`/`Escape` keyboard shortcuts and auto-selection; delete button on unused custom categories with financial transaction guard; dynamic non-NaN `categoryTotals` and pie chart aggregation; 24 unit tests in `tests/finance/categories.test.ts`, 363/363 total tests passing).
+38. **Langkah 39: Complete Removal of Fingerprint / WebAuthn Biometrics in Favor of Pure, Fast Master PIN (Option 1)** (Removed all WebAuthn sensor checks, auto-prompts, setup dialogs, and biometric buttons from `MasterPinLockscreen.tsx` and `lib/security.ts`; auto-purged legacy biometric storage keys; locked lockscreen to 100% zero-latency tactile 6-digit PIN keypad; expanded unit tests in `tests/finance/security.test.ts` to 17 tests; 367/367 total tests passing).
 
 ---
 

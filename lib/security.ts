@@ -2,9 +2,10 @@
 /**
  * The Life Project — Single-User Security Architecture
  * 
+ * Single-user encrypted Master PIN protection with rate-limiting and session lock.
  * Provides deterministic Master PIN hashing, salt generation,
  * session unlock/lock management with 15-minute idle auto-lock,
- * brute-force rate-limiting, and optional WebAuthn biometrics.
+ * and brute-force rate-limiting.
  */
 
 import { getSupabaseClient, isSupabaseConfigured } from './supabase';
@@ -23,9 +24,24 @@ export const SECURITY_STORAGE_KEYS = {
   LAST_ACTIVITY: 'thelife-last-activity',
   FAILED_ATTEMPTS: 'thelife-failed-attempts',
   LOCKOUT_UNTIL: 'thelife-lockout-until',
-  BIOMETRIC_ENABLED: 'thelife-biometric-enabled',
-  WEBAUTHN_CREDENTIAL_ID: 'thelife-webauthn-id',
 } as const;
+
+/**
+ * Legacy biometric cleanup: remove orphaned WebAuthn and biometric flags if present
+ */
+export function cleanupLegacyBiometrics(): void {
+  if (typeof window !== 'undefined') {
+    try {
+      window.localStorage.removeItem('thelife-biometric-enabled');
+      window.localStorage.removeItem('thelife-webauthn-id');
+    } catch {
+      // Safe fallback for restricted storage environments
+    }
+  }
+}
+
+// Auto-run cleanup on initialization
+cleanupLegacyBiometrics();
 
 export const SECURITY_CHANGE_EVENT = 'thelife-security-change';
 
@@ -369,135 +385,3 @@ export function touchActivity(): void {
   }
 }
 
-/**
- * Biometrics / WebAuthn Helpers
- */
-export async function isBiometricsSupported(): Promise<boolean> {
-  if (typeof window === 'undefined') return false;
-  try {
-    if (!window.PublicKeyCredential) return false;
-    if (typeof window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable !== 'function') {
-      return false;
-    }
-    return await window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
-  } catch {
-    return false;
-  }
-}
-
-export function isBiometricsEnabled(): boolean {
-  if (typeof window === 'undefined') return false;
-  try {
-    return window.localStorage.getItem(SECURITY_STORAGE_KEYS.BIOMETRIC_ENABLED) === 'true' &&
-           Boolean(window.localStorage.getItem(SECURITY_STORAGE_KEYS.WEBAUTHN_CREDENTIAL_ID));
-  } catch {
-    return false;
-  }
-}
-
-export function setBiometricsEnabled(enabled: boolean): void {
-  if (typeof window === 'undefined') return;
-  try {
-    if (enabled) {
-      window.localStorage.setItem(SECURITY_STORAGE_KEYS.BIOMETRIC_ENABLED, 'true');
-    } else {
-      window.localStorage.removeItem(SECURITY_STORAGE_KEYS.BIOMETRIC_ENABLED);
-      window.localStorage.removeItem(SECURITY_STORAGE_KEYS.WEBAUTHN_CREDENTIAL_ID);
-    }
-    dispatchSecurityChange();
-  } catch {
-    // Safe fallback
-  }
-}
-
-/**
- * Register device biometric sensor via WebAuthn
- */
-export async function registerBiometrics(): Promise<boolean> {
-  if (typeof window === 'undefined' || !window.PublicKeyCredential) return false;
-
-  try {
-    const challenge = new Uint8Array(32);
-    window.crypto.getRandomValues(challenge);
-
-    const userId = new Uint8Array(16);
-    window.crypto.getRandomValues(userId);
-
-    const credential = (await navigator.credentials.create({
-      publicKey: {
-        challenge,
-        rp: {
-          name: 'The Life Project OS',
-          id: window.location.hostname || 'localhost',
-        },
-        user: {
-          id: userId,
-          name: 'owner',
-          displayName: 'The Life Project Owner',
-        },
-        pubKeyCredParams: [
-          { type: 'public-key', alg: -7 }, // ES256
-          { type: 'public-key', alg: -257 }, // RS256
-        ],
-        authenticatorSelection: {
-          authenticatorAttachment: 'platform', // TouchID, FaceID, Windows Hello, Fingerprint
-          userVerification: 'required',
-        },
-        timeout: 60000,
-      },
-    })) as PublicKeyCredential | null;
-
-    if (credential) {
-      const rawId = Array.from(new Uint8Array(credential.rawId), (b) => b.toString(16).padStart(2, '0')).join('');
-      window.localStorage.setItem(SECURITY_STORAGE_KEYS.WEBAUTHN_CREDENTIAL_ID, rawId);
-      window.localStorage.setItem(SECURITY_STORAGE_KEYS.BIOMETRIC_ENABLED, 'true');
-      dispatchSecurityChange();
-      return true;
-    }
-    return false;
-  } catch (err) {
-    console.warn('Biometric registration error:', err);
-    return false;
-  }
-}
-
-/**
- * Authenticate via device biometric sensor (FaceID, Fingerprint, Windows Hello)
- */
-export async function authenticateWithBiometrics(): Promise<boolean> {
-  if (typeof window === 'undefined' || !window.PublicKeyCredential) return false;
-  const credIdHex = window.localStorage.getItem(SECURITY_STORAGE_KEYS.WEBAUTHN_CREDENTIAL_ID);
-  if (!credIdHex) return false;
-
-  try {
-    const challenge = new Uint8Array(32);
-    window.crypto.getRandomValues(challenge);
-
-    // Convert hex back to Uint8Array
-    const rawIdBytes = new Uint8Array(credIdHex.match(/.{1,2}/g)?.map((byte) => parseInt(byte, 16)) || []);
-
-    const assertion = await navigator.credentials.get({
-      publicKey: {
-        challenge,
-        allowCredentials: [
-          {
-            id: rawIdBytes,
-            type: 'public-key',
-            transports: ['internal'],
-          },
-        ],
-        userVerification: 'required',
-        timeout: 60000,
-      },
-    });
-
-    if (assertion) {
-      unlockSession();
-      return true;
-    }
-    return false;
-  } catch (err) {
-    console.warn('Biometric authentication failed:', err);
-    return false;
-  }
-}
