@@ -2,10 +2,13 @@
 
 export type AccountId = 's' | 'b' | 'g' | 'k' | 'e' | 'c' | 'q' | 'jy' | 'h' | 'j' | 'p' | 'sb' | 'sea' | 'poe' | 'cla' | 'kb' | 'i';
 
-export type ExpenseCategory = 'Home & Family' | 'Food & Drinks' | 'Transportation' | 'Personal Care' | 'Leisure' | 'Medical' | '𝓡' | 'Other';
+export type DefaultExpenseCategory = 'Home & Family' | 'Food & Drinks' | 'Transportation' | 'Personal Care' | 'Leisure' | 'Medical' | '𝓡' | 'Other';
+export type ExpenseCategory = DefaultExpenseCategory | (string & {});
 
-export const incomeCategories = ['Salary', 'Allowance', 'Cashback', 'Others'] as const;
-export type IncomeCategory = typeof incomeCategories[number];
+export const defaultIncomeCategories = ['Salary', 'Allowance', 'Cashback', 'Others'] as const;
+export type DefaultIncomeCategory = typeof defaultIncomeCategories[number];
+export const incomeCategories = defaultIncomeCategories;
+export type IncomeCategory = DefaultIncomeCategory | (string & {});
 
 interface FinancialEventBase {
   id: string;

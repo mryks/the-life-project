@@ -13,20 +13,46 @@ import type {
   ReorderUnit,
 } from './types';
 import { incomeCategories } from './types';
+import {
+  DEFAULT_EXPENSE_CATEGORIES,
+  DEFAULT_INCOME_CATEGORIES,
+  CUSTOM_CATEGORIES_STORAGE_KEY,
+  CUSTOM_CATEGORIES_CHANGE_EVENT,
+  type CustomCategoriesState,
+  readCustomCategories,
+  writeCustomCategories,
+  validateCategoryName,
+  addCustomCategory,
+  deleteCustomCategory,
+  isDefaultCategory,
+  isCategoryInUse,
+  getAllExpenseCategories,
+  getAllIncomeCategories,
+} from './categories';
 
 export const FINANCE_STORAGE_KEY = 'thelife-finance';
 export const FINANCE_STORAGE_VERSION = 2;
 const FINANCE_CHANGE_EVENT = 'thelife-finance-change';
 
-export const expenseCategories: ExpenseCategory[] = [
-  'Home & Family', 'Food & Drinks', 'Transportation', 'Personal Care', 'Leisure',
-  'Medical', '𝓡', 'Other',
-];
+export const expenseCategories: ExpenseCategory[] = [...DEFAULT_EXPENSE_CATEGORIES];
 
-export { incomeCategories };
-
-export const isIncomeCategory = (value: unknown): value is IncomeCategory =>
-  typeof value === 'string' && (incomeCategories as readonly string[]).includes(value);
+export {
+  incomeCategories,
+  DEFAULT_EXPENSE_CATEGORIES,
+  DEFAULT_INCOME_CATEGORIES,
+  CUSTOM_CATEGORIES_STORAGE_KEY,
+  CUSTOM_CATEGORIES_CHANGE_EVENT,
+  type CustomCategoriesState,
+  readCustomCategories,
+  writeCustomCategories,
+  validateCategoryName,
+  addCustomCategory,
+  deleteCustomCategory,
+  isDefaultCategory,
+  isCategoryInUse,
+  getAllExpenseCategories,
+  getAllIncomeCategories,
+};
 
 export interface FinanceStats {
   totalBalance: number; // Liquid balance as main headline
@@ -55,8 +81,23 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 
 export { isAccountId };
 
-export const isExpenseCategory = (value: unknown): value is ExpenseCategory =>
-  typeof value === 'string' && expenseCategories.includes(value as ExpenseCategory);
+export const isIncomeCategory = (value: unknown): value is IncomeCategory => {
+  if (typeof value !== 'string') return false;
+  const trimmed = value.trim();
+  if (trimmed.length === 0 || trimmed.length > 30) return false;
+  if ((DEFAULT_INCOME_CATEGORIES as readonly string[]).includes(trimmed)) return true;
+  if (readCustomCategories().income.includes(trimmed)) return true;
+  return false;
+};
+
+export const isExpenseCategory = (value: unknown): value is ExpenseCategory => {
+  if (typeof value !== 'string') return false;
+  const trimmed = value.trim();
+  if (trimmed.length === 0 || trimmed.length > 30) return false;
+  if ((DEFAULT_EXPENSE_CATEGORIES as readonly string[]).includes(trimmed)) return true;
+  if (readCustomCategories().expense.includes(trimmed)) return true;
+  return false;
+};
 
 export const isDateOnly = (value: unknown): value is string => {
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
@@ -404,10 +445,16 @@ export const getNetWorth = (events: FinancialEvent[]): number => {
   return Object.values(balances).reduce((sum, b) => sum + b, 0);
 };
 
-export const calculateFinanceStats = (events: FinancialEvent[], currentDate: string): FinanceStats => {
+export const calculateFinanceStats = (
+  events: FinancialEvent[],
+  currentDate: string,
+  customCategories?: CustomCategoriesState
+): FinanceStats => {
   const month = currentDate.slice(0, 7);
+  const custom = customCategories || readCustomCategories();
+  const activeExpenseCategories = getAllExpenseCategories(custom.expense, events);
   const expensesById = new Map(events.filter((event) => event.type === 'expense').map((event) => [event.id, event]));
-  const categoryTotals = Object.fromEntries(expenseCategories.map((category) => [category, 0])) as Record<ExpenseCategory, number>;
+  const categoryTotals = Object.fromEntries(activeExpenseCategories.map((category) => [category, 0])) as Record<ExpenseCategory, number>;
   let monthlyIncome = 0;
   let monthlyExpense = 0;
   for (const event of events) {
@@ -415,17 +462,17 @@ export const calculateFinanceStats = (events: FinancialEvent[], currentDate: str
     if (event.type === 'income') monthlyIncome += event.amount;
     if (event.type === 'expense') {
       monthlyExpense += event.amount;
-      categoryTotals[event.category] += event.amount;
+      categoryTotals[event.category] = (categoryTotals[event.category] || 0) + event.amount;
     }
     if (event.type === 'transfer' && event.adminFee && event.adminFee > 0) {
       monthlyExpense += event.adminFee;
-      categoryTotals['Other'] += event.adminFee;
+      categoryTotals['Other'] = (categoryTotals['Other'] || 0) + event.adminFee;
     }
     if (event.type === 'refund') {
       const originalExpense = expensesById.get(event.relatedEventId);
       if (originalExpense) {
         monthlyExpense -= event.amount;
-        categoryTotals[originalExpense.category] -= event.amount;
+        categoryTotals[originalExpense.category] = (categoryTotals[originalExpense.category] || 0) - event.amount;
       }
     }
   }
@@ -452,7 +499,9 @@ export const calculateFinanceStats = (events: FinancialEvent[], currentDate: str
     savingsRate,
     dailyAverageExpense,
     categoryTotals,
-    pieData: expenseCategories.filter((category) => categoryTotals[category] > 0).map((name) => ({ name, value: categoryTotals[name] })),
+    pieData: activeExpenseCategories
+      .filter((category) => (categoryTotals[category] || 0) > 0)
+      .map((name) => ({ name, value: categoryTotals[name] || 0 })),
   };
 };
 

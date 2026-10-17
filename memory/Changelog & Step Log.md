@@ -6,6 +6,36 @@
 
 ## 📜 Sprint & Evolution Log
 
+### Langkah 38: Custom Categories for Income & Expense with Quick Inline Add & Unused Deletion (Option A)
+- **User Directive**:
+  - Add the ability to create new custom categories for both Income and Expense transactions.
+  - Selected Option A: Quick inline category addition directly in the Transaction modal with auto-selection and keyboard support, plus the ability to delete unused custom categories while protecting categories currently in use.
+- **Architecture & Implementation**:
+  1. **Category Registry (`lib/categories.ts`)**:
+     - Defined default system categories:
+       * `DEFAULT_EXPENSE_CATEGORIES`: `['Home & Family', 'Food & Drinks', 'Transportation', 'Personal Care', 'Leisure', 'Medical', '𝓡', 'Other']`
+       * `DEFAULT_INCOME_CATEGORIES`: `['Salary', 'Allowance', 'Cashback', 'Others']`
+     - State persistence: `thelife-custom-categories` in `localStorage` with reactive cross-tab events (`thelife-custom-categories-change`).
+     - Safe ingestion: `getAllExpenseCategories` and `getAllIncomeCategories` automatically combine defaults + user custom categories + any categories appearing in transactions.
+  2. **Type System & Financial Invariants (`lib/types.ts` & `lib/finance.ts`)**:
+     - Upgraded `ExpenseCategory` and `IncomeCategory` to open unions `Default*Category | (string & {})` for autocomplete with dynamic custom category support.
+     - Enforced validation rules: 1–30 characters, whitespace trimming, case-insensitive duplicate rejection, reserved category protection ('Cashback' reserved for relational income, legacy 'Other'/'Investment' rejected).
+     - Guarded `calculateFinanceStats` so `categoryTotals` and `pieData` calculate deterministically without `NaN`.
+  3. **Option A UI & Micro-Interactions (`app/finance/page.tsx`)**:
+     - Rendered dynamic category pills for both Expense and Income forms.
+     - Inline `+ Add` button transforms into an auto-focused input with `Check` and `X` action buttons.
+     - Keyboard navigation: `Enter` to commit, `Escape` to cancel.
+     - Instant auto-selection of newly created category + tactile haptic feedback (`navigator.vibrate([15])`).
+     - Subtle `X` delete button on custom category pills.
+     - Financial protection: blocks deletion if category is currently used by transactions, and allows deletion if unused.
+     - Filter bar integration: `allCategories` dynamically updates to include new categories in filter dropdowns.
+- **Verification**:
+  - Authored 24 comprehensive unit tests in `tests/finance/categories.test.ts`.
+  - All 21 test suites passing: **363/363 tests passing (100%)**.
+  - TypeScript: 0 errors (`npx tsc --noEmit`).
+  - ESLint: 0 errors, 0 warnings (`npm run lint`).
+  - Production build (`npm run build`): 100% green.
+
 ### Langkah 37: Elimination of Unrequested Bounce/Squishy Scale on Transaction Hold
 - **User Directive**:
   - *"sudah baik, tapi saat saya hold ada efek bounce/squiishy sedikit. kenapa bisa begitu ya? saya tidak ada pernah minta"* (It's good now, but when held there is a slight bounce/squishy effect. Why is that? I never asked for that).

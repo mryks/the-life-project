@@ -139,12 +139,13 @@ export const dbRowToEvent = (row: FinancialEventDbRow): FinancialEvent | null =>
 
   if (row.type === 'income') {
     if (!row.account_id || !isAccountId(row.account_id)) return null;
-    if (!row.category || !isIncomeCategory(row.category)) return null;
+    const cat = typeof row.category === 'string' ? row.category.trim() : '';
+    if (!cat || !isIncomeCategory(cat)) return null;
     const event: IncomeEvent = {
       ...base,
       type: 'income',
       accountId: row.account_id as AccountId,
-      category: row.category as IncomeCategory,
+      category: cat as IncomeCategory,
     };
     if (row.related_event_id && typeof row.related_event_id === 'string') {
       event.relatedEventId = row.related_event_id;
@@ -154,12 +155,13 @@ export const dbRowToEvent = (row: FinancialEventDbRow): FinancialEvent | null =>
 
   if (row.type === 'expense') {
     if (!row.account_id || !isAccountId(row.account_id)) return null;
-    if (!row.category || !isExpenseCategory(row.category)) return null;
+    const cat = typeof row.category === 'string' ? row.category.trim() : '';
+    if (!cat || !isExpenseCategory(cat)) return null;
     const event: ExpenseEvent = {
       ...base,
       type: 'expense',
       accountId: row.account_id as AccountId,
-      category: row.category as ExpenseCategory,
+      category: cat as ExpenseCategory,
     };
     return event;
   }

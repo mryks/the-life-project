@@ -15,10 +15,8 @@ import {
   deleteFinancialEvent,
   deriveLedgerEntries,
   downloadBackupFile,
-  expenseCategories,
   getAccountBalances,
   getBackupFilename,
-  incomeCategories,
   isDateOnly,
   isPositiveInteger,
   parseAndValidateBackup,
@@ -32,6 +30,15 @@ import {
   validateFinancialEvents,
   validateNormalTransactionDate,
   writeFinancialEvents,
+  CUSTOM_CATEGORIES_CHANGE_EVENT,
+  addCustomCategory,
+  deleteCustomCategory,
+  isDefaultCategory,
+  isCategoryInUse,
+  getAllExpenseCategories,
+  getAllIncomeCategories,
+  readCustomCategories,
+  type CustomCategoriesState,
 } from "@/lib/finance";
 import { useTransactionReorder } from "@/hooks/useTransactionReorder";
 import { useSwipeableTabs } from "@/hooks/useSwipeableTabs";
@@ -353,6 +360,102 @@ export default function FinancePage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [showCashbackAccountWarning, setShowCashbackAccountWarning] = useState(false);
   
+  // Custom Category State
+  const [customCategories, setCustomCategories] = useState<CustomCategoriesState>(() => readCustomCategories());
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [categoryNotice, setCategoryNotice] = useState<{
+    type: 'error' | 'success';
+    message: string;
+  } | null>(null);
+  const categoryNoticeTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const handleCategoriesChange = () => {
+      setCustomCategories(readCustomCategories());
+    };
+    window.addEventListener(CUSTOM_CATEGORIES_CHANGE_EVENT, handleCategoriesChange);
+    window.addEventListener('storage', handleCategoriesChange);
+    return () => {
+      window.removeEventListener(CUSTOM_CATEGORIES_CHANGE_EVENT, handleCategoriesChange);
+      window.removeEventListener('storage', handleCategoriesChange);
+      if (categoryNoticeTimerRef.current) {
+        window.clearTimeout(categoryNoticeTimerRef.current);
+      }
+    };
+  }, []);
+
+  const allExpenseCategories = useMemo(
+    () => getAllExpenseCategories(customCategories.expense, events),
+    [customCategories.expense, events]
+  );
+
+  const allIncomeCategories = useMemo(
+    () => getAllIncomeCategories(customCategories.income, events),
+    [customCategories.income, events]
+  );
+
+  const activeCategories = formType === 'expense' ? allExpenseCategories : allIncomeCategories;
+
+  const showCategoryNotice = (type: 'error' | 'success', message: string) => {
+    if (categoryNoticeTimerRef.current) {
+      window.clearTimeout(categoryNoticeTimerRef.current);
+    }
+    setCategoryNotice({ type, message });
+    categoryNoticeTimerRef.current = window.setTimeout(() => {
+      setCategoryNotice(null);
+    }, 4000);
+  };
+
+  const handleDeleteCategory = (cat: string) => {
+    if (formType === 'transfer') return;
+    const inUse = isCategoryInUse(cat, formType, events);
+    if (inUse) {
+      const count = events.filter((e) => e.type === formType && e.category === cat).length;
+      showCategoryNotice('error', `Category is used in ${count} transaction${count === 1 ? '' : 's'}`);
+      return;
+    }
+
+    const res = deleteCustomCategory(formType, cat, events);
+    if (res.success) {
+      if (selectedCategory === cat) {
+        setSelectedCategory(null);
+      }
+      showCategoryNotice('success', 'Category deleted');
+    } else {
+      showCategoryNotice('error', res.error || 'Failed to delete category');
+    }
+  };
+
+  const handleCreateCategory = () => {
+    if (formType === 'transfer') return;
+    const trimmed = newCategoryName.trim();
+    if (!trimmed) {
+      showCategoryNotice('error', 'Category name cannot be empty');
+      return;
+    }
+
+    const res = addCustomCategory(formType, trimmed, events);
+    if (!res.success) {
+      showCategoryNotice('error', res.error || 'Failed to create category');
+      return;
+    }
+
+    if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+      try {
+        navigator.vibrate([15]);
+      } catch {
+        // Safe ignore
+      }
+    }
+
+    setSelectedCategory(res.category!);
+    setNewCategoryName('');
+    setIsAddingCategory(false);
+    setFormError(null);
+    showCategoryNotice('success', `Category "${res.category}" created`);
+  };
+  
   // Action Menu State
   const [actionMenuOpen, setActionMenuOpen] = useState(false);
   const [activeTransactionId, setActiveTransactionId] = useState<string | null>(null);
@@ -536,8 +639,8 @@ export default function FinancePage() {
   };
 
   const allCategories = useMemo(
-    () => Array.from(new Set([...expenseCategories, ...incomeCategories])),
-    []
+    () => Array.from(new Set([...allExpenseCategories, ...allIncomeCategories])),
+    [allExpenseCategories, allIncomeCategories]
   );
 
   const isFiltered = Boolean(
@@ -678,8 +781,10 @@ export default function FinancePage() {
     setBackupError(null);
   };
 
-  // Deterministic derivations of persisted events
-  const stats = useMemo(() => calculateFinanceStats(events, `${selectedMonth}-01`), [events, selectedMonth]);
+  const stats = useMemo(
+    () => calculateFinanceStats(events, `${selectedMonth}-01`, customCategories),
+    [events, selectedMonth, customCategories]
+  );
   const accountBalances = useMemo(() => getAccountBalances(events), [events]);
 
   // Line Chart Data
@@ -2324,6 +2429,9 @@ export default function FinancePage() {
                 onClick={() => {
                   setFormType('expense');
                   if (!editingEventId) setSelectedCategory(null);
+                  setIsAddingCategory(false);
+                  setNewCategoryName('');
+                  setCategoryNotice(null);
                 }}
                 className={`flex-1 py-2 rounded-xl text-xs font-bold relative z-10 transition-colors duration-200 cursor-pointer flex items-center justify-center gap-1.5 ${
                   formType === 'expense'
@@ -2339,6 +2447,9 @@ export default function FinancePage() {
                 onClick={() => {
                   setFormType('income');
                   if (!editingEventId) setSelectedCategory(null);
+                  setIsAddingCategory(false);
+                  setNewCategoryName('');
+                  setCategoryNotice(null);
                 }}
                 className={`flex-1 py-2 rounded-xl text-xs font-bold relative z-10 transition-colors duration-200 cursor-pointer flex items-center justify-center gap-1.5 ${
                   formType === 'income'
@@ -2354,6 +2465,9 @@ export default function FinancePage() {
                 onClick={() => {
                   setFormType('transfer');
                   if (!editingEventId) setSelectedCategory(null);
+                  setIsAddingCategory(false);
+                  setNewCategoryName('');
+                  setCategoryNotice(null);
                 }}
                 className={`flex-1 py-2 rounded-xl text-xs font-bold relative z-10 transition-colors duration-200 cursor-pointer flex items-center justify-center gap-1.5 ${
                   formType === 'transfer'
@@ -2458,24 +2572,126 @@ export default function FinancePage() {
               {/* Category Pills (Non-transfer) */}
               {formType !== 'transfer' && (
                 <div>
-                  <label className="text-xs font-bold text-stone-700 uppercase tracking-wider mb-1 block">
-                    Category
-                  </label>
-                  <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-1.5 bg-stone-50 rounded-2xl border border-stone-200">
-                    {(formType === 'expense' ? expenseCategories : incomeCategories).map((cat) => (
-                      <button
-                        key={cat}
-                        type="button"
-                        onClick={() => setSelectedCategory(cat)}
-                        className={`px-3 py-1 rounded-full text-xs font-bold transition cursor-pointer ${
-                          selectedCategory === cat
-                            ? 'bg-stone-900 text-white shadow-2xs'
-                            : 'bg-white text-stone-700 border border-stone-200 hover:bg-stone-100'
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-bold text-stone-700 uppercase tracking-wider block">
+                      Category
+                    </label>
+                    {categoryNotice && (
+                      <span
+                        className={`text-[11px] font-bold transition-all ${
+                          categoryNotice.type === 'error' ? 'text-rose-600' : 'text-emerald-600'
                         }`}
                       >
-                        {cat}
+                        {categoryNotice.message}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto p-1.5 bg-stone-50 rounded-2xl border border-stone-200">
+                    {activeCategories.map((cat) => {
+                      const isDefault = isDefaultCategory(cat, formType);
+                      const isSelected = selectedCategory === cat;
+                      return (
+                        <div
+                          key={cat}
+                          className={`inline-flex items-center rounded-full text-xs font-bold transition ${
+                            isSelected
+                              ? 'bg-stone-900 text-white shadow-2xs'
+                              : 'bg-white text-stone-700 border border-stone-200 hover:bg-stone-100'
+                          }`}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedCategory(cat);
+                              setFormError(null);
+                              setCategoryNotice(null);
+                            }}
+                            className="px-3 py-1 cursor-pointer truncate max-w-[160px]"
+                          >
+                            {cat}
+                          </button>
+                          {!isDefault && (
+                            <button
+                              type="button"
+                              title={`Delete category "${cat}"`}
+                              aria-label={`Delete category ${cat}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteCategory(cat);
+                              }}
+                              className={`mr-1.5 p-0.5 rounded-full transition cursor-pointer ${
+                                isSelected
+                                  ? 'hover:bg-stone-800 text-stone-400 hover:text-white'
+                                  : 'hover:bg-stone-200 text-stone-400 hover:text-rose-600'
+                              }`}
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+
+                    {/* Inline Add Category or "+ Add" Button */}
+                    {isAddingCategory ? (
+                      <div className="inline-flex items-center gap-1 bg-white border border-stone-300 rounded-full px-2 py-0.5 shadow-xs">
+                        <input
+                          autoFocus
+                          type="text"
+                          maxLength={30}
+                          value={newCategoryName}
+                          onChange={(e) => setNewCategoryName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleCreateCategory();
+                            } else if (e.key === 'Escape') {
+                              e.preventDefault();
+                              setIsAddingCategory(false);
+                              setNewCategoryName('');
+                              setCategoryNotice(null);
+                            }
+                          }}
+                          placeholder="New category..."
+                          className="px-1.5 py-0.5 text-xs text-stone-900 placeholder:text-stone-400 outline-none w-28 bg-transparent font-medium"
+                        />
+                        <button
+                          type="button"
+                          title="Save category"
+                          aria-label="Save category"
+                          onClick={handleCreateCategory}
+                          className="p-1 rounded-full bg-stone-900 text-white hover:bg-stone-800 transition cursor-pointer"
+                        >
+                          <Check className="w-3 h-3 stroke-[2.5]" />
+                        </button>
+                        <button
+                          type="button"
+                          title="Cancel"
+                          aria-label="Cancel"
+                          onClick={() => {
+                            setIsAddingCategory(false);
+                            setNewCategoryName('');
+                            setCategoryNotice(null);
+                          }}
+                          className="p-1 rounded-full text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition cursor-pointer"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsAddingCategory(true);
+                          setNewCategoryName('');
+                          setCategoryNotice(null);
+                        }}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold text-stone-600 bg-stone-100 border border-dashed border-stone-300 hover:bg-stone-200 hover:text-stone-900 transition cursor-pointer active:scale-95"
+                      >
+                        <Plus className="w-3 h-3" />
+                        <span>Add</span>
                       </button>
-                    ))}
+                    )}
                   </div>
                 </div>
               )}

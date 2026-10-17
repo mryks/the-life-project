@@ -3,7 +3,7 @@
 ## Overall Status: STABLE PRODUCTION (OFFICIALLY GO-LIVE 🚀)
 - **Live Production URL:** [https://the-life-project-os.vercel.app/finance](https://the-life-project-os.vercel.app/finance)
 - **Backend Database:** Supabase PostgreSQL (`peydzblrtfgdoaisljkm.supabase.co`)
-- **Automated Test Suite:** 20 test suites, **339/339 tests passing (100%)**
+- **Automated Test Suite:** 21 test suites, **363/363 tests passing (100%)**
 - **Code Quality:** 0 ESLint errors, 0 TypeScript errors (`npx tsc --noEmit`)
 - **Session Boundary:** Permanently assigned as **Finance Domain Specialist**. All non-finance life domains (Habits, Journal, Tasks) are developed in separate dedicated chat sessions.
 
@@ -139,6 +139,17 @@
 - **Pure 1.0 Geometric Stability**: Locked card and table row scale to strictly 1.0 across press, hold, and drag.
 - **Visual Distinction via Borders & Shadow**: The active held card now solely displays the green dashed border (`border-2 border-dashed border-emerald-500`) and elevated drop shadow (`shadow-xl z-40 bg-white relative`) with zero dimensional warping.
 - **Verification**: 339/339 tests passing, 0 TypeScript errors, 0 ESLint warnings.
+
+### 21. Custom Categories for Income & Expense with Quick Inline Add & Unused Deletion (Option A)
+- **Dynamic Category Architecture (`lib/categories.ts`)**: Built a robust category registry supporting default categories and user custom categories stored in `thelife-custom-categories` (localStorage).
+- **Open Union Types (`lib/types.ts`)**: Upgraded `ExpenseCategory` and `IncomeCategory` to `Default*Category | (string & {})` for autocomplete with dynamic string support.
+- **Option A UI/UX (`app/finance/page.tsx`)**:
+  * Quick inline `+ Add` category pill transforms into a sleek input with `Check` and `X` buttons.
+  * Supports `Enter` to commit, `Escape` to cancel, with instant auto-selection of newly added category and haptic feedback.
+  * Subtle `X` delete button on non-default custom category pills.
+  * Unused categories can be deleted cleanly; categories currently used by transactions are protected from deletion to preserve financial integrity.
+- **Deterministic Statistics & Pie Chart**: Dynamically gathers active categories and ensures `categoryTotals` and `pieData` calculate without `NaN`.
+- **Comprehensive Testing**: Authored 24 unit tests in `tests/finance/categories.test.ts` verifying all invariants, duplicate rejection, and sync persistence. All 363 tests passing across 21 test suites.
 
 ---
 
