@@ -6,6 +6,29 @@
 
 ## 📜 Sprint & Evolution Log
 
+### Langkah 37: Elimination of Unrequested Bounce/Squishy Scale on Transaction Hold
+- **User Directive**:
+  - *"sudah baik, tapi saat saya hold ada efek bounce/squiishy sedikit. kenapa bisa begitu ya? saya tidak ada pernah minta"* (It's good now, but when held there is a slight bounce/squishy effect. Why is that? I never asked for that).
+- **Root Cause Diagnosis**:
+  - In Langkah 36, an unrequested `scale-[0.98]` tactile press was added on pointerdown, and when the hold timer fired (50ms desktop / 150ms mobile), it scaled up to `scale-[1.02]`.
+  - The rapid transition from 0.98 to 1.02 with CSS transition created a rubbery, squishy "bounce" motion.
+  - The user explicitly never requested scale distortion or bounce on hold.
+- **Architecture & Implementation (`app/finance/page.tsx` & `hooks/useTransactionReorder.ts`)**:
+  1. **Strict 1.0 Scale Lock**:
+     - Removed `isEventPressed`, `scale-[0.98]`, `scale-[1.02]`, `transition-transform`, and `active:scale-[0.98]` from both Card View and Ledger View.
+     - Transactions remain locked at physical scale 1.0 throughout press, hold, and drag.
+  2. **Direct GPU Translation without Scaling**:
+     - Updated all `el.style.transform` assignments in `hooks/useTransactionReorder.ts` to pure coordinate translation: `translate3d(0, ${translateY}px, 0)` with no `scale(1.02)`.
+  3. **Visual Activation Clarity**:
+     - Active held card is exclusively signaled by the user-requested green dashed border (`border-2 border-dashed border-emerald-500`) and elevation drop shadow (`shadow-xl z-40 bg-white relative`).
+  4. **Performance Optimization**:
+     - Removed `pressingEventId` React state and `isEventPressed` callback from `useTransactionReorder`, eliminating unnecessary React re-renders on pointerdown.
+- **Verification**:
+  - 20 test suites, **339/339 tests passing (100%)**.
+  - TypeScript: 0 errors (`npx tsc --noEmit`).
+  - ESLint: 0 errors, 0 warnings (`npm run lint`).
+  - Production build (`npm run build`): 100% green.
+
 ### Langkah 36: Reorder Speed & 120fps Drag Performance Overhaul
 - **User Directive**:
   - Hold duration felt too long; speed up the time required to initiate transaction dragging.

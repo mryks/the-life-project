@@ -174,7 +174,6 @@ export function useTransactionReorder({
 }: UseTransactionReorderOptions) {
   const [isDragging, setIsDragging] = useState(false);
   const [activeUnitId, setActiveUnitId] = useState<string | null>(null);
-  const [pressingEventId, setPressingEventId] = useState<string | null>(null);
   const [provisionalEvents, setProvisionalEvents] = useState<FinancialEvent[]>(events);
 
   const isDraggingRef = useRef(false);
@@ -222,10 +221,6 @@ export function useTransactionReorder({
   }, [activeUnitId]);
 
   useEffect(() => {
-    pressingEventIdRef.current = pressingEventId;
-  }, [pressingEventId]);
-
-  useEffect(() => {
     if (!isDraggingRef.current) {
       setProvisionalEvents(events);
       provisionalEventsRef.current = events;
@@ -252,7 +247,6 @@ export function useTransactionReorder({
   const resetDragState = useCallback(() => {
     cancelHoldTimer();
     stopAutoScroll();
-    setPressingEventId(null);
     pressingEventIdRef.current = null;
     setIsDragging(false);
     isDraggingRef.current = false;
@@ -329,7 +323,7 @@ export function useTransactionReorder({
     ) as HTMLElement[];
 
     activeElementsRef.current.forEach((el) => {
-      el.style.transform = "translate3d(0, 0px, 0) scale(1.02)";
+      el.style.transform = "translate3d(0, 0px, 0)";
       el.style.willChange = "transform";
     });
   }, []);
@@ -346,7 +340,7 @@ export function useTransactionReorder({
     // Real-time zero-latency GPU transform on the held card
     if (activeElementsRef.current.length > 0) {
       activeElementsRef.current.forEach((el) => {
-        el.style.transform = `translate3d(0, ${translateY}px, 0) scale(1.02)`;
+        el.style.transform = `translate3d(0, ${translateY}px, 0)`;
       });
     }
 
@@ -421,7 +415,7 @@ export function useTransactionReorder({
       const desiredCardTop = pointerPageY - pointerOffsetYRef.current;
       const translateY = desiredCardTop - currentSlotTopRef.current;
       activeElementsRef.current.forEach((el) => {
-        el.style.transform = `translate3d(0, ${translateY}px, 0) scale(1.02)`;
+        el.style.transform = `translate3d(0, ${translateY}px, 0)`;
         el.style.willChange = "transform";
       });
     }
@@ -478,7 +472,6 @@ export function useTransactionReorder({
       if (!unit) return;
 
       suppressClickRef.current = true;
-      setPressingEventId(null);
       pressingEventIdRef.current = null;
       baseEventsRef.current = events;
       provisionalEventsRef.current = events;
@@ -526,7 +519,6 @@ export function useTransactionReorder({
       lastPointerPosRef.current = { clientX, clientY };
       pointerTypeRef.current = isTouch ? "touch" : "mouse";
       suppressClickRef.current = false;
-      setPressingEventId(eventId);
       pressingEventIdRef.current = eventId;
 
       const delay = isTouch ? TOUCH_HOLD_DELAY_MS : MOUSE_HOLD_DELAY_MS;
@@ -622,7 +614,6 @@ export function useTransactionReorder({
         const dist = Math.hypot(touch.clientX - startPosRef.current.x, touch.clientY - startPosRef.current.y);
         if (dist > TOUCH_MOVE_CANCEL_PX) {
           cancelHoldTimer();
-          setPressingEventId(null);
           pressingEventIdRef.current = null;
         } else {
           if (e.cancelable) e.preventDefault();
@@ -677,16 +668,6 @@ export function useTransactionReorder({
     [activeUnitId, isDragging]
   );
 
-  const isEventPressed = useCallback(
-    (eventId: string): boolean => {
-      if (isDragging || !pressingEventId) return false;
-      const currentUnits = getAtomicReorderUnits(events);
-      const pressingUnit = currentUnits.find((u) => u.events.some((e) => e.id === eventId));
-      return Boolean(pressingUnit?.events.some((e) => e.id === eventId));
-    },
-    [events, isDragging, pressingEventId]
-  );
-
   const getItemProps = useCallback(
     (eventId: string) => {
       const unit = units.find((u) => u.events.some((e) => e.id === eventId));
@@ -715,7 +696,6 @@ export function useTransactionReorder({
     activeUnitId,
     provisionalEvents,
     isEventActive,
-    isEventPressed,
     getItemProps,
   };
 }

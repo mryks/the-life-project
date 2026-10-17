@@ -134,6 +134,11 @@
 - **Direct GPU-Accelerated Translation**: The active held card is translated directly in real-time (`translate3d(0, ${translateY}px, 0)`) following the pointer with zero latency, while siblings smoothly glide into new slots via Apple Critically Damped spring (`layout={!isActive}`).
 - **State Debouncing**: Dispatches `setProvisionalEvents` ONLY when the hover target slot actually changes, cutting React re-renders from ~120/sec to 1 render per slot crossing.
 - **Expanded Test Suite**: Added 22 tests in `tests/finance/live-reorder.test.ts` (50 total tests in suite, 339/339 tests passing across 20 suites).
+### 20. Elimination of Unrequested Bounce/Squishy Scale from Transaction Hold (Langkah 37)
+- **Root Cause Elimination**: Removed unrequested `scale-[0.98]` tactile press and `scale-[1.02]` lift expansion that created rubbery shrink-then-expand bounce when holding cards.
+- **Pure 1.0 Geometric Stability**: Locked card and table row scale to strictly 1.0 across press, hold, and drag.
+- **Visual Distinction via Borders & Shadow**: The active held card now solely displays the green dashed border (`border-2 border-dashed border-emerald-500`) and elevated drop shadow (`shadow-xl z-40 bg-white relative`) with zero dimensional warping.
+- **Verification**: 339/339 tests passing, 0 TypeScript errors, 0 ESLint warnings.
 
 ---
 
