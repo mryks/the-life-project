@@ -6,6 +6,33 @@
 
 ## 📜 Sprint & Evolution Log
 
+### Langkah 40: "Trust this device (Stay unlocked)" Persistent Device Authorization
+- **User Directive**:
+  - Keep the app unlocked even when killed from RAM / app switcher on mobile, while still maintaining full security and temporary session behavior when accessing from other borrowed devices.
+- **Architecture & Implementation**:
+  1. **Persistent Device Authorization (`lib/security.ts`)**:
+     - Added `DEVICE_TRUSTED` key (`thelife-device-trusted`) in `localStorage`.
+     - `unlockSession(trustDevice)`: when `trustDevice` is true, persists the trusted state in `localStorage` alongside `sessionStorage`.
+     - `isSessionUnlocked()`: if device is trusted, returns `true` immediately—bypassing 15-minute idle auto-locks and surviving process kills, browser closes, and reboots.
+     - Temporary sessions (`trustDevice = false`): session exists strictly in `sessionStorage` and automatically locks on tab close / process kill or after 15 minutes of inactivity.
+     - Manual lock revocation: clicking the header Lock button calls `lockSession()`, which explicitly purges `thelife-device-trusted` and locks the vault.
+  2. **Tactile Lockscreen UI (`components/finance/MasterPinLockscreen.tsx`)**:
+     - Added a clean, tactile toggle button with Lucide `Check` icon: `"Trust this device (stay unlocked)"`.
+     - Defaults to checked (`true`) for frictionless personal smartphone experience.
+     - Passing `trustDevice` state to `verifyMasterPin(pin, trustDevice)`.
+  3. **Quality & Test Verification (`tests/finance/security.test.ts`)**:
+     - Added unit test assertions verifying:
+       * Persistent unlocked state across session wipes for trusted devices.
+       * Exemption from 15-minute idle timeout on trusted devices.
+       * Immediate locking and timeout on temporary devices.
+       * Manual lock clearing both temporary and trusted flags.
+       * Rejection of trust state on invalid PIN.
+- **Verification**:
+  - All 21 test suites passing: **376/376 tests passing (100%)**.
+  - TypeScript: 0 errors (`npx tsc --noEmit`).
+  - ESLint: 0 errors, 0 warnings (`npm run lint`).
+  - Production build (`npm run build`): 100% green.
+
 ### Langkah 39: Complete Removal of Fingerprint / WebAuthn Biometrics in Favor of Pure, Fast Master PIN (Option 1)
 - **User Directive**:
   - *"saya ingin fingerprint untuk akses masuk dibuat lebih cepat bisa? saya merasa justru lebih cepat kalo ketik pin deh. menurut anda gimana? apa hapus aja fingerprintnya?"* $\to$ Selected **Option 1**: Completely remove fingerprint/WebAuthn biometrics in favor of pure Master PIN access.

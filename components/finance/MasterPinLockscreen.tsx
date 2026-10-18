@@ -6,7 +6,7 @@ import {
   verifyMasterPin, 
   PIN_LENGTH 
 } from "@/lib/security";
-import { Delete, ShieldCheck, AlertCircle, Lock, Loader2 } from "lucide-react";
+import { Delete, ShieldCheck, AlertCircle, Lock, Loader2, Check } from "lucide-react";
 
 interface MasterPinLockscreenProps {
   onUnlocked: () => void;
@@ -18,6 +18,7 @@ export default function MasterPinLockscreen({ onUnlocked }: MasterPinLockscreenP
   const [isShaking, setIsShaking] = useState(false);
   const [lockoutSecs, setLockoutSecs] = useState<number>(0);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [trustDevice, setTrustDevice] = useState(true);
 
   // Lockout countdown timer
   useEffect(() => {
@@ -90,7 +91,7 @@ export default function MasterPinLockscreen({ onUnlocked }: MasterPinLockscreenP
     const evaluate = async () => {
       setIsVerifying(true);
       try {
-        const result = await verifyMasterPin(pin);
+        const result = await verifyMasterPin(pin, trustDevice);
         if (result.success) {
           triggerHaptic(20);
           onUnlocked();
@@ -108,7 +109,7 @@ export default function MasterPinLockscreen({ onUnlocked }: MasterPinLockscreenP
     };
 
     evaluate();
-  }, [pin, isVerifying, lockoutSecs, onUnlocked, triggerErrorShake]);
+  }, [pin, trustDevice, isVerifying, lockoutSecs, onUnlocked, triggerErrorShake]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/50 backdrop-blur-xl backdrop-saturate-150 animate-in fade-in duration-200">
@@ -169,6 +170,25 @@ export default function MasterPinLockscreen({ onUnlocked }: MasterPinLockscreenP
             <span>{errorMsg}</span>
           </div>
         ) : null}
+
+        {/* Trust this device toggle button */}
+        <div className="flex justify-center mb-5">
+          <button
+            type="button"
+            onClick={() => setTrustDevice((prev) => !prev)}
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold cursor-pointer select-none transition-all duration-150 border border-stone-200/90 bg-stone-50 hover:bg-stone-100 text-stone-700 active:scale-95 shadow-2xs"
+            title="Keep this device unlocked even after closing the app"
+          >
+            <div className={`w-4 h-4 rounded-md flex items-center justify-center border transition-colors ${
+              trustDevice 
+                ? 'bg-stone-900 border-stone-900 text-white' 
+                : 'bg-white border-stone-300 text-transparent'
+            }`}>
+              <Check className="w-3 h-3 stroke-[3]" />
+            </div>
+            <span className="text-[11px] font-bold text-stone-700">Trust this device (stay unlocked)</span>
+          </button>
+        </div>
 
         {/* Tactile Keypad (3x4 Grid) with zero touch delay */}
         <div className="grid grid-cols-3 gap-2.5 max-w-[280px] mx-auto select-none touch-manipulation">

@@ -7,6 +7,7 @@ import {
   setupMasterPin,
   verifyMasterPin,
   isSessionUnlocked,
+  isDeviceTrusted,
   unlockSession,
   lockSession,
   touchActivity,
@@ -236,4 +237,141 @@ describe('Security & Master PIN Architecture', () => {
       expect(isSessionUnlocked()).toBe(true);
     });
   });
+
+  describe('Trust this device (Stay unlocked) Architecture & Invariants', () => {
+    it('trustDevice = true: sets trusted device in localStorage and isDeviceTrusted() returns true', async () => {
+      await setupMasterPin('123456');
+      lockSession();
+
+      expect(isDeviceTrusted()).toBe(false);
+      expect(isSessionUnlocked()).toBe(false);
+
+      unlockSession(true);
+
+      expect(isDeviceTrusted()).toBe(true);
+      expect(mockLocalStorage.getItem(SECURITY_STORAGE_KEYS.DEVICE_TRUSTED)).toBe('true');
+      expect(isSessionUnlocked()).toBe(true);
+    });
+
+    it('trustDevice = true: remains unlocked even when sessionStorage is cleared (simulating app kill / browser close / fresh session)', async () => {
+      await setupMasterPin('123456');
+      lockSession();
+
+      const verification = await verifyMasterPin('123456', true);
+      expect(verification.success).toBe(true);
+      expect(isDeviceTrusted()).toBe(true);
+      expect(isSessionUnlocked()).toBe(true);
+
+      // Simulate app kill / tab close / fresh browser launch (clearing sessionStorage)
+      mockSessionStorage.clear();
+      expect(mockSessionStorage.getItem(SECURITY_STORAGE_KEYS.SESSION_UNLOCKED)).toBeNull();
+
+      // Because device is trusted, isSessionUnlocked() STILL returns true!
+      expect(isSessionUnlocked()).toBe(true);
+      expect(isDeviceTrusted()).toBe(true);
+    });
+
+    it('trustDevice = true: is NOT auto-locked by 15-minute idle timeout', async () => {
+      await setupMasterPin('123456');
+      lockSession();
+
+      unlockSession(true);
+      expect(isSessionUnlocked()).toBe(true);
+      expect(isDeviceTrusted()).toBe(true);
+
+      // Advance time by 1 hour (far beyond the 15-minute idle timeout)
+      const expiredTime = Date.now() - (IDLE_TIMEOUT_MS * 4);
+      mockLocalStorage.setItem(SECURITY_STORAGE_KEYS.LAST_ACTIVITY, expiredTime.toString());
+
+      // Trusted device stays unlocked indefinitely without idle auto-lock
+      expect(isSessionUnlocked()).toBe(true);
+      expect(isDeviceTrusted()).toBe(true);
+    });
+
+    it('trustDevice = false (temporary session): isDeviceTrusted() returns false', async () => {
+      await setupMasterPin('123456');
+      lockSession();
+
+      unlockSession(false);
+
+      expect(isDeviceTrusted()).toBe(false);
+      expect(mockLocalStorage.getItem(SECURITY_STORAGE_KEYS.DEVICE_TRUSTED)).toBeNull();
+      expect(isSessionUnlocked()).toBe(true);
+      expect(mockSessionStorage.getItem(SECURITY_STORAGE_KEYS.SESSION_UNLOCKED)).toBe('true');
+    });
+
+    it('trustDevice = false (temporary session): isSessionUnlocked() is true while sessionStorage has the session', async () => {
+      await setupMasterPin('123456');
+      lockSession();
+
+      const res = await verifyMasterPin('123456', false);
+      expect(res.success).toBe(true);
+      expect(isDeviceTrusted()).toBe(false);
+      expect(isSessionUnlocked()).toBe(true);
+    });
+
+    it('trustDevice = false (temporary session): auto-locks when sessionStorage is cleared (simulating tab/app close)', async () => {
+      await setupMasterPin('123456');
+      lockSession();
+
+      const res = await verifyMasterPin('123456', false);
+      expect(res.success).toBe(true);
+      expect(isDeviceTrusted()).toBe(false);
+      expect(isSessionUnlocked()).toBe(true);
+
+      // Simulate tab/app close (clearing sessionStorage)
+      mockSessionStorage.clear();
+
+      // Temporary session without trusted device must be locked
+      expect(isSessionUnlocked()).toBe(false);
+    });
+
+    it('trustDevice = false (temporary session): 15-minute idle timeout auto-locks temporary sessions', async () => {
+      await setupMasterPin('123456');
+      lockSession();
+
+      unlockSession(false);
+      expect(isSessionUnlocked()).toBe(true);
+
+      // Advance time by 15 minutes and 1 second
+      const expiredTime = Date.now() - (IDLE_TIMEOUT_MS + 1000);
+      mockLocalStorage.setItem(SECURITY_STORAGE_KEYS.LAST_ACTIVITY, expiredTime.toString());
+
+      // Temporary session must expire and auto-lock
+      expect(isSessionUnlocked()).toBe(false);
+    });
+
+    it('manual lockSession(): clears both temporary session AND trusted device state', async () => {
+      await setupMasterPin('123456');
+
+      // First unlock with trustDevice = true
+      unlockSession(true);
+      expect(isDeviceTrusted()).toBe(true);
+      expect(isSessionUnlocked()).toBe(true);
+
+      // Explicitly lock
+      lockSession();
+
+      // Both trusted status and session unlock must be revoked
+      expect(isDeviceTrusted()).toBe(false);
+      expect(mockLocalStorage.getItem(SECURITY_STORAGE_KEYS.DEVICE_TRUSTED)).toBeNull();
+      expect(isSessionUnlocked()).toBe(false);
+      expect(mockSessionStorage.getItem(SECURITY_STORAGE_KEYS.SESSION_UNLOCKED)).toBeNull();
+    });
+
+    it('invalid PIN does not trust the device or unlock session', async () => {
+      await setupMasterPin('123456');
+      lockSession();
+
+      // Attempt to verify with invalid PIN while requesting trustDevice = true
+      const wrongResult = await verifyMasterPin('999999', true);
+      expect(wrongResult.success).toBe(false);
+
+      // Device must NOT be trusted, session must remain locked
+      expect(isDeviceTrusted()).toBe(false);
+      expect(mockLocalStorage.getItem(SECURITY_STORAGE_KEYS.DEVICE_TRUSTED)).toBeNull();
+      expect(isSessionUnlocked()).toBe(false);
+    });
+  });
 });
+

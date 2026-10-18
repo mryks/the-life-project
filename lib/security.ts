@@ -24,6 +24,7 @@ export const SECURITY_STORAGE_KEYS = {
   LAST_ACTIVITY: 'thelife-last-activity',
   FAILED_ATTEMPTS: 'thelife-failed-attempts',
   LOCKOUT_UNTIL: 'thelife-lockout-until',
+  DEVICE_TRUSTED: 'thelife-device-trusted',
 } as const;
 
 /**
@@ -201,7 +202,7 @@ export interface VerifyPinResult {
 /**
  * Verify an entered PIN against server-side Master PIN or local stored salt/hash
  */
-export async function verifyMasterPin(enteredPin: string): Promise<VerifyPinResult> {
+export async function verifyMasterPin(enteredPin: string, trustDevice = false): Promise<VerifyPinResult> {
   if (typeof window === 'undefined') {
     return { success: false, error: 'Storage unavailable' };
   }
@@ -241,7 +242,7 @@ export async function verifyMasterPin(enteredPin: string): Promise<VerifyPinResu
           window.localStorage.setItem(SECURITY_STORAGE_KEYS.PIN_SALT, data.salt);
           window.localStorage.setItem(SECURITY_STORAGE_KEYS.PIN_HASH, data.hash);
         }
-        unlockSession();
+        unlockSession(trustDevice);
         return { success: true };
       }
     } else {
@@ -283,7 +284,7 @@ export async function verifyMasterPin(enteredPin: string): Promise<VerifyPinResu
     // Successful unlock: reset failure counter & unlock
     window.localStorage.removeItem(SECURITY_STORAGE_KEYS.FAILED_ATTEMPTS);
     window.localStorage.removeItem(SECURITY_STORAGE_KEYS.LOCKOUT_UNTIL);
-    unlockSession();
+    unlockSession(trustDevice);
     syncVaultSecurityToCloud().catch(() => {});
     return { success: true };
   }
@@ -311,8 +312,20 @@ export async function verifyMasterPin(enteredPin: string): Promise<VerifyPinResu
 }
 
 /**
+ * Check whether current device has been marked as trusted (stay unlocked)
+ */
+export function isDeviceTrusted(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return window.localStorage.getItem(SECURITY_STORAGE_KEYS.DEVICE_TRUSTED) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Check if the application session is currently unlocked
- * (Session storage checks for tab close, plus 15-minute idle timeout check)
+ * (Persistent trusted device check, or temporary session check with 15-minute idle timeout)
  */
 export function isSessionUnlocked(): boolean {
   if (typeof window === 'undefined') return false;
@@ -321,6 +334,14 @@ export function isSessionUnlocked(): boolean {
   if (!isMasterPinSet()) return true;
 
   try {
+    // Check if device is trusted: persistent trusted device access
+    // Remains unlocked across app kills, tab closes, and phone restarts, without 15-minute idle auto-lock
+    const isTrusted = window.localStorage.getItem(SECURITY_STORAGE_KEYS.DEVICE_TRUSTED) === 'true';
+    if (isTrusted) {
+      return true;
+    }
+
+    // If NOT trusted (temporary session):
     const isUnlockedInSession = window.sessionStorage.getItem(SECURITY_STORAGE_KEYS.SESSION_UNLOCKED) === 'true';
     if (!isUnlockedInSession) return false;
 
@@ -342,11 +363,17 @@ export function isSessionUnlocked(): boolean {
 }
 
 /**
- * Mark session as unlocked and record current activity timestamp
+ * Mark session as unlocked and record current activity timestamp.
+ * If trustDevice is true, persists trusted status in localStorage to stay unlocked across app restarts.
  */
-export function unlockSession(): void {
+export function unlockSession(trustDevice = false): void {
   if (typeof window === 'undefined') return;
   try {
+    if (trustDevice) {
+      window.localStorage.setItem(SECURITY_STORAGE_KEYS.DEVICE_TRUSTED, 'true');
+    } else {
+      window.localStorage.removeItem(SECURITY_STORAGE_KEYS.DEVICE_TRUSTED);
+    }
     window.sessionStorage.setItem(SECURITY_STORAGE_KEYS.SESSION_UNLOCKED, 'true');
     window.localStorage.setItem(SECURITY_STORAGE_KEYS.LAST_ACTIVITY, Date.now().toString());
     dispatchSecurityChange();
@@ -356,13 +383,14 @@ export function unlockSession(): void {
 }
 
 /**
- * Explicitly lock the session
+ * Explicitly lock the session and revoke trusted device persistence
  */
 export function lockSession(): void {
   if (typeof window === 'undefined') return;
   try {
     window.sessionStorage.removeItem(SECURITY_STORAGE_KEYS.SESSION_UNLOCKED);
     window.localStorage.removeItem(SECURITY_STORAGE_KEYS.LAST_ACTIVITY);
+    window.localStorage.removeItem(SECURITY_STORAGE_KEYS.DEVICE_TRUSTED);
     dispatchSecurityChange();
   } catch {
     // Safe fallback

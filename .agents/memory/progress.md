@@ -3,7 +3,7 @@
 ## Overall Status: STABLE PRODUCTION (OFFICIALLY GO-LIVE 🚀)
 - **Live Production URL:** [https://the-life-project-os.vercel.app/finance](https://the-life-project-os.vercel.app/finance)
 - **Backend Database:** Supabase PostgreSQL (`peydzblrtfgdoaisljkm.supabase.co`)
-- **Automated Test Suite:** 21 test suites, **367/367 tests passing (100%)**
+- **Automated Test Suite:** 21 test suites, **381/381 tests passing (100%)**
 - **Code Quality:** 0 ESLint errors, 0 TypeScript errors (`npx tsc --noEmit`)
 - **Session Boundary:** Permanently assigned as **Finance Domain Specialist**. All non-finance life domains (Habits, Journal, Tasks) are developed in separate dedicated chat sessions.
 
@@ -156,6 +156,13 @@
 - **Pure Keypad Alignment**: Digit `"0"` is centered in the 3x4 tactile keypad with empty slot on left and Backspace on right.
 - **Legacy Storage Auto-Purge (`lib/security.ts`)**: Auto-cleans legacy `thelife-biometric-enabled` and `thelife-webauthn-id` keys from `localStorage`.
 - **Comprehensive Security Testing (`tests/finance/security.test.ts`)**: Expanded to 17 unit tests verifying deterministic PIN verification, brute-force lockout, idle auto-lock, and legacy key isolation. All 367 tests passing across 21 test suites.
+
+### 23. "Trust this device (Stay unlocked)" Persistent Device Authorization
+- **Persistent Device Trust Architecture (`lib/security.ts`)**: Added `thelife-device-trusted` key in `localStorage`. When enabled, personal devices stay unlocked permanently across app process kills, browser restarts, and reboots, bypassing the 15-minute idle timeout.
+- **Temporary Session Security**: When unselected (for borrowed or temporary devices), session lives strictly in `sessionStorage` and automatically locks upon closing the tab/killing the app or after 15 minutes of inactivity.
+- **Tactile UI Control (`MasterPinLockscreen.tsx`)**: Clean checkbox toggle ("Trust this device (stay unlocked)") with vector `Check` icon, defaulting to true for friction-free personal smartphone usage.
+- **Manual Revocation**: Explicit manual lock via header button immediately purges `thelife-device-trusted` and locks the vault.
+- **Expanded Verification**: 9 new unit tests in `tests/finance/security.test.ts` verifying persistent vs temporary sessions, timeout behavior, and manual revocation. All 376/376 tests passing.
 
 ---
 
