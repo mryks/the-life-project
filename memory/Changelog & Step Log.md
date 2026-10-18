@@ -6,6 +6,22 @@
 
 ## 📜 Sprint & Evolution Log
 
+### Langkah 42: Ledger Table Month Separator Redesign (Option 4: Deep Slate Blue Bar)
+- **User Directive**:
+  - *"sekarang saya mau di table ledger, tulisan nama bulan itu pakai align center, bukan align left. selain itu saya maunya dibold diganti warnanya biar keliatan itu pembatas, silakan beri rekomendasi nanti saya tentukan"* $\to$ Selected **Option 4: Deep Slate Blue Bar**.
+- **Architecture & Implementation (`app/finance/page.tsx`)**:
+  - Upgraded ledger month divider row from pale `bg-amber-50/70 text-left` to authoritative Deep Slate Blue bar:
+    * Row styling: `className="bg-slate-800 text-slate-100 border-y border-slate-900 shadow-inner"`
+    * Cell styling: `className="px-4 py-2.5 text-center uppercase tracking-widest font-black text-xs"`
+  - Enforced center alignment (`text-center`) across all 6 table columns.
+  - Applied ultra-bold typography (`font-black`) with letter spacing (`tracking-widest`).
+  - Dark slate tone cleanly separates monthly transaction blocks without clashing with transaction semantic colors (green income, red expense, blue transfer, purple refund).
+- **Verification**:
+  - All 21 test suites passing: **381/381 tests passing (100%)**.
+  - TypeScript: 0 errors (`npx tsc --noEmit`).
+  - ESLint: 0 errors, 0 warnings (`npm run lint`).
+  - Production build: green (`npm run build`).
+
 ### Langkah 41: 1-Day "Trust This Device" with Day-Change Expiry & Default Unchecked
 - **User Directive**:
   - *"tolong buat trust this device itu hanya untuk 1 hari, ganti hari harus masukin pin lagi, dan tombol trust this device jangan default checked"*

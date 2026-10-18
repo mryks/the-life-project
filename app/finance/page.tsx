@@ -2288,8 +2288,8 @@ export default function FinancePage() {
                       return (
                         <Fragment key={`${entry.eventId}-${entry.accountId}-${entry.direction}`}>
                           {showMonthHeader && (
-                            <tr key={`month-header-${currentEntryMonth}`} className="bg-amber-50/70 font-bold text-amber-950 text-xs">
-                              <td colSpan={6} className="px-4 py-2 uppercase tracking-wider">
+                            <tr key={`month-header-${currentEntryMonth}`} className="bg-slate-800 text-slate-100 border-y border-slate-900 shadow-inner">
+                              <td colSpan={6} className="px-4 py-2.5 text-center uppercase tracking-widest font-black text-xs">
                                 {formatMonthName(currentEntryMonth)}
                               </td>
                             </tr>

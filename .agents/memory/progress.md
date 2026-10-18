@@ -170,6 +170,12 @@
 - **Default Unchecked**: Checkbox starts unselected (`false`) so temporary session security is the default unless explicitly checked by the user.
 - **Complete Test Coverage**: Added 5 new unit tests in `tests/finance/security.test.ts`. 100% test pass rate across 21 test suites (**381/381 tests passing**).
 
+### 25. Ledger Table Month Separator Redesign (Option 4: Deep Slate Blue Bar)
+- **High-Contrast Ledger Separator (`app/finance/page.tsx`)**: Replaced pale `bg-amber-50/70` month divider with deep slate blue ribbon `bg-slate-800 text-slate-100 border-y border-slate-900 shadow-inner`.
+- **Center Alignment & Ultra-Bold Typography**: Spans all 6 table columns (`colSpan={6}`) with `text-center`, `font-black`, and `tracking-widest`.
+- **Zero Semantic Clashing**: Distinct slate palette separates months clearly without conflicting with transaction credit/debit/transfer color indicators.
+
+
 ---
 
 ## Finance Domain Backlog (For Future Sessions)
