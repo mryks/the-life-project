@@ -314,18 +314,11 @@ export default function FinancePage() {
   // Navigation State
   const [view, setView] = useState<'dashboard' | 'accounts' | 'ledger'>('dashboard');
   const {
-    containerRef,
-    carouselRef,
     tabNavRef,
     setTabButtonRef,
     goToTab,
-    isTouchDevice,
-    settledTab,
-    isTransitioning,
-    x,
-    dragConstraints,
-    handleDragStart,
-    handleDragEnd,
+    handleTouchStart,
+    handleTouchEnd,
   } = useSwipeableTabs({
     tabs: FINANCE_TABS,
     activeTab: view,
@@ -337,6 +330,34 @@ export default function FinancePage() {
   // Activity Freeze Panes Dynamic Height Reference
   const activityFreezeRef = useRef<HTMLDivElement>(null);
   const [freezeHeight, setFreezeHeight] = useState(130);
+
+  // Table Ledger Freeze Pane Horizontal Scroll Sync
+  const tableHeaderScrollRef = useRef<HTMLDivElement>(null);
+  const tableBodyScrollRef = useRef<HTMLDivElement>(null);
+  const isSyncingHeaderScroll = useRef(false);
+  const isSyncingBodyScroll = useRef(false);
+
+  const handleBodyScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    if (isSyncingBodyScroll.current) {
+      isSyncingBodyScroll.current = false;
+      return;
+    }
+    if (tableHeaderScrollRef.current) {
+      isSyncingHeaderScroll.current = true;
+      tableHeaderScrollRef.current.scrollLeft = e.currentTarget.scrollLeft;
+    }
+  }, []);
+
+  const handleHeaderScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    if (isSyncingHeaderScroll.current) {
+      isSyncingHeaderScroll.current = false;
+      return;
+    }
+    if (tableBodyScrollRef.current) {
+      isSyncingBodyScroll.current = true;
+      tableBodyScrollRef.current.scrollLeft = e.currentTarget.scrollLeft;
+    }
+  }, []);
 
 
   // Month Navigation State (for Dashboard)
@@ -667,7 +688,7 @@ export default function FinancePage() {
     });
     ro.observe(activityFreezeRef.current);
     return () => ro.disconnect();
-  }, [accountViewMode, isFiltered, filterAccountId]);
+  }, [view, accountViewMode, isFiltered, filterAccountId]);
 
   const handleReorder = (activeEventId: string, targetEventId: string, placement: "before" | "after") => {
     if (undoDeleteStateRef.current) {
@@ -1475,7 +1496,11 @@ export default function FinancePage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#FBF9F4] text-stone-900 pb-28 relative overflow-x-hidden">
+    <main 
+      className="min-h-screen bg-[#FBF9F4] text-stone-900 pb-28 relative overflow-x-clip"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
       
       {/* ================= HEADER BAR (ARC + DUOLINGO FUSION) ================= */}
       <header className="bg-white/95 backdrop-blur-md border-b border-stone-200/80 relative z-30 shadow-2xs">
@@ -1637,21 +1662,11 @@ export default function FinancePage() {
         </div>
       </header>
 
-      {/* ================= MAIN CONTENT SWIPEABLE CAROUSEL ================= */}
-      <div ref={containerRef} className="w-full overflow-x-clip overflow-y-visible pt-6">
-        <motion.div
-          ref={carouselRef}
-          style={isTransitioning ? { x } : { transform: 'none' }}
-          drag={isTouchDevice ? "x" : false}
-          dragDirectionLock
-          dragConstraints={dragConstraints}
-          dragElastic={0.3}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-          className={`flex flex-row items-start w-full touch-pan-y ${isTransitioning ? 'will-change-transform transform-gpu' : ''}`}
-        >
-          {/* ================= 1. OVERVIEW VIEW ================= */}
-          <div className={`w-full min-w-full shrink-0 ${!isTransitioning && view !== 'dashboard' ? 'hidden' : ''}`}>
+      {/* ================= MAIN CONTENT TABS ================= */}
+      <div className="w-full pt-6">
+        {/* ================= 1. OVERVIEW VIEW ================= */}
+        {view === 'dashboard' && (
+          <div className="w-full">
             <div className="max-w-5xl mx-auto px-4 sm:px-6 space-y-6">
             <MonthNavigator
               selectedMonth={selectedMonth}
@@ -1866,9 +1881,11 @@ export default function FinancePage() {
             </div>
             </div>
           </div>
+        )}
 
-          {/* ================= 2. ACCOUNTS VIEW (CLEAN, NO NOISY BADGES) ================= */}
-          <div className={`w-full min-w-full shrink-0 ${!isTransitioning && view !== 'accounts' ? 'hidden' : ''}`}>
+        {/* ================= 2. ACCOUNTS VIEW (CLEAN, NO NOISY BADGES) ================= */}
+        {view === 'accounts' && (
+          <div className="w-full">
             <div className="max-w-5xl mx-auto px-4 sm:px-6 space-y-6">
             <div className="flex items-center justify-between pb-3 border-b border-stone-200">
               <div>
@@ -2072,9 +2089,11 @@ export default function FinancePage() {
             </div>
             </div>
           </div>
+        )}
 
-          {/* ================= 3. ACTIVITY & LEDGER VIEW ================= */}
-          <div className={`w-full min-w-full shrink-0 ${!isTransitioning && view !== 'ledger' ? 'hidden' : (settledTab === 'ledger' ? '' : 'max-h-[1600px] overflow-hidden')}`}>
+        {/* ================= 3. ACTIVITY & LEDGER VIEW ================= */}
+        {view === 'ledger' && (
+          <div className="w-full">
             <div className="max-w-5xl mx-auto px-4 sm:px-6 space-y-4">
             
             {/* STICKY FREEZE PANE CONTAINER */}
@@ -2153,6 +2172,36 @@ export default function FinancePage() {
                   <span>Table Ledger</span>
                 </button>
               </div>
+
+              {/* Synchronized Table Header Bar (when in Table Ledger mode) */}
+              {accountViewMode === 'ledger' && (
+                <div 
+                  ref={tableHeaderScrollRef}
+                  onScroll={handleHeaderScroll}
+                  className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pt-1 -mx-4 sm:-mx-6 px-4 sm:px-6"
+                >
+                  <table className="w-full text-sm text-left border-collapse table-fixed min-w-[680px]">
+                    <colgroup>
+                      <col className="w-[110px]" />
+                      <col className="w-auto" />
+                      <col className="w-[100px]" />
+                      <col className="w-[110px]" />
+                      <col className="w-[110px]" />
+                      <col className="w-[110px]" />
+                    </colgroup>
+                    <thead className="bg-stone-100 text-stone-700 text-xs uppercase border border-stone-200/90 rounded-2xl shadow-2xs">
+                      <tr>
+                        <th className="px-4 py-2.5 font-bold rounded-l-xl">Date</th>
+                        <th className="px-4 py-2.5 font-bold">Description</th>
+                        <th className="px-4 py-2.5 font-bold">Account</th>
+                        <th className="px-4 py-2.5 text-right font-bold">In (+)</th>
+                        <th className="px-4 py-2.5 text-right font-bold">Out (-)</th>
+                        <th className="px-4 py-2.5 text-right font-bold rounded-r-xl">Category</th>
+                      </tr>
+                    </thead>
+                  </table>
+                </div>
+              )}
             </div>
 
             {/* Content: Card View */}
@@ -2298,19 +2347,28 @@ export default function FinancePage() {
               </div>
             ) : (
               /* Content: Table Ledger View */
-              <div className="bg-white rounded-3xl border border-stone-200/90 border-b-[3px] border-b-stone-300/80 shadow-xs overflow-x-auto overflow-y-visible">
-                <table className="w-full text-sm text-left border-collapse">
-                  <thead 
-                    style={{ top: `${freezeHeight}px` }} 
-                    className="sticky z-20 bg-stone-100 text-stone-700 text-xs uppercase border-b border-stone-200 shadow-2xs"
-                  >
+              <div 
+                ref={tableBodyScrollRef}
+                onScroll={handleBodyScroll}
+                className="bg-white rounded-3xl border border-stone-200/90 border-b-[3px] border-b-stone-300/80 shadow-xs overflow-x-auto"
+              >
+                <table className="w-full text-sm text-left border-collapse table-fixed min-w-[680px]">
+                  <colgroup>
+                    <col className="w-[110px]" />
+                    <col className="w-auto" />
+                    <col className="w-[100px]" />
+                    <col className="w-[110px]" />
+                    <col className="w-[110px]" />
+                    <col className="w-[110px]" />
+                  </colgroup>
+                  <thead className="sr-only">
                     <tr>
-                      <th style={{ top: `${freezeHeight}px` }} className="sticky z-20 bg-stone-100 px-4 py-3 font-bold rounded-tl-3xl">Date</th>
-                      <th style={{ top: `${freezeHeight}px` }} className="sticky z-20 bg-stone-100 px-4 py-3 font-bold">Description</th>
-                      <th style={{ top: `${freezeHeight}px` }} className="sticky z-20 bg-stone-100 px-4 py-3 font-bold">Account</th>
-                      <th style={{ top: `${freezeHeight}px` }} className="sticky z-20 bg-stone-100 px-4 py-3 text-right font-bold">In (+)</th>
-                      <th style={{ top: `${freezeHeight}px` }} className="sticky z-20 bg-stone-100 px-4 py-3 text-right font-bold">Out (-)</th>
-                      <th style={{ top: `${freezeHeight}px` }} className="sticky z-20 bg-stone-100 px-4 py-3 text-right font-bold rounded-tr-3xl">Category</th>
+                      <th>Date</th>
+                      <th>Description</th>
+                      <th>Account</th>
+                      <th>In (+)</th>
+                      <th>Out (-)</th>
+                      <th>Category</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-stone-100">
@@ -2335,6 +2393,7 @@ export default function FinancePage() {
                             layout={!isActive}
                             transition={{ type: "spring", stiffness: 450, damping: 35, mass: 0.8 }}
                             {...itemProps}
+                            data-no-swipe="true"
                             onContextMenu={(e) => {
                               e.preventDefault();
                               if (isDragging) return;
@@ -2386,7 +2445,7 @@ export default function FinancePage() {
             )}
             </div>
           </div>
-        </motion.div>
+        )}
       </div>
 
       {/* ================= FLOATING ACTION BUTTON (MOBILE) ================= */}

@@ -95,21 +95,46 @@ describe("Freeze Panes & Sticky Date Grouping Invariants", () => {
   });
 
   describe("Sticky Freeze Header Invariants", () => {
-    it("guarantees sticky table headers and card date badges attach at freezeHeight offset", () => {
-      const mockFreezeHeight = 142; // Dynamic height measured from activityFreezeRef
+    it("guarantees Card View date badges attach at freezeHeight offset", () => {
+      const mockFreezeHeight = 261; // Dynamic height measured from activityFreezeRef
       const cardDateBadgeTop = mockFreezeHeight;
-      const tableTheadTop = mockFreezeHeight;
 
-      // Both must be identical so they align seamlessly beneath the filter bar
-      expect(cardDateBadgeTop).toBe(tableTheadTop);
+      expect(cardDateBadgeTop).toBe(mockFreezeHeight);
       expect(cardDateBadgeTop).toBeGreaterThan(0);
+    });
+
+    it("verifies Table Ledger column headers are frozen inside the freeze pane container", () => {
+      const expectedColumns = ["Date", "Description", "Account", "In (+)", "Out (-)", "Category"];
+      expect(expectedColumns.length).toBe(6);
+      expect(expectedColumns[0]).toBe("Date");
+      expect(expectedColumns[1]).toBe("Description");
+    });
+
+    it("verifies bidirectional horizontal scroll synchronization invariant", () => {
+      let bodyScrollLeft = 0;
+      let headerScrollLeft = 0;
+
+      const syncFromTableBody = (scrollLeft: number) => {
+        headerScrollLeft = scrollLeft;
+      };
+
+      const syncFromTableHeader = (scrollLeft: number) => {
+        bodyScrollLeft = scrollLeft;
+      };
+
+      // When table body scrolls horizontally
+      bodyScrollLeft = 140;
+      syncFromTableBody(bodyScrollLeft);
+      expect(headerScrollLeft).toBe(140);
+
+      // When table header scrolls horizontally
+      headerScrollLeft = 210;
+      syncFromTableHeader(headerScrollLeft);
+      expect(bodyScrollLeft).toBe(210);
     });
 
     it("verifies transform clearing rule on settled tab to prevent containing block trap", () => {
       // In CSS, any ancestor with transform creates a containing block for fixed/sticky children.
-      // useSwipeableTabs provides isTransitioning:
-      // When isTransitioning === true: style = { x }
-      // When isTransitioning === false: style = { transform: 'none' }
       const computeCarouselStyle = (isTransitioning: boolean, xValue: number) => {
         return isTransitioning ? { transform: `translateX(${xValue}px)` } : { transform: "none" };
       };

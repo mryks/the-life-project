@@ -154,6 +154,47 @@ export function useSwipeableTabs<T extends string>({
     };
   }, []);
 
+  const touchStartRef = useRef<{ x: number; y: number; time: number; target: EventTarget | null } | null>(null);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length !== 1) return;
+    const touch = e.touches[0];
+    touchStartRef.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+      time: Date.now(),
+      target: e.target,
+    };
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (!touchStartRef.current || e.changedTouches.length !== 1) return;
+    const start = touchStartRef.current;
+    const touch = e.changedTouches[0];
+    const deltaX = touch.clientX - start.x;
+    const deltaY = touch.clientY - start.y;
+    const elapsed = Date.now() - start.time;
+    touchStartRef.current = null;
+
+    if (elapsed > 600) return;
+    if (Math.abs(deltaX) < 50 || Math.abs(deltaX) < Math.abs(deltaY) * 1.5) return;
+
+    const targetEl = start.target as HTMLElement | null;
+    if (targetEl && (
+      targetEl.closest('input, button, select, textarea, [data-no-swipe="true"]') ||
+      targetEl.closest('table')
+    )) {
+      return;
+    }
+
+    const currentIndex = tabs.indexOf(activeTab);
+    if (deltaX < 0 && currentIndex < tabs.length - 1) {
+      onTabChange(tabs[currentIndex + 1]);
+    } else if (deltaX > 0 && currentIndex > 0) {
+      onTabChange(tabs[currentIndex - 1]);
+    }
+  }, [activeTab, onTabChange, tabs]);
+
   const updateIndicator = useCallback(() => {}, []);
 
   return {
@@ -173,6 +214,8 @@ export function useSwipeableTabs<T extends string>({
     dragConstraints,
     handleDragStart,
     handleDragEnd,
+    handleTouchStart,
+    handleTouchEnd,
     updateIndicator,
   };
 }
