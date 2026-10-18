@@ -39,6 +39,7 @@ import {
   getAllIncomeCategories,
   readCustomCategories,
   type CustomCategoriesState,
+  groupCardEventsByDate,
 } from "@/lib/finance";
 import { useTransactionReorder } from "@/hooks/useTransactionReorder";
 import { useSwipeableTabs } from "@/hooks/useSwipeableTabs";
@@ -320,6 +321,7 @@ export default function FinancePage() {
     goToTab,
     isTouchDevice,
     settledTab,
+    isTransitioning,
     x,
     dragConstraints,
     handleDragStart,
@@ -331,6 +333,11 @@ export default function FinancePage() {
   });
   const [accountViewMode, setAccountViewMode] = useState<'card' | 'ledger'>('card');
   const [filterAccountId, setFilterAccountId] = useState<AccountId | null>(null);
+
+  // Activity Freeze Panes Dynamic Height Reference
+  const activityFreezeRef = useRef<HTMLDivElement>(null);
+  const [freezeHeight, setFreezeHeight] = useState(130);
+
 
   // Month Navigation State (for Dashboard)
   const [selectedMonth, setSelectedMonth] = useState(() => todayDate().slice(0, 7));
@@ -647,6 +654,21 @@ export default function FinancePage() {
     filterAccountId || searchQuery.trim() || typeFilter !== 'all' || categoryFilter !== 'all'
   );
 
+  useEffect(() => {
+    if (!activityFreezeRef.current) return;
+    const updateHeight = () => {
+      if (activityFreezeRef.current) {
+        setFreezeHeight(Math.round(activityFreezeRef.current.getBoundingClientRect().height));
+      }
+    };
+    updateHeight();
+    const ro = new ResizeObserver(() => {
+      updateHeight();
+    });
+    ro.observe(activityFreezeRef.current);
+    return () => ro.disconnect();
+  }, [accountViewMode, isFiltered, filterAccountId]);
+
   const handleReorder = (activeEventId: string, targetEventId: string, placement: "before" | "after") => {
     if (undoDeleteStateRef.current) {
       commitPendingDelete();
@@ -905,6 +927,9 @@ export default function FinancePage() {
     });
     return indexed.map((item) => item.event);
   }, [activeDisplayEvents, filterAccountId, typeFilter, categoryFilter, searchQuery]);
+
+  // Group Card View Transactions by Date for iOS-Style Sticky Date Headers
+  const cardEventGroups = useMemo(() => groupCardEventsByDate(cardEvents), [cardEvents]);
 
   // Ledger Entries
   const ledgerEntries = useMemo(() => {
@@ -1453,7 +1478,7 @@ export default function FinancePage() {
     <main className="min-h-screen bg-[#FBF9F4] text-stone-900 pb-28 relative overflow-x-hidden">
       
       {/* ================= HEADER BAR (ARC + DUOLINGO FUSION) ================= */}
-      <header className="bg-white/95 backdrop-blur-md border-b border-stone-200/80 sticky top-0 z-30 shadow-2xs">
+      <header className="bg-white/95 backdrop-blur-md border-b border-stone-200/80 relative z-30 shadow-2xs">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between">
           <BrandLogo />
 
@@ -1613,20 +1638,20 @@ export default function FinancePage() {
       </header>
 
       {/* ================= MAIN CONTENT SWIPEABLE CAROUSEL ================= */}
-      <div ref={containerRef} className="w-full overflow-hidden pt-6">
+      <div ref={containerRef} className="w-full overflow-x-clip overflow-y-visible pt-6">
         <motion.div
           ref={carouselRef}
-          style={{ x }}
+          style={isTransitioning ? { x } : { transform: 'none' }}
           drag={isTouchDevice ? "x" : false}
           dragDirectionLock
           dragConstraints={dragConstraints}
           dragElastic={0.3}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
-          className="flex flex-row items-start w-full touch-pan-y will-change-transform transform-gpu"
+          className={`flex flex-row items-start w-full touch-pan-y ${isTransitioning ? 'will-change-transform transform-gpu' : ''}`}
         >
           {/* ================= 1. OVERVIEW VIEW ================= */}
-          <div className="w-full min-w-full shrink-0">
+          <div className={`w-full min-w-full shrink-0 ${!isTransitioning && view !== 'dashboard' ? 'hidden' : ''}`}>
             <div className="max-w-5xl mx-auto px-4 sm:px-6 space-y-6">
             <MonthNavigator
               selectedMonth={selectedMonth}
@@ -1843,7 +1868,7 @@ export default function FinancePage() {
           </div>
 
           {/* ================= 2. ACCOUNTS VIEW (CLEAN, NO NOISY BADGES) ================= */}
-          <div className="w-full min-w-full shrink-0">
+          <div className={`w-full min-w-full shrink-0 ${!isTransitioning && view !== 'accounts' ? 'hidden' : ''}`}>
             <div className="max-w-5xl mx-auto px-4 sm:px-6 space-y-6">
             <div className="flex items-center justify-between pb-3 border-b border-stone-200">
               <div>
@@ -2049,79 +2074,85 @@ export default function FinancePage() {
           </div>
 
           {/* ================= 3. ACTIVITY & LEDGER VIEW ================= */}
-          <div className={`w-full min-w-full shrink-0 ${settledTab === 'ledger' ? '' : 'max-h-[1600px] overflow-hidden'}`}>
+          <div className={`w-full min-w-full shrink-0 ${!isTransitioning && view !== 'ledger' ? 'hidden' : (settledTab === 'ledger' ? '' : 'max-h-[1600px] overflow-hidden')}`}>
             <div className="max-w-5xl mx-auto px-4 sm:px-6 space-y-4">
             
-            {/* Active Account Filter Banner */}
-            {filterAccountId && (() => {
-              const filteredAcc = getAccountById(filterAccountId);
-              return (
-                <div className="flex items-center justify-between bg-stone-900 text-white rounded-2xl px-4 py-3 text-xs shadow-xs border-b-2 border-black">
-                  <div className="flex items-center gap-2">
-                    <span className="text-stone-400">Filtered by account:</span>
-                    <span className="font-bold text-sm text-white">{filteredAcc?.fullName}</span>
-                    <span className="px-2 py-0.5 rounded-full bg-stone-800 text-stone-300 font-bold text-[10px]">
-                      {filteredAcc?.name}
-                    </span>
+            {/* STICKY FREEZE PANE CONTAINER */}
+            <div 
+              ref={activityFreezeRef}
+              className="sticky top-0 z-30 bg-[#FBF9F4]/95 backdrop-blur-md pt-2 pb-3 space-y-3 -mx-4 sm:-mx-6 px-4 sm:px-6 border-b border-stone-200/60 shadow-2xs"
+            >
+              {/* Active Account Filter Banner */}
+              {filterAccountId && (() => {
+                const filteredAcc = getAccountById(filterAccountId);
+                return (
+                  <div className="flex items-center justify-between bg-stone-900 text-white rounded-2xl px-4 py-3 text-xs shadow-xs border-b-2 border-black">
+                    <div className="flex items-center gap-2">
+                      <span className="text-stone-400">Filtered by account:</span>
+                      <span className="font-bold text-sm text-white">{filteredAcc?.fullName}</span>
+                      <span className="px-2 py-0.5 rounded-full bg-stone-800 text-stone-300 font-bold text-[10px]">
+                        {filteredAcc?.name}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setFilterAccountId(null)}
+                      className="text-amber-400 hover:text-amber-300 font-bold hover:underline cursor-pointer flex items-center gap-1"
+                    >
+                      <span>Clear Filter</span>
+                      <X className="w-3.5 h-3.5" />
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setFilterAccountId(null)}
-                    className="text-amber-400 hover:text-amber-300 font-bold hover:underline cursor-pointer flex items-center gap-1"
-                  >
-                    <span>Clear Filter</span>
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              );
-            })()}
+                );
+              })()}
 
-            {/* Search Bar & Filter Chips */}
-            <TransactionFilters
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              typeFilter={typeFilter}
-              onTypeFilterChange={setTypeFilter}
-              categoryFilter={categoryFilter}
-              onCategoryFilterChange={setCategoryFilter}
-              availableCategories={allCategories}
-              filteredCount={accountViewMode === 'card' ? cardEvents.length : ledgerEntries.length}
-              totalCount={events.length}
-              onResetAll={() => {
-                setFilterAccountId(null);
-                setSearchQuery("");
-                setTypeFilter('all');
-                setCategoryFilter('all');
-              }}
-              isFiltered={isFiltered}
-            />
+              {/* Search Bar & Filter Chips */}
+              <TransactionFilters
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                typeFilter={typeFilter}
+                onTypeFilterChange={setTypeFilter}
+                categoryFilter={categoryFilter}
+                onCategoryFilterChange={setCategoryFilter}
+                availableCategories={allCategories}
+                filteredCount={accountViewMode === 'card' ? cardEvents.length : ledgerEntries.length}
+                totalCount={events.length}
+                onResetAll={() => {
+                  setFilterAccountId(null);
+                  setSearchQuery("");
+                  setTypeFilter('all');
+                  setCategoryFilter('all');
+                }}
+                isFiltered={isFiltered}
+              />
 
-            {/* Toggle View Mode (Card vs Table Ledger) */}
-            <div className="bg-white p-1 rounded-2xl border border-stone-200/90 border-b-[3px] border-b-stone-300/80 flex shadow-xs">
-              <button
-                type="button"
-                onClick={() => setAccountViewMode('card')}
-                className={`flex-1 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                  accountViewMode === 'card'
-                    ? 'bg-stone-900 text-white shadow-xs'
-                    : 'text-stone-600 hover:text-stone-900 hover:bg-stone-50'
-                }`}
-              >
-                <CreditCard className="w-4 h-4" />
-                <span>Card View</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setAccountViewMode('ledger')}
-                className={`flex-1 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                  accountViewMode === 'ledger'
-                    ? 'bg-stone-900 text-white shadow-xs'
-                    : 'text-stone-600 hover:text-stone-900 hover:bg-stone-50'
-                }`}
-              >
-                <FileText className="w-4 h-4" />
-                <span>Table Ledger</span>
-              </button>
+              {/* Toggle View Mode (Card vs Table Ledger) */}
+              <div className="bg-white p-1 rounded-2xl border border-stone-200/90 border-b-[3px] border-b-stone-300/80 flex shadow-xs">
+                <button
+                  type="button"
+                  onClick={() => setAccountViewMode('card')}
+                  className={`flex-1 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                    accountViewMode === 'card'
+                      ? 'bg-stone-900 text-white shadow-xs'
+                      : 'text-stone-600 hover:text-stone-900 hover:bg-stone-50'
+                  }`}
+                >
+                  <CreditCard className="w-4 h-4" />
+                  <span>Card View</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAccountViewMode('ledger')}
+                  className={`flex-1 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                    accountViewMode === 'ledger'
+                      ? 'bg-stone-900 text-white shadow-xs'
+                      : 'text-stone-600 hover:text-stone-900 hover:bg-stone-50'
+                  }`}
+                >
+                  <FileText className="w-4 h-4" />
+                  <span>Table Ledger</span>
+                </button>
+              </div>
             </div>
 
             {/* Content: Card View */}
@@ -2140,49 +2171,51 @@ export default function FinancePage() {
                     }}
                   />
                 )}
-                {cardEvents.map((event, index) => {
-                  const currentEventMonth = event.date.slice(0, 7);
-                  const prevEventMonth = index > 0 ? cardEvents[index - 1].date.slice(0, 7) : null;
-                  const showMonthHeader = index === 0 || currentEventMonth !== prevEventMonth;
-                  const showDateHeader = index === 0 || event.date !== cardEvents[index - 1].date;
-                  
-                  const displayAccountId = event.type === 'transfer'
-                    ? (filterAccountId === event.destinationAccountId ? event.destinationAccountId : event.sourceAccountId)
-                    : event.accountId;
-                  const acc = getAccountById(displayAccountId);
-                  const sourceAccount = event.type === 'transfer' ? getAccountById(event.sourceAccountId) : null;
-                  const destinationAccount = event.type === 'transfer' ? getAccountById(event.destinationAccountId) : null;
-                  
-                  const transferDirection = event.type === 'transfer'
-                    ? filterAccountId === event.destinationAccountId ? 'in' : filterAccountId === event.sourceAccountId ? 'out' : 'neutral'
-                    : event.type === 'expense' ? 'out' : 'in';
-                  
-                  const cardDescription = event.type === 'transfer' && !filterAccountId
-                    ? `${sourceAccount?.name ?? event.sourceAccountId} → ${destinationAccount?.name ?? event.destinationAccountId}`
-                    : event.description;
+                {cardEventGroups.map((group, groupIndex) => (
+                  <div key={`date-group-${group.date}`} className="space-y-3 relative">
+                    {group.showMonthHeader && (
+                      <div key={`month-header-${group.month}`} className={`flex items-center gap-3 py-2 ${groupIndex > 0 ? 'mt-6 mb-2' : 'mb-2'}`}>
+                        <div className="h-px bg-stone-200 flex-1" />
+                        <span className="px-3.5 py-1 bg-amber-100 text-amber-900 font-bold text-xs rounded-full border border-amber-300/80 shadow-2xs">
+                          {formatMonthName(group.month)}
+                        </span>
+                        <div className="h-px bg-stone-200 flex-1" />
+                      </div>
+                    )}
+                    
+                    {/* Sticky Date Badge: Freezes until the next date group pushes it up */}
+                    <div 
+                      style={{ top: `${freezeHeight}px` }} 
+                      className="sticky z-20 py-1.5 -mx-4 sm:-mx-6 px-4 sm:px-6 bg-[#FBF9F4]/95 backdrop-blur-md"
+                    >
+                      <h3 className="text-xs font-bold text-stone-500">
+                        {formatDateCard(group.date)}
+                      </h3>
+                    </div>
 
-                  const totalRefundedForEvent = event.type === 'expense' ? (refundsByExpenseId.get(event.id) ?? 0) : 0;
-                  const netExpenseForEvent = event.type === 'expense' ? event.amount - totalRefundedForEvent : event.amount;
+                    {group.events.map((event) => {
+                      const displayAccountId = event.type === 'transfer'
+                        ? (filterAccountId === event.destinationAccountId ? event.destinationAccountId : event.sourceAccountId)
+                        : event.accountId;
+                      const acc = getAccountById(displayAccountId);
+                      const sourceAccount = event.type === 'transfer' ? getAccountById(event.sourceAccountId) : null;
+                      const destinationAccount = event.type === 'transfer' ? getAccountById(event.destinationAccountId) : null;
+                      
+                      const transferDirection = event.type === 'transfer'
+                        ? filterAccountId === event.destinationAccountId ? 'in' : filterAccountId === event.sourceAccountId ? 'out' : 'neutral'
+                        : event.type === 'expense' ? 'out' : 'in';
+                      
+                      const cardDescription = event.type === 'transfer' && !filterAccountId
+                        ? `${sourceAccount?.name ?? event.sourceAccountId} → ${destinationAccount?.name ?? event.destinationAccountId}`
+                        : event.description;
 
-                  const isActive = isEventActive(event.id);
-                  const itemProps = isFiltered ? {} : getItemProps(event.id);
+                      const totalRefundedForEvent = event.type === 'expense' ? (refundsByExpenseId.get(event.id) ?? 0) : 0;
+                      const netExpenseForEvent = event.type === 'expense' ? event.amount - totalRefundedForEvent : event.amount;
 
-                  return (
-                    <Fragment key={`card-group-${event.id}`}>
-                      {showMonthHeader && (
-                        <div key={`month-header-${currentEventMonth}`} className={`flex items-center gap-3 py-2 ${index > 0 ? 'mt-6 mb-2' : 'mb-2'}`}>
-                          <div className="h-px bg-stone-200 flex-1" />
-                          <span className="px-3.5 py-1 bg-amber-100 text-amber-900 font-bold text-xs rounded-full border border-amber-300/80 shadow-2xs">
-                            {formatMonthName(currentEventMonth)}
-                          </span>
-                          <div className="h-px bg-stone-200 flex-1" />
-                        </div>
-                      )}
-                      {showDateHeader && (
-                        <h3 key={`date-header-${event.date}`} className={`text-xs font-bold text-stone-500 sticky top-[108px] bg-[#FBF9F4]/90 backdrop-blur-xs py-1.5 z-10 ${index > 0 && !showMonthHeader ? 'mt-4' : ''}`}>
-                          {formatDateCard(event.date)}
-                        </h3>
-                      )}
+                      const isActive = isEventActive(event.id);
+                      const itemProps = isFiltered ? {} : getItemProps(event.id);
+
+                      return (
                       <motion.div
                         layout={!isActive}
                         transition={{ type: "spring", stiffness: 450, damping: 35, mass: 0.8 }}
@@ -2258,22 +2291,26 @@ export default function FinancePage() {
                           )}
                         </div>
                       </motion.div>
-                    </Fragment>
-                  );
-                })}
+                    );
+                  })}
+                  </div>
+                ))}
               </div>
             ) : (
               /* Content: Table Ledger View */
-              <div className="bg-white rounded-3xl border border-stone-200/90 border-b-[3px] border-b-stone-300/80 shadow-xs overflow-hidden overflow-x-auto">
-                <table className="w-full text-sm text-left">
-                  <thead className="bg-stone-100 text-stone-700 text-xs uppercase border-b border-stone-200">
+              <div className="bg-white rounded-3xl border border-stone-200/90 border-b-[3px] border-b-stone-300/80 shadow-xs overflow-x-auto overflow-y-visible">
+                <table className="w-full text-sm text-left border-collapse">
+                  <thead 
+                    style={{ top: `${freezeHeight}px` }} 
+                    className="sticky z-20 bg-stone-100 text-stone-700 text-xs uppercase border-b border-stone-200 shadow-2xs"
+                  >
                     <tr>
-                      <th className="px-4 py-3 font-bold">Date</th>
-                      <th className="px-4 py-3 font-bold">Description</th>
-                      <th className="px-4 py-3 font-bold">Account</th>
-                      <th className="px-4 py-3 text-right font-bold">In (+)</th>
-                      <th className="px-4 py-3 text-right font-bold">Out (-)</th>
-                      <th className="px-4 py-3 text-right font-bold">Category</th>
+                      <th style={{ top: `${freezeHeight}px` }} className="sticky z-20 bg-stone-100 px-4 py-3 font-bold rounded-tl-3xl">Date</th>
+                      <th style={{ top: `${freezeHeight}px` }} className="sticky z-20 bg-stone-100 px-4 py-3 font-bold">Description</th>
+                      <th style={{ top: `${freezeHeight}px` }} className="sticky z-20 bg-stone-100 px-4 py-3 font-bold">Account</th>
+                      <th style={{ top: `${freezeHeight}px` }} className="sticky z-20 bg-stone-100 px-4 py-3 text-right font-bold">In (+)</th>
+                      <th style={{ top: `${freezeHeight}px` }} className="sticky z-20 bg-stone-100 px-4 py-3 text-right font-bold">Out (-)</th>
+                      <th style={{ top: `${freezeHeight}px` }} className="sticky z-20 bg-stone-100 px-4 py-3 text-right font-bold rounded-tr-3xl">Category</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-stone-100">

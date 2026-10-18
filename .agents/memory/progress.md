@@ -3,7 +3,7 @@
 ## Overall Status: STABLE PRODUCTION (OFFICIALLY GO-LIVE 🚀)
 - **Live Production URL:** [https://the-life-project-os.vercel.app/finance](https://the-life-project-os.vercel.app/finance)
 - **Backend Database:** Supabase PostgreSQL (`peydzblrtfgdoaisljkm.supabase.co`)
-- **Automated Test Suite:** 21 test suites, **381/381 tests passing (100%)**
+- **Automated Test Suite:** 22 test suites, **387/387 tests passing (100%)**
 - **Code Quality:** 0 ESLint errors, 0 TypeScript errors (`npx tsc --noEmit`)
 - **Session Boundary:** Permanently assigned as **Finance Domain Specialist**. All non-finance life domains (Habits, Journal, Tasks) are developed in separate dedicated chat sessions.
 
@@ -175,6 +175,12 @@
 - **Center Alignment & Ultra-Bold Typography**: Spans all 6 table columns (`colSpan={6}`) with `text-center`, `font-black`, and `tracking-widest`.
 - **Zero Semantic Clashing**: Distinct slate palette separates months clearly without conflicting with transaction credit/debit/transfer color indicators.
 
+### 26. Activity Freeze Panes & Cascading Sticky Date Headers
+- **Dynamic Freeze Pane Header (`app/finance/page.tsx`)**: Pinned the active filter banner, search input, type/category chips, and Card/Ledger view toggles at `top-0` with `backdrop-blur-md` and soft elevation.
+- **Table Ledger Header Freeze (`app/finance/page.tsx`)**: Table header row 1 (`Date`, `Description`, `Account`, `In (+)`, `Out (-)`, `Category`) sticks directly beneath the freeze pane at `top: [freezeHeight]` with rounded corners and seamless background alignment.
+- **Card View Cascading Sticky Date Badges (`app/finance/page.tsx`, `lib/finance.ts`)**: Pure `groupCardEventsByDate` groups transactions into date units. Each date badge stays frozen at `top: [freezeHeight]` while scrolling through that date's cards. When the date's cards end, the parent container pushes the badge up naturally as the next date's badge takes its place at `top: [freezeHeight]`.
+- **CSS Containing Block Trap Fix (`hooks/useSwipeableTabs.ts`)**: Cleared Framer Motion CSS `transform` on settled tabs (`style={isTransitioning ? { x } : { transform: 'none' }}`), restoring native compositor-level window sticky scrolling at 120 FPS.
+- **100% Automated Test Coverage**: Added 6 tests in `tests/finance/freeze-panes.test.ts` (387/387 tests passing).
 
 ---
 

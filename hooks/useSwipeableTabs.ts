@@ -27,6 +27,8 @@ export function useSwipeableTabs<T extends string>({
   const [containerWidth, setContainerWidth] = useState(0);
   const [isTouchDevice, setIsTouchDevice] = useState(false);
   const [settledTab, setSettledTab] = useState<T>(activeTab);
+  const [isDragging, setIsDragging] = useState(false);
+  const isTransitioning = isDragging || activeTab !== settledTab;
 
   // Dedicated MotionValue for continuous hardware-accelerated X translation
   const x = useMotionValue(0);
@@ -79,7 +81,7 @@ export function useSwipeableTabs<T extends string>({
     });
 
     return () => controls.stop();
-  }, [activeTab, currentTabIndex, containerWidth, x]);
+  }, [activeTab, currentTabIndex, containerWidth, settledTab, x]);
 
   const goToTab = useCallback(
     (tab: T) => {
@@ -103,6 +105,7 @@ export function useSwipeableTabs<T extends string>({
 
   const handleDragStart = useCallback(() => {
     isGestureActiveRef.current = true;
+    setIsDragging(true);
   }, []);
 
   // Strictly enforce SINGLE-STEP pagination invariant with FLUID TOUCH VELOCITY HANDOFF
@@ -132,6 +135,7 @@ export function useSwipeableTabs<T extends string>({
         velocity: releaseVelocity,
         onComplete: () => {
           isGestureActiveRef.current = false;
+          setIsDragging(false);
           setSettledTab(tabs[targetIndex] || activeTab);
         },
       });
@@ -164,6 +168,7 @@ export function useSwipeableTabs<T extends string>({
     containerWidth,
     currentTabIndex,
     settledTab,
+    isTransitioning,
     x,
     dragConstraints,
     handleDragStart,

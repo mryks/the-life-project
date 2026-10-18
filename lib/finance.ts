@@ -1016,3 +1016,38 @@ export const checkEventDateBoundary = (
   return checkDateBoundary(cardEvents, activeEventId);
 };
 
+export interface CardEventGroup {
+  date: string;
+  month: string;
+  showMonthHeader: boolean;
+  events: FinancialEvent[];
+}
+
+/**
+ * Pure function to group card events by date for iOS-style sticky cascading date headers.
+ * First date group of each month has showMonthHeader = true.
+ */
+export function groupCardEventsByDate(events: FinancialEvent[]): CardEventGroup[] {
+  const groups: CardEventGroup[] = [];
+  let currentGroup: CardEventGroup | null = null;
+  let lastMonth = '';
+
+  for (const event of events) {
+    const month = event.date.slice(0, 7);
+    if (!currentGroup || currentGroup.date !== event.date) {
+      const showMonthHeader = month !== lastMonth;
+      lastMonth = month;
+      currentGroup = {
+        date: event.date,
+        month,
+        showMonthHeader,
+        events: [event],
+      };
+      groups.push(currentGroup);
+    } else {
+      currentGroup.events.push(event);
+    }
+  }
+  return groups;
+}
+

@@ -6,7 +6,35 @@
 
 ## 📜 Sprint & Evolution Log
 
-### Langkah 42: Ledger Table Month Separator Redesign (Option 4: Deep Slate Blue Bar)
+### Langkah 43: Activity Freeze Panes & Cascading Sticky Date Headers
+- **User Directive**:
+  - *"sekarang saya mau bahwa di activity baik di card view maupun table ledger, ada freeze panes di mana yang kefreeze adalah mulai search bar hingga cardview/table ledger. khuss table ledger, kefreezenya hingga row 1 tablenya yaitu date description account, dll."*
+  - User addition: *"di cardview badge tanggalnya akan ke freeze sampai ke scroll tanggal berikutnya ya, dan seterusnya. apakah mengerti?"*
+- **Architecture & Implementation**:
+  1. **Dynamic Freeze Pane Header (`app/finance/page.tsx`)**:
+     - Wrapped the active account filter banner, `TransactionFilters` (search bar + type/category chips), and Card/Ledger toggle buttons in `activityFreezeRef`.
+     - Styled with `sticky top-0 z-30 bg-[#FBF9F4]/95 backdrop-blur-md pt-2 pb-3 space-y-3 -mx-4 sm:-mx-6 px-4 sm:px-6 border-b border-stone-200/60 shadow-2xs`.
+     - Measured dynamic freeze pane height with `ResizeObserver` (`freezeHeight`), auto-adapting if filter banner is shown/hidden or screen resizes.
+  2. **Card View iOS-Style Sticky Date Header Cascade (`app/finance/page.tsx`, `lib/finance.ts`)**:
+     - Created pure function `groupCardEventsByDate(events)` in `lib/finance.ts` grouping transactions into `{ date, month, showMonthHeader, events }`.
+     - Wrapped each date's transaction cards in `<div key={`date-group-${group.date}`} className="space-y-3 relative">`.
+     - Date header is sticky at `style={{ top: `${freezeHeight}px` }}` with `sticky z-20 py-1.5 -mx-4 sm:-mx-6 px-4 sm:px-6 bg-[#FBF9F4]/95 backdrop-blur-md`.
+     - Sticky Containment Invariant: As the user scrolls through a date's transactions, its badge remains frozen directly beneath the search bar. When the date's cards end, the parent container pushes the badge up naturally as the next date's badge takes its place at `top: [freezeHeight]`.
+  3. **Table Ledger Sticky Column Headers (`app/finance/page.tsx`)**:
+     - Table container uses `overflow-x-auto overflow-y-visible` with `border-collapse`.
+     - `<thead>` and all `<th>` cells styled with `style={{ top: `${freezeHeight}px` }}` and `sticky z-20 bg-stone-100 shadow-2xs`. First `th` has `rounded-tl-3xl` and last `th` has `rounded-tr-3xl`.
+     - Column headers remain pinned directly beneath the search & toggle box while ledger transaction rows scroll underneath.
+  4. **CSS Sticky Containment & Transform Clearing (`hooks/useSwipeableTabs.ts`)**:
+     - CSS Invariant: Any ancestor with CSS `transform` creates a containing block that traps `position: sticky`.
+     - In `useSwipeableTabs`, derived `isTransitioning = isDragging || activeTab !== settledTab`.
+     - Carousel `motion.div` uses `style={isTransitioning ? { x } : { transform: 'none' }}`. When settled on Activity, `transform` is completely removed, allowing 100% native compositor-driven `position: sticky` on window scroll at 120 FPS.
+  5. **Unit Tests & Quality Verification (`tests/finance/freeze-panes.test.ts`)**:
+     - 6 new automated tests verifying date grouping, month header flags, within-day event ordering, sticky offset calculations, and transform-clearing rules.
+- **Verification**:
+  - All 22 test suites passing: **387/387 tests passing (100%)**.
+  - TypeScript: 0 errors (`npx tsc --noEmit`).
+  - ESLint: 0 errors, 0 warnings (`npm run lint`).
+  - Production build: green (`npm run build`).
 - **User Directive**:
   - *"sekarang saya mau di table ledger, tulisan nama bulan itu pakai align center, bukan align left. selain itu saya maunya dibold diganti warnanya biar keliatan itu pembatas, silakan beri rekomendasi nanti saya tentukan"* $\to$ Selected **Option 4: Deep Slate Blue Bar**.
 - **Architecture & Implementation (`app/finance/page.tsx`)**:

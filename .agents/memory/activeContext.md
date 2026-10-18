@@ -25,7 +25,7 @@
 - **Mobile PWA:**
   - `public/manifest.json` configured with standalone mode, oat milk theme `#FBF9F4`, and bespoke SVG icon.
   - Viewport optimized for mobile notch (`viewportFit: 'cover'`) and smooth touch drag interactions.
-- **Test Suite Status:** 100% passing (**21 test suites, 381 tests passed** via `npm test`).
+- **Test Suite Status:** 100% passing (**22 test suites, 387 tests passed** via `npm test`).
 - **Linter & Typecheck:** 0 errors, 0 warnings (`npm run lint`, `npx tsc --noEmit`).
 - **Sync Engine Hotfix (Resolved):**
   - Edit Persistence: Created outbox `queuePendingUpserts` so edited existing transactions are queued and pushed to Supabase (`upsert`), preventing cloud fetch from reverting edits.
@@ -78,6 +78,7 @@
 39. **Langkah 40: "Trust this device (Stay unlocked)" Persistent Device Authorization** (Added `thelife-device-trusted` localStorage persistence for personal devices, allowing instant access across app kills, browser restarts, and reboots without PIN prompts; preserved temporary session security with 15-minute idle timeout when untrusted; provided tactile toggle in `MasterPinLockscreen.tsx` and explicit manual lock revocation; expanded unit tests in `tests/finance/security.test.ts` to 376/376 total tests passing).
 40. **Langkah 41: 1-Day "Trust This Device" with Day-Change Expiry & Default Unchecked** (Bounded device trust strictly to 1 calendar day `YYYY-MM-DD`; automatic expiration and Master PIN requirement upon midnight date rollover "ganti hari"; automatic cleanup of stale yesterday dates; toggle checkbox starts unchecked by default `false`; expanded unit tests in `tests/finance/security.test.ts` to 381/381 total tests passing).
 41. **Langkah 42: Ledger Table Month Separator Redesign (Option 4: Deep Slate Blue Bar)** (Replaced pale left-aligned month header with centered `text-center`, bold `font-black`, and deep slate blue bar `bg-slate-800 text-slate-100 border-y border-slate-900 shadow-inner` spanning across all 6 ledger columns, establishing high-contrast monthly division).
+42. **Langkah 43: Activity Freeze Panes & Cascading Sticky Date Headers** (Implemented dynamic freeze pane covering search bar, category chips, and view toggles at `top-0`; Table Ledger row 1 column headers stick seamlessly at `top: [freezeHeight]`; Card View features native iOS-style cascading sticky date headers where each date badge stays frozen until the next date group pushes it off-screen; cleared carousel CSS `transform` on settled tabs to prevent containing block trapping of window-sticky elements; verified with 6 new unit tests in `tests/finance/freeze-panes.test.ts`, 387/387 total tests passing).
 
 ---
 
