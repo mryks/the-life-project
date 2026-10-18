@@ -33,3 +33,21 @@ The Life Project is a strictly single-user personal finance system. It safeguard
    - If inactivity exceeds 15 minutes (`IDLE_TIMEOUT_MS = 15 * 60 * 1000`), the session locks automatically.
 3. **Privacy Shield**:
    - While locked, `MasterPinLockscreen` overlays the UI, blocking interaction until the correct PIN is provided.
+
+---
+
+## 📱 Trusted Device Policy (1-Day Calendar Limit)
+
+- **Purpose**: Balance personal mobile UX (avoiding typing 6 digits every time the app process is suspended or killed from RAM) with robust security on shared/temporary devices.
+- **Duration**: Strictly bounded to **1 calendar day** (`YYYY-MM-DD`).
+- **Midnight Crossover ("Ganti Hari")**:
+  - Device trust expires automatically at midnight.
+  - When the date changes, subsequent cold starts require the Master PIN again.
+  - Any stale previous-day trust key in `localStorage` is automatically purged.
+- **Default State**:
+  - The "Trust this device for today" checkbox defaults to **unchecked** (`false`). Users must explicitly opt in.
+- **Temporary Sessions (Untrusted)**:
+  - If unchecked, the session is stored strictly in `sessionStorage` with a 15-minute idle timeout. Killing the browser/tab immediately locks the vault.
+- **Manual Revocation**:
+  - Clicking the Lock button in the top navigation immediately clears all session tokens and purges `thelife-device-trusted`.
+

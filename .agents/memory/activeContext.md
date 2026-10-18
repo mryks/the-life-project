@@ -25,7 +25,7 @@
 - **Mobile PWA:**
   - `public/manifest.json` configured with standalone mode, oat milk theme `#FBF9F4`, and bespoke SVG icon.
   - Viewport optimized for mobile notch (`viewportFit: 'cover'`) and smooth touch drag interactions.
-- **Test Suite Status:** 100% passing (**21 test suites, 376 tests passed** via `npm test`).
+- **Test Suite Status:** 100% passing (**21 test suites, 381 tests passed** via `npm test`).
 - **Linter & Typecheck:** 0 errors, 0 warnings (`npm run lint`, `npx tsc --noEmit`).
 - **Sync Engine Hotfix (Resolved):**
   - Edit Persistence: Created outbox `queuePendingUpserts` so edited existing transactions are queued and pushed to Supabase (`upsert`), preventing cloud fetch from reverting edits.
@@ -76,6 +76,7 @@
 37. **Langkah 38: Custom Categories for Income & Expense with Quick Inline Add & Unused Deletion (Option A)** (Created `lib/categories.ts` dynamic category registry with `thelife-custom-categories` localStorage persistence; open TypeScript union types `DefaultExpenseCategory | (string & {})` and `DefaultIncomeCategory | (string & {})`; quick inline `+ Add` category pill with `Enter`/`Escape` keyboard shortcuts and auto-selection; delete button on unused custom categories with financial transaction guard; dynamic non-NaN `categoryTotals` and pie chart aggregation; 24 unit tests in `tests/finance/categories.test.ts`, 363/363 total tests passing).
 38. **Langkah 39: Complete Removal of Fingerprint / WebAuthn Biometrics in Favor of Pure, Fast Master PIN (Option 1)** (Removed all WebAuthn sensor checks, auto-prompts, setup dialogs, and biometric buttons from `MasterPinLockscreen.tsx` and `lib/security.ts`; auto-purged legacy biometric storage keys; locked lockscreen to 100% zero-latency tactile 6-digit PIN keypad; expanded unit tests in `tests/finance/security.test.ts` to 17 tests; 367/367 total tests passing).
 39. **Langkah 40: "Trust this device (Stay unlocked)" Persistent Device Authorization** (Added `thelife-device-trusted` localStorage persistence for personal devices, allowing instant access across app kills, browser restarts, and reboots without PIN prompts; preserved temporary session security with 15-minute idle timeout when untrusted; provided tactile toggle in `MasterPinLockscreen.tsx` and explicit manual lock revocation; expanded unit tests in `tests/finance/security.test.ts` to 376/376 total tests passing).
+40. **Langkah 41: 1-Day "Trust This Device" with Day-Change Expiry & Default Unchecked** (Bounded device trust strictly to 1 calendar day `YYYY-MM-DD`; automatic expiration and Master PIN requirement upon midnight date rollover "ganti hari"; automatic cleanup of stale yesterday dates; toggle checkbox starts unchecked by default `false`; expanded unit tests in `tests/finance/security.test.ts` to 381/381 total tests passing).
 
 ---
 

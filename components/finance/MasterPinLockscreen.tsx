@@ -18,7 +18,7 @@ export default function MasterPinLockscreen({ onUnlocked }: MasterPinLockscreenP
   const [isShaking, setIsShaking] = useState(false);
   const [lockoutSecs, setLockoutSecs] = useState<number>(0);
   const [isVerifying, setIsVerifying] = useState(false);
-  const [trustDevice, setTrustDevice] = useState(true);
+  const [trustDevice, setTrustDevice] = useState(false);
 
   // Lockout countdown timer
   useEffect(() => {
@@ -177,7 +177,7 @@ export default function MasterPinLockscreen({ onUnlocked }: MasterPinLockscreenP
             type="button"
             onClick={() => setTrustDevice((prev) => !prev)}
             className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold cursor-pointer select-none transition-all duration-150 border border-stone-200/90 bg-stone-50 hover:bg-stone-100 text-stone-700 active:scale-95 shadow-2xs"
-            title="Keep this device unlocked even after closing the app"
+            title="Keep this device unlocked for today. Requires PIN again when the day changes."
           >
             <div className={`w-4 h-4 rounded-md flex items-center justify-center border transition-colors ${
               trustDevice 
@@ -186,7 +186,7 @@ export default function MasterPinLockscreen({ onUnlocked }: MasterPinLockscreenP
             }`}>
               <Check className="w-3 h-3 stroke-[3]" />
             </div>
-            <span className="text-[11px] font-bold text-stone-700">Trust this device (stay unlocked)</span>
+            <span className="text-[11px] font-bold text-stone-700">Trust this device for today</span>
           </button>
         </div>
 

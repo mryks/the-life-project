@@ -6,6 +6,34 @@
 
 ## 📜 Sprint & Evolution Log
 
+### Langkah 41: 1-Day "Trust This Device" with Day-Change Expiry & Default Unchecked
+- **User Directive**:
+  - *"tolong buat trust this device itu hanya untuk 1 hari, ganti hari harus masukin pin lagi, dan tombol trust this device jangan default checked"*
+- **Architecture & Implementation**:
+  1. **Calendar Day Bounding & Auto-Purge (`lib/security.ts`)**:
+     - Added helper `getSecurityDateString(date: Date = new Date()): string` generating local `YYYY-MM-DD` strings.
+     - `unlockSession(trustDevice)`: When `trustDevice === true`, stores today's date string in `thelife-device-trusted` (`localStorage`). When `false`, removes the key.
+     - `isDeviceTrusted(referenceDate?: string)`: Validates stored value strictly against today's date (`referenceDate || getSecurityDateString()`). If the date is missing, empty, or from a previous day ("ganti hari"), strictly returns `false`.
+     - `isSessionUnlocked()`: If today matches `isDeviceTrusted()`, grants instant unlocked access without idle auto-lock. If an expired date from yesterday exists, it automatically purges `thelife-device-trusted` from storage. Falls back to temporary session checking (`sessionStorage` + 15-minute idle limit).
+     - `lockSession()`: Purges `SESSION_UNLOCKED`, `LAST_ACTIVITY`, and `DEVICE_TRUSTED`.
+  2. **Tactile Lockscreen UI (`components/finance/MasterPinLockscreen.tsx`)**:
+     - Changed default state to unchecked: `const [trustDevice, setTrustDevice] = useState(false)`.
+     - Updated button label: `"Trust this device for today"`.
+     - Updated tooltip title: `"Keep this device unlocked for today. Requires PIN again when the day changes."`.
+     - Preserved clean tactile checkbox (empty square when unchecked, solid with `Check` icon when toggled) with zero emojis and 100% English copy.
+  3. **Quality & Test Verification (`tests/finance/security.test.ts`)**:
+     - Added 5 comprehensive unit tests:
+       * Storing today's local `YYYY-MM-DD` date string.
+       * Persistent unlocked state across process kills on the same calendar day.
+       * Immediate invalidation on "ganti hari" (day-change boundary).
+       * Stale date auto-cleanup on new day cold start.
+       * Fake timers midnight time-travel test.
+- **Verification**:
+  - All 21 test suites passing: **381/381 tests passing (100%)**.
+  - TypeScript: 0 errors (`npx tsc --noEmit`).
+  - ESLint: 0 errors, 0 warnings (`npm run lint`).
+  - Production build (`npm run build`): 100% green.
+
 ### Langkah 40: "Trust this device (Stay unlocked)" Persistent Device Authorization
 - **User Directive**:
   - Keep the app unlocked even when killed from RAM / app switcher on mobile, while still maintaining full security and temporary session behavior when accessing from other borrowed devices.

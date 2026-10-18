@@ -12,6 +12,7 @@ import {
   lockSession,
   touchActivity,
   cleanupLegacyBiometrics,
+  getSecurityDateString,
   IDLE_TIMEOUT_MS,
   MAX_FAILED_ATTEMPTS,
   SECURITY_STORAGE_KEYS,
@@ -239,7 +240,12 @@ describe('Security & Master PIN Architecture', () => {
   });
 
   describe('Trust this device (Stay unlocked) Architecture & Invariants', () => {
-    it('trustDevice = true: sets trusted device in localStorage and isDeviceTrusted() returns true', async () => {
+    it('formats date correctly as YYYY-MM-DD via getSecurityDateString', () => {
+      const testDate = new Date(2026, 4, 9); // May 9, 2026
+      expect(getSecurityDateString(testDate)).toBe('2026-05-09');
+    });
+
+    it('trustDevice = true: sets trusted device date in localStorage and isDeviceTrusted() returns true', async () => {
       await setupMasterPin('123456');
       lockSession();
 
@@ -249,11 +255,11 @@ describe('Security & Master PIN Architecture', () => {
       unlockSession(true);
 
       expect(isDeviceTrusted()).toBe(true);
-      expect(mockLocalStorage.getItem(SECURITY_STORAGE_KEYS.DEVICE_TRUSTED)).toBe('true');
+      expect(mockLocalStorage.getItem(SECURITY_STORAGE_KEYS.DEVICE_TRUSTED)).toBe(getSecurityDateString());
       expect(isSessionUnlocked()).toBe(true);
     });
 
-    it('trustDevice = true: remains unlocked even when sessionStorage is cleared (simulating app kill / browser close / fresh session)', async () => {
+    it('trustDevice = true: remains unlocked even when sessionStorage is cleared during the same day', async () => {
       await setupMasterPin('123456');
       lockSession();
 
@@ -266,12 +272,86 @@ describe('Security & Master PIN Architecture', () => {
       mockSessionStorage.clear();
       expect(mockSessionStorage.getItem(SECURITY_STORAGE_KEYS.SESSION_UNLOCKED)).toBeNull();
 
-      // Because device is trusted, isSessionUnlocked() STILL returns true!
+      // Because device is trusted for today, isSessionUnlocked() STILL returns true!
       expect(isSessionUnlocked()).toBe(true);
       expect(isDeviceTrusted()).toBe(true);
     });
 
-    it('trustDevice = true: is NOT auto-locked by 15-minute idle timeout', async () => {
+    it('ganti hari (day change boundary): isDeviceTrusted strictly returns false when date changes to tomorrow', () => {
+      mockLocalStorage.setItem(SECURITY_STORAGE_KEYS.DEVICE_TRUSTED, '2026-10-18');
+
+      // Matching today (2026-10-18) returns true
+      expect(isDeviceTrusted('2026-10-18')).toBe(true);
+
+      // Checked against tomorrow (2026-10-19) strictly returns false ("ganti hari")
+      expect(isDeviceTrusted('2026-10-19')).toBe(false);
+
+      // Checked against future or past mismatched dates strictly returns false
+      expect(isDeviceTrusted('2026-10-20')).toBe(false);
+      expect(isDeviceTrusted('2026-10-17')).toBe(false);
+    });
+
+    it('ganti hari: on cold start next day (sessionStorage empty), isSessionUnlocked returns false forcing PIN re-entry', async () => {
+      await setupMasterPin('123456');
+
+      // Simulate trusted date set yesterday
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = getSecurityDateString(yesterday);
+      mockLocalStorage.setItem(SECURITY_STORAGE_KEYS.DEVICE_TRUSTED, yesterdayStr);
+
+      // Cold start: app killed from RAM overnight, fresh session
+      mockSessionStorage.clear();
+
+      // Expired date means device is untrusted and session is locked
+      expect(isDeviceTrusted()).toBe(false);
+      expect(isSessionUnlocked()).toBe(false);
+    });
+
+    it('ganti hari: stale trusted date from yesterday is automatically purged from localStorage on session check', async () => {
+      await setupMasterPin('123456');
+      // Simulate overnight app close / cold start
+      mockSessionStorage.clear();
+
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = getSecurityDateString(yesterday);
+      mockLocalStorage.setItem(SECURITY_STORAGE_KEYS.DEVICE_TRUSTED, yesterdayStr);
+
+      expect(mockLocalStorage.getItem(SECURITY_STORAGE_KEYS.DEVICE_TRUSTED)).toBe(yesterdayStr);
+
+      // Checking session unlock on a new day detects stale date and cleans it up
+      expect(isSessionUnlocked()).toBe(false);
+      expect(mockLocalStorage.getItem(SECURITY_STORAGE_KEYS.DEVICE_TRUSTED)).toBeNull();
+    });
+
+    it('ganti hari: time-travel across midnight boundary purges trust and locks app on next morning cold start', async () => {
+      vi.useFakeTimers();
+      const day1 = new Date(2026, 9, 18, 22, 0, 0); // Oct 18, 2026 22:00
+      vi.setSystemTime(day1);
+
+      await setupMasterPin('123456');
+      unlockSession(true);
+
+      expect(mockLocalStorage.getItem(SECURITY_STORAGE_KEYS.DEVICE_TRUSTED)).toBe('2026-10-18');
+      expect(isDeviceTrusted()).toBe(true);
+      expect(isSessionUnlocked()).toBe(true);
+
+      // Advance time across midnight to next morning Oct 19, 2026 07:00
+      const day2 = new Date(2026, 9, 19, 7, 0, 0);
+      vi.setSystemTime(day2);
+
+      // Cold start next morning (sessionStorage wiped on app restart)
+      mockSessionStorage.clear();
+
+      expect(isDeviceTrusted()).toBe(false);
+      expect(isSessionUnlocked()).toBe(false);
+      expect(mockLocalStorage.getItem(SECURITY_STORAGE_KEYS.DEVICE_TRUSTED)).toBeNull();
+
+      vi.useRealTimers();
+    });
+
+    it('trustDevice = true: is NOT auto-locked by 15-minute idle timeout within the same day', async () => {
       await setupMasterPin('123456');
       lockSession();
 
@@ -279,11 +359,11 @@ describe('Security & Master PIN Architecture', () => {
       expect(isSessionUnlocked()).toBe(true);
       expect(isDeviceTrusted()).toBe(true);
 
-      // Advance time by 1 hour (far beyond the 15-minute idle timeout)
+      // Advance time by 1 hour (within the same day)
       const expiredTime = Date.now() - (IDLE_TIMEOUT_MS * 4);
       mockLocalStorage.setItem(SECURITY_STORAGE_KEYS.LAST_ACTIVITY, expiredTime.toString());
 
-      // Trusted device stays unlocked indefinitely without idle auto-lock
+      // Trusted device stays unlocked indefinitely during today without idle auto-lock
       expect(isSessionUnlocked()).toBe(true);
       expect(isDeviceTrusted()).toBe(true);
     });

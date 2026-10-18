@@ -164,6 +164,12 @@
 - **Manual Revocation**: Explicit manual lock via header button immediately purges `thelife-device-trusted` and locks the vault.
 - **Expanded Verification**: 9 new unit tests in `tests/finance/security.test.ts` verifying persistent vs temporary sessions, timeout behavior, and manual revocation. All 376/376 tests passing.
 
+### 24. 1-Day "Trust This Device" with Day-Change Expiry & Default Unchecked
+- **1-Day Calendar Limit ("Ganti Hari Harus Masukin PIN Lagi")**: Bounded `thelife-device-trusted` in `localStorage` strictly to the local calendar day string (`YYYY-MM-DD`).
+- **Midnight Expiration**: Upon date change, `isDeviceTrusted()` strictly returns `false`, prompting for PIN re-entry on new-day cold starts. Stale yesterday entries are automatically purged.
+- **Default Unchecked**: Checkbox starts unselected (`false`) so temporary session security is the default unless explicitly checked by the user.
+- **Complete Test Coverage**: Added 5 new unit tests in `tests/finance/security.test.ts`. 100% test pass rate across 21 test suites (**381/381 tests passing**).
+
 ---
 
 ## Finance Domain Backlog (For Future Sessions)

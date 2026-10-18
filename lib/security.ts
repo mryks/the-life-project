@@ -312,12 +312,23 @@ export async function verifyMasterPin(enteredPin: string, trustDevice = false): 
 }
 
 /**
- * Check whether current device has been marked as trusted (stay unlocked)
+ * Format local date as YYYY-MM-DD for single-day trusted device evaluation
  */
-export function isDeviceTrusted(): boolean {
+export function getSecurityDateString(date: Date = new Date()): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+/**
+ * Check whether current device has been marked as trusted for today.
+ * Returns true ONLY if stored date matches today (or optional referenceDate).
+ * If empty or from a previous day ("ganti hari"), returns false!
+ */
+export function isDeviceTrusted(referenceDate?: string): boolean {
   if (typeof window === 'undefined') return false;
   try {
-    return window.localStorage.getItem(SECURITY_STORAGE_KEYS.DEVICE_TRUSTED) === 'true';
+    const trustedDate = window.localStorage.getItem(SECURITY_STORAGE_KEYS.DEVICE_TRUSTED);
+    const targetDate = referenceDate || getSecurityDateString();
+    return Boolean(trustedDate && trustedDate === targetDate);
   } catch {
     return false;
   }
@@ -325,7 +336,7 @@ export function isDeviceTrusted(): boolean {
 
 /**
  * Check if the application session is currently unlocked
- * (Persistent trusted device check, or temporary session check with 15-minute idle timeout)
+ * (Persistent trusted device check for today, or temporary session check with 15-minute idle timeout)
  */
 export function isSessionUnlocked(): boolean {
   if (typeof window === 'undefined') return false;
@@ -334,11 +345,15 @@ export function isSessionUnlocked(): boolean {
   if (!isMasterPinSet()) return true;
 
   try {
-    // Check if device is trusted: persistent trusted device access
-    // Remains unlocked across app kills, tab closes, and phone restarts, without 15-minute idle auto-lock
-    const isTrusted = window.localStorage.getItem(SECURITY_STORAGE_KEYS.DEVICE_TRUSTED) === 'true';
-    if (isTrusted) {
+    // Check if device is trusted for today
+    if (isDeviceTrusted()) {
       return true;
+    }
+
+    // If a stale/expired DEVICE_TRUSTED date exists from a previous day, clean it up
+    const storedTrustedDate = window.localStorage.getItem(SECURITY_STORAGE_KEYS.DEVICE_TRUSTED);
+    if (storedTrustedDate) {
+      window.localStorage.removeItem(SECURITY_STORAGE_KEYS.DEVICE_TRUSTED);
     }
 
     // If NOT trusted (temporary session):
@@ -364,13 +379,13 @@ export function isSessionUnlocked(): boolean {
 
 /**
  * Mark session as unlocked and record current activity timestamp.
- * If trustDevice is true, persists trusted status in localStorage to stay unlocked across app restarts.
+ * If trustDevice is true, persists trusted status for today (YYYY-MM-DD) in localStorage.
  */
 export function unlockSession(trustDevice = false): void {
   if (typeof window === 'undefined') return;
   try {
     if (trustDevice) {
-      window.localStorage.setItem(SECURITY_STORAGE_KEYS.DEVICE_TRUSTED, 'true');
+      window.localStorage.setItem(SECURITY_STORAGE_KEYS.DEVICE_TRUSTED, getSecurityDateString());
     } else {
       window.localStorage.removeItem(SECURITY_STORAGE_KEYS.DEVICE_TRUSTED);
     }
