@@ -99,3 +99,16 @@ Before building gesture-driven UI, align on:
   - **The Proven Architecture**: Place the frozen table header directly inside the viewport-sticky freeze pane container (`top: 0`). When the table body is scrolled horizontally, synchronize `scrollLeft` bidirectionally between the header bar and table body (`onScroll`). Both remain perfectly aligned down to the sub-pixel at 120 FPS.
 - **Dynamic DOM Expansion Guard**: Never toggle `display: none` (`hidden`) on adjacent inactive tabs or views while a touch gesture is active. Suddenly expanding container width (e.g. 393px to 1179px) during a touch event causes gesture trackers to register violent multi-thousand px/sec velocity spikes, producing erratic "ghost touch" auto-swipes.
 
+---
+
+## 7. The Chronological Sorting & View Switch Scroll Invariant
+
+- **Accounting Ledger vs Card Feed Mental Models**:
+  * **Card Feeds**: Generally sorted reverse-chronologically (newest at top, descending). Default scroll position when opening must be `scrollY: 0` (top).
+  * **Accounting Ledgers**: By accounting standards, ledgers are sorted chronologically ascending (oldest balance entries at top, latest transactions at the bottom). When opening, the viewport must default to being scrolled to the very bottom (`scrollY: maxScroll`) so the user immediately sees latest transactions without scrolling.
+- **Staged Execution Engine for Bottom Anchors**:
+  * Merely calling `scrollIntoView` or `window.scrollTo` once is insufficient in dynamic modern web apps because font loading, layout calculations, and dynamic rows take multiple frames to paint.
+  * **The Proven Architecture**: Combine an invisible bottom sentinel anchor (`<div ref={anchorRef} className="h-1 w-full pointer-events-none" aria-hidden="true" />`) with an immediate scroll execution plus staged `requestAnimationFrame` + `window.setTimeout(..., 40)` and `window.setTimeout(..., 120)` fallbacks.
+  * **View Switch Symmetry**: When switching to Card View, instantly scroll to `top: 0`. When switching to Table Ledger, instantly scroll to bottom. Both views immediately present the latest transactions.
+
+

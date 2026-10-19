@@ -156,10 +156,18 @@ export async function runTest(targetUrl = process.argv[2] || 'http://localhost:3
     await tableBtn.click();
     await new Promise((r) => setTimeout(r, 600));
 
-    // 5. Test Table Ledger Freeze Pane & Synchronized Horizontal Scroll
-    console.log('\n5. Testing Table Ledger Freeze Pane & Header Row...');
-    await page.evaluate(() => window.scrollBy(0, 450));
-    await new Promise((r) => setTimeout(r, 400));
+    // 5. Test Table Ledger Default Scroll-to-Bottom & Freeze Pane
+    console.log('\n5. Testing Table Ledger Default Scroll-to-Bottom & Header Row...');
+    const initialLedgerScroll = await page.evaluate(() => {
+      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+      return {
+        scrollY: window.scrollY,
+        scrollHeight: document.documentElement.scrollHeight,
+        maxScroll,
+        isAutoScrolledToBottom: window.scrollY > 100,
+      };
+    });
+    console.log('   Table Ledger Default Bottom Scroll:', initialLedgerScroll);
 
     const tableLedgerMetrics = await page.evaluate(() => {
       const search = document.querySelector('input[placeholder*="Search"]');
@@ -296,6 +304,7 @@ export async function runTest(targetUrl = process.argv[2] || 'http://localhost:3
 
     const allPassed =
       cardViewFreezeMetrics.isFreezeStickyAtZero &&
+      initialLedgerScroll.isAutoScrolledToBottom &&
       tableLedgerMetrics.isFreezeStickyAtZero &&
       scrollSyncResult.isSynchronized &&
       tabAfterVertical.includes('Activity') &&

@@ -171,4 +171,8 @@ Keep changes minimal and reviewable.
 - **Gesture Disambiguation & Touch Isolation**:
   * Multi-view tab swipe gestures must be guarded by strict angle thresholds (`|deltaX| > |deltaY| * 1.5`), min distance (50px), and element immunity (`table`, `button`, `input`, modal overlays).
   * Never dynamically expand container width (e.g. toggling `display: none` on inactive tabs) while a touch is in progress, as it causes violent layout-shift velocity jumps ("ghost touches").
+- **Chronological Sorting & View Switch Scroll Invariant**:
+  * **Table Ledger**: Sorted chronologically ascending (oldest at top, latest at bottom). When opening Table Ledger, the view MUST default to being scrolled to the very bottom (`tableBottomAnchorRef`) so latest transactions are immediately visible without manual scrolling.
+  * **Card View**: Sorted reverse-chronologically descending (latest at top). When opening Card View, the view MUST default to `top: 0`.
+  * Switching between views must always place the user at the latest transactions.
 - **Production Parity**: When building or refining mobile interactions, verification is incomplete until changes are committed, pushed, and deployed live to Vercel.

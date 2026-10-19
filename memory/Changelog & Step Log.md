@@ -6,6 +6,34 @@
 
 ## 📜 Sprint & Evolution Log
 
+### Langkah 45: Table Ledger Default Auto-Scroll to Bottom & Latest Transactions Focus
+- **User Directive**:
+  - *"sekarang saya mau default dari table ledger tuh scrolled ke paling bawah, agar saya bisa langsung liat latest transaction dan ga harus scroll scroll setiap kali membuka table ledger"*
+- **Domain Sorting Invariant & UX Analysis**:
+  - **Card View**: Sorted reverse-chronological (newest transactions at the TOP, oldest at bottom). Default scroll: `top: 0`.
+  - **Table Ledger**: Sorted chronologically ascending (oldest historical transactions at the TOP, latest current transactions at the BOTTOM), reflecting traditional accounting ledger books.
+  - Previous pain point: When switching to Table Ledger, the user was placed at the top (months/years in the past) and had to manually scroll past hundreds of rows to reach today's transactions.
+- **Architecture & Implementation (`app/finance/page.tsx`)**:
+  1. **Bottom Sentinel Anchor (`tableBottomAnchorRef`)**: Placed an invisible anchor element `<div ref={tableBottomAnchorRef} className="h-1 w-full pointer-events-none" aria-hidden="true" />` directly beneath the scrollable ledger table.
+  2. **Staged Execution Engine (`scrollToLedgerBottom`)**:
+     - Immediate frame: `tableBottomAnchorRef.current?.scrollIntoView({ block: 'end', behavior: 'instant' })` falling back to `window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'instant' })`.
+     - Staged requestAnimationFrame + timeouts (40ms, 120ms): Guarantees that dynamically sized rows, Turbopack chunks, and layout paints settle at the true bottom without truncation.
+  3. **View Mode Switcher Integration**:
+     - Clicking "Table Ledger" button triggers `setAccountViewMode('ledger')` and immediately invokes `scrollToLedgerBottom()`.
+     - Clicking "Card View" button triggers `setAccountViewMode('card')` and scrolls to top (`window.scrollTo({ top: 0, behavior: 'instant' })`), maintaining immediate access to latest transactions in both views.
+  4. **Automatic Navigation Trigger**:
+     - `useEffect` monitors transitions between tabs: navigating from Overview/Accounts into Activity while in Table Ledger mode automatically executes `scrollToLedgerBottom()`.
+- **Quality & Mobile Subagent Verification**:
+  - **Automated Mobile Browser Subagent (`scripts/test-mobile-e2e.mjs`)**: Verified with real Chrome iPhone 14 Pro touch emulation:
+    * `Table Ledger Default Bottom Scroll: scrollY: 9504 / maxScroll: 9616` (`isAutoScrolledToBottom: true`).
+    * `isFreezeStickyAtZero: true` (sticky headers stay pinned at top: 0).
+    * `scrollSyncResult.isSynchronized: true`.
+    * All 8 E2E mobile assertions passed 100%.
+  - **Unit Tests (`tests/finance/freeze-panes.test.ts`)**: Added 3 new unit tests verifying chronological vs reverse-chronological sorting and view switch scroll targeting. **392/392 unit tests passing (100%)**.
+  - **TypeScript**: 0 errors (`npx tsc --noEmit`).
+  - **ESLint**: 0 errors, 0 warnings (`npm run lint`).
+  - **Production build**: 100% green (`npm run build`).
+
 ### Langkah 44: Freeze Panes Stickiness Overhaul, Synchronized Table Header, Ghost Touch Glitch Elimination & Automated Mobile E2E Testing
 - **User Directive**:
   - *"Ada error nih, jadinya glitch seperti ada ghost touch swipe kiri kanan sendiri di card view maupun table ledger. Tidak berfungsi juga freeze pane nya. Gimana sih... Anda harusnya punya sub agent yang ngetes setiap perubahan fitur yang saya minta, dan si subagent itu bekerja seperti user asli, membukanya di browser hp dan mencoba fiturnya dan fitur lain juga"*

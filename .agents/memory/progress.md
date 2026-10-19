@@ -3,7 +3,7 @@
 ## Overall Status: STABLE PRODUCTION (OFFICIALLY GO-LIVE 🚀)
 - **Live Production URL:** [https://the-life-project-os.vercel.app/finance](https://the-life-project-os.vercel.app/finance)
 - **Backend Database:** Supabase PostgreSQL (`peydzblrtfgdoaisljkm.supabase.co`)
-- **Automated Test Suite:** 22 test suites, **389/389 tests passing (100%)**
+- **Automated Test Suite:** 22 test suites, **392/392 tests passing (100%)**
 - **Code Quality:** 0 ESLint errors, 0 TypeScript errors (`npx tsc --noEmit`)
 - **Session Boundary:** Permanently assigned as **Finance Domain Specialist**. All non-finance life domains (Habits, Journal, Tasks) are developed in separate dedicated chat sessions.
 
@@ -186,6 +186,11 @@
 - **Ghost Touch Elimination**: Replaced unstable dynamic `hidden` carousel layout with pure native DOM flow and touch-end angle guards (`useSwipeableTabs.ts`), completely eliminating spontaneous auto-swiping.
 - **Table Ledger Header Synchronization**: Placed Table Ledger column headers directly inside the Sticky Freeze Pane (`top: 0`), bidirectionally synchronized with the table data body via `scrollLeft` when swiping horizontally.
 - **Automated Mobile Browser Subagent**: Created `scripts/test-mobile-e2e.mjs` (`npm run test:e2e:mobile`) using Puppeteer with real Chrome emulating iPhone 14 Pro touch physics, verifying 100% passage on both local build and live Vercel production.
+
+### 28. Table Ledger Default Auto-Scroll to Bottom & Latest Transactions Focus
+- **Instant Bottom Scroll Engine (`app/finance/page.tsx`)**: Placed bottom sentinel anchor `tableBottomAnchorRef` and staged `scrollToLedgerBottom` helper with immediate + 40ms/120ms frame fallbacks, ensuring all dynamic rows settle at the true bottom.
+- **View Mode Switcher Integration**: Switching to Table Ledger scrolls to the bottom (where newest transactions sit), and switching to Card View scrolls to top: 0 (where newest cards sit), ensuring both modes always highlight latest transactions first.
+- **Mobile Subagent Verification**: Verified on iPhone 14 Pro emulation via Puppeteer with `scrollY: 9504 / maxScroll: 9616` and all 8/8 assertions passing. 22 test suites, 392/392 unit tests passing.
 
 ---
 

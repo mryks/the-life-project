@@ -337,6 +337,54 @@ export default function FinancePage() {
   const isSyncingHeaderScroll = useRef(false);
   const isSyncingBodyScroll = useRef(false);
 
+  // Table Ledger Bottom Anchor for Auto-Scroll to Latest Transactions
+  const tableBottomAnchorRef = useRef<HTMLDivElement>(null);
+
+  const scrollToLedgerBottom = useCallback(() => {
+    const doScroll = () => {
+      if (tableBottomAnchorRef.current) {
+        tableBottomAnchorRef.current.scrollIntoView({ block: 'end', behavior: 'instant' });
+      } else {
+        window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'instant' });
+      }
+    };
+
+    doScroll();
+
+    requestAnimationFrame(() => {
+      doScroll();
+      window.setTimeout(doScroll, 40);
+      window.setTimeout(doScroll, 120);
+    });
+  }, []);
+
+  // Auto-scroll Table Ledger to bottom by default when opened
+  const prevViewRef = useRef(view);
+  const prevAccountViewModeRef = useRef(accountViewMode);
+  const isInitialMountRef = useRef(true);
+
+  useEffect(() => {
+    if (isInitialMountRef.current) {
+      isInitialMountRef.current = false;
+      if (view === 'ledger' && accountViewMode === 'ledger') {
+        scrollToLedgerBottom();
+      }
+      return;
+    }
+
+    const wasInLedger = prevViewRef.current === 'ledger' && prevAccountViewModeRef.current === 'ledger';
+    const isInLedger = view === 'ledger' && accountViewMode === 'ledger';
+
+    if (!wasInLedger && isInLedger) {
+      scrollToLedgerBottom();
+    } else if (prevViewRef.current !== 'ledger' && view === 'ledger' && accountViewMode === 'card') {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+
+    prevViewRef.current = view;
+    prevAccountViewModeRef.current = accountViewMode;
+  }, [view, accountViewMode, scrollToLedgerBottom]);
+
   const handleBodyScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
     if (isSyncingBodyScroll.current) {
       isSyncingBodyScroll.current = false;
@@ -2149,7 +2197,10 @@ export default function FinancePage() {
               <div className="bg-white p-1 rounded-2xl border border-stone-200/90 border-b-[3px] border-b-stone-300/80 flex shadow-xs">
                 <button
                   type="button"
-                  onClick={() => setAccountViewMode('card')}
+                  onClick={() => {
+                    setAccountViewMode('card');
+                    window.scrollTo({ top: 0, behavior: 'instant' });
+                  }}
                   className={`flex-1 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                     accountViewMode === 'card'
                       ? 'bg-stone-900 text-white shadow-xs'
@@ -2161,7 +2212,10 @@ export default function FinancePage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setAccountViewMode('ledger')}
+                  onClick={() => {
+                    setAccountViewMode('ledger');
+                    scrollToLedgerBottom();
+                  }}
                   className={`flex-1 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                     accountViewMode === 'ledger'
                       ? 'bg-stone-900 text-white shadow-xs'
@@ -2347,11 +2401,12 @@ export default function FinancePage() {
               </div>
             ) : (
               /* Content: Table Ledger View */
-              <div 
-                ref={tableBodyScrollRef}
-                onScroll={handleBodyScroll}
-                className="bg-white rounded-3xl border border-stone-200/90 border-b-[3px] border-b-stone-300/80 shadow-xs overflow-x-auto"
-              >
+              <div className="space-y-2">
+                <div 
+                  ref={tableBodyScrollRef}
+                  onScroll={handleBodyScroll}
+                  className="bg-white rounded-3xl border border-stone-200/90 border-b-[3px] border-b-stone-300/80 shadow-xs overflow-x-auto"
+                >
                 <table className="w-full text-sm text-left border-collapse table-fixed min-w-[680px]">
                   <colgroup>
                     <col className="w-[110px]" />
@@ -2442,7 +2497,10 @@ export default function FinancePage() {
                   </tbody>
                 </table>
               </div>
-            )}
+              {/* Bottom anchor for scrolling to latest transactions */}
+              <div ref={tableBottomAnchorRef} className="h-1 w-full pointer-events-none" aria-hidden="true" />
+            </div>
+          )}
             </div>
           </div>
         )}

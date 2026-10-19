@@ -193,3 +193,15 @@ This document provides a permanent, faithful record of every user request, resol
     3. **Engineering Rules (`AGENTS.md` & `GEMINI.md`)**: Codify any newly emerged invariant, user rule, or anti-pattern.
     4. **Domain Skills (`.agents/skills/`)**: Expand recipes, test scripts, and guidelines in relevant skill files.
   - A task or chat turn is never complete until documentation has been updated, verified, committed, and pushed.
+
+---
+
+### 16. Table Ledger Default Auto-Scroll to Bottom & Latest Transactions Focus
+- **User Directive**:
+  - *"sekarang saya mau default dari table ledger tuh scrolled ke paling bawah, agar saya bisa langsung liat latest transaction dan ga harus scroll scroll setiap kali membuka table ledger"*
+- **Binding Agreement**:
+  1. **Dual Sorting Alignment**:
+     - **Card View**: Sorted reverse-chronological (newest at top). Opening Card View defaults to `scrollY: 0` (top).
+     - **Table Ledger**: Sorted chronologically ascending (newest at bottom). Opening Table Ledger defaults to `scrollY: bottom` (scrolled all the way to the bottom).
+  2. **Staged Execution Engine**: Uses `tableBottomAnchorRef` with immediate execution + staged `requestAnimationFrame` + timeout fallbacks (40ms, 120ms) so all dynamic rows and fonts settle at the true bottom.
+  3. **Trigger Invariants**: Auto-scroll to bottom activates when switching to Table Ledger or navigating to Activity in Table Ledger mode. Reading, typing in search, or editing existing records maintains the current scroll position without disruptive jumps.

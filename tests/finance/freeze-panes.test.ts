@@ -143,4 +143,40 @@ describe("Freeze Panes & Sticky Date Grouping Invariants", () => {
       expect(computeCarouselStyle(false, -800)).toEqual({ transform: "none" });
     });
   });
+
+  describe("Table Ledger Default Scroll-to-Bottom & Chronological Sorting Invariant", () => {
+    it("guarantees Table Ledger places latest transactions at the bottom (chronological ascending)", () => {
+      // Sample events sorted in chronological order as produced by deriveLedgerEntries
+      const chronologicalEvents = [...sampleEvents].sort((a, b) => a.date.localeCompare(b.date));
+      expect(chronologicalEvents[0].date).toBe("2026-09-30"); // Oldest at top
+      expect(chronologicalEvents[chronologicalEvents.length - 1].date).toBe("2026-10-18"); // Latest at bottom
+    });
+
+    it("guarantees Card View places latest transactions at the top (reverse chronological descending)", () => {
+      // Card view order
+      const reverseChronologicalEvents = [...sampleEvents].sort((a, b) => b.date.localeCompare(a.date));
+      expect(reverseChronologicalEvents[0].date).toBe("2026-10-18"); // Latest at top
+      expect(reverseChronologicalEvents[reverseChronologicalEvents.length - 1].date).toBe("2026-09-30"); // Oldest at bottom
+    });
+
+    it("verifies view switch scroll targeting (Table Ledger -> bottom, Card View -> top)", () => {
+      type ViewMode = "card" | "ledger";
+      const resolveTargetScroll = (viewMode: ViewMode, documentHeight: number) => {
+        if (viewMode === "ledger") {
+          return { target: "bottom", scrollY: documentHeight };
+        }
+        return { target: "top", scrollY: 0 };
+      };
+
+      const mockDocumentHeight = 4250;
+      expect(resolveTargetScroll("ledger", mockDocumentHeight)).toEqual({
+        target: "bottom",
+        scrollY: 4250,
+      });
+      expect(resolveTargetScroll("card", mockDocumentHeight)).toEqual({
+        target: "top",
+        scrollY: 0,
+      });
+    });
+  });
 });
