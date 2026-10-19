@@ -25,14 +25,15 @@
 - **Mobile PWA:**
   - `public/manifest.json` configured with standalone mode, oat milk theme `#FBF9F4`, and bespoke SVG icon.
   - Viewport optimized for mobile notch (`viewportFit: 'cover'`) and smooth touch drag interactions.
-- **Test Suite Status:** 100% passing (**23 test suites, 405 tests passed** via `npm test`).
+- **Test Suite Status:** 100% passing (**23 test suites, 406 tests passed** via `npm test`).
 - **Linter & Typecheck:** 0 errors, 0 warnings (`npm run lint`, `npx tsc --noEmit`).
-- **Automated Mobile Browser Subagent:** 100% passing (verified independent scroll shell, static upper controls, nominal masking, eye toggle, internal scroll targeting, horizontal sync, and swipe gestures via `scripts/test-mobile-e2e.mjs` / `npm run test:e2e:mobile` on iPhone 14 Pro emulation both locally and on live Vercel production).
-- **Natural Page Scroll & Centered Quick-Access Top Button (Langkah 48):**
-  - Restored full-screen natural page scrolling to `<main>` (`min-h-screen pb-28 relative overflow-x-clip`), allowing the top header, navigation tabs, and search bar to scroll off naturally as the user browses transactions ("bisa kehide"), eliminating mobile claustrophobia.
+- **Automated Mobile Browser Subagent:** 100% passing (verified sticky search bar freeze `searchTop: 25`, header hide `isHeaderHidden: true`, nominal masking, eye toggle, internal scroll targeting, horizontal sync, and swipe gestures via `scripts/test-mobile-e2e.mjs` / `npm run test:e2e:mobile` on iPhone 14 Pro emulation both locally and on live Vercel production).
+- **Sticky Search Bar Freeze with Natural Header Hide (Langkah 48):**
+  - Search Bar Freeze Invariant: `activityFreezeRef` (search input, filter chips, category dropdown, view switcher, and Table Ledger headers) is pinned at `sticky top-0 z-30 bg-[#FBF9F4]/95 backdrop-blur-xs -mx-4 sm:-mx-6 px-4 sm:px-6 pt-2 pb-3 border-b border-stone-200/80 shadow-2xs`.
+  - Natural Header Hide ("Bisa Kehide"): Main `<header>` (Logo, + Add button, tabs) scrolls off naturally into the upper page flow to maximize vertical space. Once `activityFreezeRef` reaches `top: 0`, it freezes and stays accessible at all times without having to scroll back to the top.
   - Card View: Rendered clean, quiet, static date section headers in normal document flow (`pt-2 pb-0.5 text-xs font-bold text-stone-500 tracking-wide`). Completely eliminated sticky translucent badges that caused overlapping text and visual clutter.
   - Table Ledger: Wrapped in dedicated scroll container (`max-h-[62vh] sm:max-h-[70vh] overflow-y-auto overflow-x-auto`) with sticky table `thead`. Opening Table Ledger auto-scrolls `tableBodyScrollRef` to the bottom (`tableBottomAnchorRef`), immediately displaying latest transactions while `window.scrollY` strictly stays at `0`.
-  - Centered Floating "Top & Search" Pill Button: When `window.scrollY > 350`, a sleek tactile floating pill (`↑ Top & Search`) appears smoothly via Framer Motion at `fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-stone-900/95 text-white`. Tapping it smoothly scrolls `window.scrollTo({ top: 0, behavior: 'smooth' })`. Centered placement ensures zero collision with the green `+ Add` button (`bottom-6 right-6`) and provides equal ergonomics for left- and right-handed users.
+  - Centered Floating "Top" Pill Button: When `window.scrollY > 350`, a sleek tactile floating pill (`↑ Top`) appears smoothly via Framer Motion at `fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-stone-900/95 text-white`. Tapping it smoothly scrolls `window.scrollTo({ top: 0, behavior: 'smooth' })`. Centered placement ensures zero collision with the green `+ Add` button (`bottom-6 right-6`) and provides equal ergonomics for left- and right-handed users.
   - Mandatory Visual Inspection Protocol: Every UI change must be visually inspected via screenshots/recordings across key scroll states on mobile viewport prior to user handoff.
 - **Nominal Masking & Eye Toggle (Langkah 46):**
   - All nominal amounts across the entire application default to masked (`Rp ••••••`).

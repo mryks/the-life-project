@@ -56,29 +56,46 @@ async function run() {
     await page.screenshot({ path: path.join(outDir, '1-card-top.png') });
     console.log('Saved 1-card-top.png');
 
-    // 2. Scroll window down 350px (showing top controls scrolling off cleanly)
+    // 2. Scroll window down 350px (showing top header scrolled off and search bar frozen at top: 0)
     await page.evaluate(() => {
       window.scrollTo(0, 350);
+      window.dispatchEvent(new Event('scroll'));
     });
     await new Promise((r) => setTimeout(r, 400));
+    const scroll350Metrics = await page.evaluate(() => {
+      const search = document.querySelector('input[placeholder*="Search"]');
+      const searchRect = search ? search.getBoundingClientRect() : null;
+      const header = document.querySelector('header');
+      const headerRect = header ? header.getBoundingClientRect() : null;
+      return {
+        scrollY: window.scrollY,
+        isHeaderHidden: headerRect ? headerRect.bottom <= 0 : false,
+        searchTop: searchRect ? Math.round(searchRect.top) : null,
+        isSearchFrozen: searchRect ? (searchRect.top >= 0 && searchRect.top < 150) : false,
+      };
+    });
+    console.log('Metrics at scrollY 350:', scroll350Metrics);
     await page.screenshot({ path: path.join(outDir, '2-card-scrolled-350.png') });
     console.log('Saved 2-card-scrolled-350.png');
 
-    // 3. Scroll window down 750px (showing date headers in natural flow & floating Top button)
+    // 3. Scroll window down 750px (showing search bar still frozen at top & floating Top button)
     await page.evaluate(() => {
       window.scrollTo(0, 750);
       window.dispatchEvent(new Event('scroll'));
     });
     await new Promise((r) => setTimeout(r, 400));
-    const btnExists = await page.evaluate(() => {
+    const scroll750Metrics = await page.evaluate(() => {
       const topBtn = Array.from(document.querySelectorAll('button')).find(b => b.textContent?.includes('Top'));
+      const search = document.querySelector('input[placeholder*="Search"]');
+      const searchRect = search ? search.getBoundingClientRect() : null;
       return {
         scrollY: window.scrollY,
+        searchTop: searchRect ? Math.round(searchRect.top) : null,
+        isSearchFrozen: searchRect ? (searchRect.top >= 0 && searchRect.top < 150) : false,
         topBtnFound: Boolean(topBtn),
-        topBtnRect: topBtn ? topBtn.getBoundingClientRect() : null
       };
     });
-    console.log('Top button status at scrollY 750:', btnExists);
+    console.log('Metrics at scrollY 750:', scroll750Metrics);
     await page.screenshot({ path: path.join(outDir, '3-card-scrolled-750.png') });
     console.log('Saved 3-card-scrolled-750.png');
 

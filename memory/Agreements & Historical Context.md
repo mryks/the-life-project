@@ -244,22 +244,26 @@ This document provides a permanent, faithful record of every user request, resol
 
 ---
 
-### 19. Natural Page Scroll, Clean Static Date Headers & Mandatory Visual Screenshot Inspection Protocol
-- **User Directive**:
-  - *"terlihat aneh, sekarang halaman atasnya jadi frozen, gabisa kehide. kemudian tanggal yang ada di cardview yang akan berganti seiring discroll itu agak aneh tanggalnya, kurang oke. harusnya anda sudah cek cek sebelum ngasih ke saya, jadi anda udah screenshot ataupun juga screenrecord, baru analisis, baru revisi sendiri, lakukan berulang hingga dirasa sudah oke, baru kasih ke saya"*
+### 19. Sticky Search Bar Freeze with Natural Header Hide & Visual Inspection Protocol
+- **User Directives**:
+  - *"terlihat aneh, sekarang halaman atasnya jadi frozen, gabisa kehide. kemudian tanggal yang ada di cardview yang akan berganti seiring discroll itu agak aneh tanggalnya, kurang oke."*
+  - *"sekarang di activity, search barnya jadi ga ke freeze. gimana sih anda ini. tolong pahami dan execute dengan baik. kalau memang bingung silakan tanya, jangan berasumsi sendiri. ayo dong"*
+  - **User Clarification Decision**: User explicitly chose: *"Search bar & filter menempel beku di paling atas layar (sticky top-0) saat discroll, sedangkan header logo & tab di atasnya bergeser keluar layar (bisa kehide) agar area baca transaksi tetap lega."*
 - **Binding Agreement**:
-  1. **Natural Page Scroll Invariant (Anti-Frozen Shell)**:
-     - Never lock the page into a rigid `h-dvh flex flex-col overflow-hidden` container where the upper header and search controls permanently consume 45% of mobile screen space without being able to hide.
-     - The page MUST scroll naturally (`min-h-screen pb-28 relative overflow-x-clip`), allowing the header to scroll off-screen as the user browses transactions to maximize readability and vertical real estate.
+  1. **Sticky Search Bar Freeze Invariant (`sticky top-0 z-30`)**:
+     - In the Activity tab, the search controls wrapper (`activityFreezeRef`) containing the search input, filter chips, category dropdown, and view switcher (and synchronized table column headers in Table Ledger) must be `position: sticky top-0 z-30 bg-[#FBF9F4]/95 backdrop-blur-xs -mx-4 sm:-mx-6 px-4 sm:px-6 pt-2 pb-3 border-b border-stone-200/80 shadow-2xs`.
+     - When scrolling down, the main app `<header>` (Logo, + Add button, tabs) scrolls off naturally into the upper page flow ("bisa kehide"), leaving maximum vertical reading room.
+     - Once `activityFreezeRef` reaches the top of the viewport, it firmly sticks/freezes at `top: 0` ("search barnya ke-freeze"). Transactions scroll smoothly underneath it.
+     - Users never have to scroll back to the top of the feed to search, change filters, or toggle between Card View and Table Ledger.
   2. **Clean Static Section Date Headers (Anti-Sticky Date Jitter)**:
      - Date headers in Card View must NEVER use `sticky top-0 z-20` or translucent backdrop blur.
      - Date headers must render as clean, quiet static section headings in normal document flow (`<h3 className="text-xs font-bold text-stone-500 tracking-wide">`), scrolling naturally with each date group. Zero card overlap, zero text collision.
   3. **Table Ledger Dedicated Container Scroll**:
      - Table Ledger is wrapped in a dedicated scroll container with `max-h-[62vh] sm:max-h-[70vh] overflow-y-auto overflow-x-auto`.
      - When switching to Table Ledger, `scrollToLedgerBottom()` auto-scrolls the table container to the bottom (`tableBodyScrollRef.current.scrollTop = tableBodyScrollRef.current.scrollHeight`) while keeping the page at `window.scrollY = 0`.
-  4. **Floating Centered "Top & Search" Pill**:
+  4. **Floating Centered "Top" Pill**:
      - When `window.scrollY > 350`, a tactile, elegant pill button appears at `fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-stone-900/95 text-white px-4 py-2 rounded-full text-xs font-bold shadow-xl border border-stone-700/80 backdrop-blur-xs`.
      - Centered alignment eliminates collision with the green `+ Add` FAB at `bottom-6 right-6`.
-     - One-click smooth scroll to `window.scrollTo({ top: 0, behavior: 'smooth' })`, solving "tidak harus scroll ke paling atas agar memunculkan header" without freezing the screen.
+     - Provides an effortless one-tap smooth scroll back to `top: 0`.
   5. **Mandatory Visual Screenshot Inspection Protocol**:
      - The agent must NEVER hand off a UI change without first capturing screenshots across key interactive states (top, scrolled down, view switch), inspecting the images directly via tools, and iteratively revising until visually refined and ergonomically sound.

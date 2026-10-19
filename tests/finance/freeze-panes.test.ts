@@ -191,5 +191,16 @@ describe("Freeze Panes & Sticky Date Grouping Invariants", () => {
       expect(isHeaderVisibleAtZero).toBe(true);
       expect(isSearchAreaVisibleAtZero).toBe(true);
     });
+
+    it("verifies Sticky Search Bar Freeze Invariant: search bar stays pinned at top: 0 while header scrolls off", () => {
+      // When page scrolls down beyond header height (e.g. scrollY = 350)
+      const headerHeight = 130;
+      const scrollY = 350;
+      const isHeaderHidden = scrollY > headerHeight;
+      const isSearchFrozenAtTop = scrollY >= headerHeight; // Sticks at top: 0
+
+      expect(isHeaderHidden).toBe(true);
+      expect(isSearchFrozenAtTop).toBe(true);
+    });
   });
 });

@@ -171,11 +171,14 @@ export async function runTest(targetUrl = process.argv[2] || 'http://localhost:3
       const topBtn = Array.from(document.querySelectorAll('button')).find(b => b.textContent?.includes('Top'));
       const header = document.querySelector('header');
       const headerRect = header ? header.getBoundingClientRect() : null;
+      const search = document.querySelector('input[placeholder*="Search"]');
+      const searchRect = search ? search.getBoundingClientRect() : null;
 
       return {
         windowScrollY: window.scrollY,
         isHeaderHidden: headerRect ? headerRect.bottom <= 0 : false,
         hasTopButton: Boolean(topBtn),
+        isSearchFrozen: searchRect ? (searchRect.top >= 0 && searchRect.top < 150) : false,
       };
     });
 
@@ -353,6 +356,7 @@ export async function runTest(targetUrl = process.argv[2] || 'http://localhost:3
       initialCardMetrics.isWindowAtZero &&
       initialCardMetrics.isHeaderVisibleAtTop &&
       scrolledCardMetrics.isHeaderHidden &&
+      scrolledCardMetrics.isSearchFrozen &&
       scrolledCardMetrics.hasTopButton &&
       initialLedgerScroll.isAutoScrolledToBottom &&
       initialLedgerScroll.isWindowAtZero &&

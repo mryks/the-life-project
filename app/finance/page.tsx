@@ -2210,10 +2210,10 @@ export default function FinancePage() {
           <div className="w-full">
             <div className="max-w-5xl mx-auto px-4 sm:px-6 space-y-4">
             
-            {/* SEARCH & FILTERS TOP CONTROLS */}
+            {/* SEARCH & FILTERS TOP CONTROLS (STICKY FREEZE PANE) */}
             <div 
               ref={activityFreezeRef}
-              className="pt-1 pb-2 space-y-3"
+              className="sticky top-0 z-30 bg-[#FBF9F4]/95 backdrop-blur-xs -mx-4 sm:-mx-6 px-4 sm:px-6 pt-2 pb-3 space-y-3 border-b border-stone-200/80 shadow-2xs"
             >
               {/* Active Account Filter Banner */}
               {filterAccountId && (() => {
@@ -2615,10 +2615,10 @@ export default function FinancePage() {
             type="button"
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
             className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-stone-900/95 hover:bg-stone-900 text-white px-4 py-2 rounded-full text-xs font-bold shadow-xl flex items-center gap-1.5 active:scale-95 cursor-pointer border border-stone-700/80 backdrop-blur-xs"
-            title="Jump to Top & Search"
+            title="Back to Top"
           >
             <ArrowUp className="w-3.5 h-3.5 stroke-[2.5]" />
-            <span>Top & Search</span>
+            <span>Top</span>
           </motion.button>
         )}
       </AnimatePresence>

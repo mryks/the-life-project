@@ -202,13 +202,14 @@
 - **Static Upper Shell (`shrink-0`)**: Explored fixed viewport architecture where header and search controls remained frozen. Tested bottom table auto-scrolling and nominal masking.
 - **Verification**: 405/405 unit tests passing across 23 test suites and mobile browser subagent verification on iPhone 14 Pro emulation.
 
-### 31. Natural Page Scroll, Clean Static Date Headers & Centered Quick-Access Button (Langkah 48)
-- **Restoration of Natural Page Scrolling**: Restored full-screen scrolling to `<main>` (`min-h-screen pb-28 relative overflow-x-clip`), allowing the top header, navigation tabs, and search bar to scroll off naturally as the user browses transactions ("bisa kehide"), eliminating mobile claustrophobia.
+### 31. Sticky Search Bar Freeze with Natural Header Hide & Clean Date Headers (Langkah 48)
+- **Sticky Search Bar Freeze Invariant**: Pinned `activityFreezeRef` (search bar, filter chips, category dropdown, view switcher, and Table Ledger headers) at `sticky top-0 z-30 bg-[#FBF9F4]/95 backdrop-blur-xs -mx-4 sm:-mx-6 px-4 sm:px-6 pt-2 pb-3 border-b border-stone-200/80 shadow-2xs`.
+- **Natural Header Hide ("Bisa Kehide")**: Main `<header>` (Logo, + Add button, tabs) scrolls off naturally into the upper page flow to maximize vertical space. Once `activityFreezeRef` reaches `top: 0`, it freezes and stays accessible at all times without having to scroll back to the top.
 - **Clean Static Date Headers (Card View)**: Replaced sticky translucent badges with clean, quiet static section headers in normal document flow (`pt-2 pb-0.5 text-xs font-bold text-stone-500 tracking-wide`). Completely eliminated overlapping text and badge collision jitter.
 - **Dedicated Table Ledger Container**: Wrapped Table Ledger in `max-h-[62vh] sm:max-h-[70vh] overflow-y-auto overflow-x-auto` with sticky `thead` (`sticky top-0 z-10 bg-stone-100`). Opening Table Ledger auto-scrolls to the bottom (`tableBottomAnchorRef`), displaying latest transactions while `window.scrollY` strictly stays at `0`.
-- **Centered Floating "Top & Search" Pill Button**: When the user scrolls down (`window.scrollY > 350`), a sleek tactile floating pill (`↑ Top & Search`) appears smoothly via Framer Motion at `fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-stone-900/95 text-white`. Tapping it smoothly scrolls `window.scrollTo({ top: 0, behavior: 'smooth' })`. Centered placement ensures zero collision with the green `+ Add` button (`bottom-6 right-6`) and provides equal ergonomics for left- and right-handed users.
+- **Centered Floating "Top" Pill Button**: When the user scrolls down (`window.scrollY > 350`), a sleek tactile floating pill (`↑ Top`) appears smoothly via Framer Motion at `fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-stone-900/95 text-white`. Tapping it smoothly scrolls `window.scrollTo({ top: 0, behavior: 'smooth' })`. Centered placement ensures zero collision with the green `+ Add` button (`bottom-6 right-6`) and provides equal ergonomics for left- and right-handed users.
 - **Mandatory Visual Inspection Protocol**: Visual screenshot inspection executed across 5 scroll states on iPhone 14 Pro emulation (`1-card-top.png`, `2-card-scrolled-350.png`, `3-card-scrolled-750.png`, `4-table-ledger.png`, `5-table-ledger-scrolled.png`) confirming design hierarchy before handoff.
-- **Verification**: 405/405 unit tests passing across 23 test suites, 0 TypeScript/ESLint errors, and 100% automated mobile browser subagent pass rate.
+- **Verification**: 406/406 unit tests passing across 23 test suites, 0 TypeScript/ESLint errors, and 100% automated mobile browser subagent pass rate.
 
 ---
 

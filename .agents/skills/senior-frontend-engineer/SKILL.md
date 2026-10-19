@@ -112,21 +112,24 @@ Before building gesture-driven UI, align on:
   * **View Switch Symmetry**: When switching to Card View, instantly scroll to `top: 0`. When switching to Table Ledger, instantly scroll to bottom. Both views immediately present the latest transactions.
 ---
 
-## 8. Natural Page Scroll, Clean Static Date Headers & Centered Quick-Access Invariant
+## 8. Sticky Search Bar Freeze with Natural Header Hide Invariant
 
-- **The Frozen Shell Anti-Pattern**:
-  * Locking the layout root to `h-dvh flex flex-col overflow-hidden` with a large static upper shell (>300px of headers, tabs, search, filters) causes severe mobile claustrophobia.
-  * Over 50% of the mobile viewport is permanently consumed by frozen controls, and users can never scroll them off to view transaction feeds in full-screen mode ("gabisa kehide").
-- **The Modern Natural Scroll Architecture**:
-  * **Page Root Shell**: Configure `<main>` with natural document flow: `min-h-screen pb-28 relative overflow-x-clip`. Headers and search controls scroll off smoothly as the user browses content.
+- **The Problem: Claustrophobia vs Sticky Search Accessibility**:
+  * Freezing the entire top shell (header, logo, tabs, search bar, filters) consumes over 45% of the mobile viewport, making the interface feel claustrophobic because the main navigation never scrolls away ("gabisa kehide").
+  * Conversely, letting the search bar scroll away completely forces users to scroll all the way back to the top just to search or filter transactions.
+- **The Modern Sticky Search Architecture**:
+  * **Natural Header Hide ("Bisa Kehide")**: The main app `<header>` (Logo, + Add button, tabs) renders in normal document flow. As the user scrolls down, it scrolls off smoothly to give maximum vertical screen space for reading transactions.
+  * **Sticky Search Bar Freeze**: In the Activity tab, the search controls wrapper (`activityFreezeRef`: search input, filter chips, category dropdown, view switcher, and Table Ledger headers) is pinned at `sticky top-0 z-30 bg-[#FBF9F4]/95 backdrop-blur-xs -mx-4 sm:-mx-6 px-4 sm:px-6 pt-2 pb-3 border-b border-stone-200/80 shadow-2xs`.
+    - Once the user scrolls down past the header (~130px), `activityFreezeRef` hits `top: 0` and firmly freezes at the top of the viewport.
+    - Transactions scroll smoothly underneath it. The search bar is always accessible without having to scroll to the top of the feed.
   * **Clean Static Date Headers**: In Card feeds, render date headers as quiet, static section headers in normal document flow (`pt-2 pb-0.5 text-xs font-bold text-stone-500 tracking-wide`). Completely eliminate sticky translucent badges with backdrop-blur that collide, clip text, or let cards slide awkwardly underneath.
   * **Dedicated Table Ledger Container**:
     - Wrap the Table Ledger in a dedicated height-bounded container: `max-h-[62vh] sm:max-h-[70vh] overflow-y-auto overflow-x-auto`.
     - Column headers stick inside the container using `sticky top-0 z-10 bg-stone-100`.
     - When switching to Table Ledger, auto-scroll strictly `tableBodyScrollRef.current.scrollTop = tableBodyScrollRef.current.scrollHeight` (to latest transactions at bottom) while `window.scrollY` strictly stays at `0`.
-  * **Centered Floating Quick-Access Pill (`↑ Top & Search`)**:
+  * **Centered Floating Quick-Access Pill (`↑ Top`)**:
     - When `window.scrollY > 350`, render a sleek tactile floating pill button centered at `fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-stone-900/95 text-white shadow-xl backdrop-blur-xs`.
-    - Tapping it smoothly scrolls `window.scrollTo({ top: 0, behavior: 'smooth' })`, instantly revealing header and search controls.
+    - Tapping it smoothly scrolls `window.scrollTo({ top: 0, behavior: 'smooth' })`.
     - Centered placement ensures zero collision with the right-aligned floating action button (e.g. green `+ Add` button at `bottom-6 right-6`) and provides equal reachability for left- and right-handed users.
 
 ---
