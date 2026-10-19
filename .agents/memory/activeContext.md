@@ -35,6 +35,7 @@
   - Table Ledger: Wrapped in dedicated scroll container (`max-h-[62vh] sm:max-h-[70vh] overflow-y-auto overflow-x-auto`) with sticky table `thead`. Opening Table Ledger auto-scrolls `tableBodyScrollRef` to the bottom (`tableBottomAnchorRef`), immediately displaying latest transactions while `window.scrollY` strictly stays at `0`.
   - Centered Floating "Top" Pill Button: When `window.scrollY > 350`, a sleek tactile floating pill (`↑ Top`) appears smoothly via Framer Motion at `fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-stone-900/95 text-white`. Tapping it smoothly scrolls `window.scrollTo({ top: 0, behavior: 'smooth' })`. Centered placement ensures zero collision with the green `+ Add` button (`bottom-6 right-6`) and provides equal ergonomics for left- and right-handed users.
   - Mandatory Visual Inspection Protocol: Every UI change must be visually inspected via screenshots/recordings across key scroll states on mobile viewport prior to user handoff.
+  - User Sign-Off: Formally verified and approved by the user on their smartphone: *"oke ini lebih baik"* (2026-10-19). Permanent production law.
 - **Nominal Masking & Eye Toggle (Langkah 46):**
   - All nominal amounts across the entire application default to masked (`Rp ••••••`).
   - Session-persisted via `sessionStorage` (`thelife-hide-nominals`), persisting across page navigation/refreshes until the application is killed.

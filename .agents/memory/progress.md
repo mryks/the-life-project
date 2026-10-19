@@ -210,6 +210,7 @@
 - **Centered Floating "Top" Pill Button**: When the user scrolls down (`window.scrollY > 350`), a sleek tactile floating pill (`↑ Top`) appears smoothly via Framer Motion at `fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-stone-900/95 text-white`. Tapping it smoothly scrolls `window.scrollTo({ top: 0, behavior: 'smooth' })`. Centered placement ensures zero collision with the green `+ Add` button (`bottom-6 right-6`) and provides equal ergonomics for left- and right-handed users.
 - **Mandatory Visual Inspection Protocol**: Visual screenshot inspection executed across 5 scroll states on iPhone 14 Pro emulation (`1-card-top.png`, `2-card-scrolled-350.png`, `3-card-scrolled-750.png`, `4-table-ledger.png`, `5-table-ledger-scrolled.png`) confirming design hierarchy before handoff.
 - **Verification**: 406/406 unit tests passing across 23 test suites, 0 TypeScript/ESLint errors, and 100% automated mobile browser subagent pass rate.
+- **User Sign-Off**: Formally verified and approved by the user on their smartphone: *"oke ini lebih baik"* (2026-10-19). Live in production.
 
 ---
 
