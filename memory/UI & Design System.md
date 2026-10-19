@@ -59,3 +59,7 @@ Custom CSS utilities in `app/globals.css`:
 
 
 
+- **Default Nominal Masking & Session-Persisted Eye Toggle (`lib/privacy.ts`)**:
+  - **Cold Start Masking**: By default, all financial nominals across Overview, Accounts, Card View, and Table Ledger render masked as `Rp ••••••` (or with sign/suffix: `+Rp ••••••`, `-Rp ••••••`, `Rp ••••••/day`, `Net: Rp ••••••`).
+  - **Eye Icon Toggle**: Tactile vector toggle buttons (`Eye` / `EyeOff` from `lucide-react`) in the top navigation header bar and beside `TOTAL BALANCE` on `HeroVaultCard`.
+  - **Session Persistence**: Stored in `sessionStorage` (`thelife-hide-nominals`). Remains revealed across tab transitions and page navigation during the session; automatically re-masks when the application is killed or closed.

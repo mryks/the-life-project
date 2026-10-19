@@ -205,3 +205,20 @@ This document provides a permanent, faithful record of every user request, resol
      - **Table Ledger**: Sorted chronologically ascending (newest at bottom). Opening Table Ledger defaults to `scrollY: bottom` (scrolled all the way to the bottom).
   2. **Staged Execution Engine**: Uses `tableBottomAnchorRef` with immediate execution + staged `requestAnimationFrame` + timeout fallbacks (40ms, 120ms) so all dynamic rows and fonts settle at the true bottom.
   3. **Trigger Invariants**: Auto-scroll to bottom activates when switching to Table Ledger or navigating to Activity in Table Ledger mode. Reading, typing in search, or editing existing records maintains the current scroll position without disruptive jumps.
+
+---
+
+### 17. Default Nominal Masking (`Rp ••••••`) with Session-Persisted Eye Toggle
+- **User Directive**:
+  - *"sekarang saya mau by default, nominal tidak ditampilkan. mau ada icon mata untuk hide and show. maunya tidak ke menjadi hidden selama tidak dikill. silakan berikan rencana kerjanya dulu"*
+- **Binding Agreement**:
+  1. **Default Privacy Invariant**: All nominal amounts across the entire application (Total Balance, Investment Balance, Net Worth, Income, Expenses, Cashflow, Burn Rate, Chart Tooltips, Account Cards, Card View, and Table Ledger) MUST default to masked (`Rp ••••••`).
+  2. **Session Persistence via `sessionStorage`**:
+     - Key: `thelife-hide-nominals`.
+     - Toggling nominals to visible (`false`) persists across tab navigation, view switches, and page refreshes as long as the application session is active.
+     - When the application process is terminated/killed (tab closed, mobile app swiped away from RAM), the operating system/browser purges `sessionStorage`, automatically reverting nominals to masked (`true`) on the next cold start.
+  3. **Visual Standard**: 6 uniform bullet dots (`Rp ••••••`, `+Rp ••••••`, `-Rp ••••••`, `Rp ••••••/day`, `Net: Rp ••••••`). Maintains monospaced tabular layout without card distortion.
+  4. **Dual Toggle Controls**:
+     - Primary toggle: Tactile `Eye` / `EyeOff` button in the sticky top header bar beside `Lock`, `Backup`, and `Cloud`.
+     - Secondary companion toggle: Small eye icon button beside `TOTAL BALANCE` on `HeroVaultCard`.
+  5. **Arithmetic & State Non-Interference**: Masking is strictly presentational. Underlying numbers, financial ledger records, calculations, and sync operations remain 100% deterministic and unmodified.

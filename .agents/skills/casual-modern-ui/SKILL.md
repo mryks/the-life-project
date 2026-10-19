@@ -60,3 +60,19 @@ When exploring or building UI components, draw directly from these design engine
 Google Stitch (`stitch.withgoogle.com`) is an AI-native UI design canvas by Google Labs powered by Gemini models.
 - **Workflow:** You can sketch or describe visual concepts in Stitch, export the generated React + Tailwind JSX, and drop the components into `components/` in this project.
 - Antigravity IDE connects seamlessly: take the JSX output from Stitch and wire it to the deterministic `lib/finance.ts` state.
+
+---
+
+## 4. Financial Privacy & Nominal Masking Pattern
+
+In banking and modern personal finance UIs, financial privacy is an essential ergonomic requirement:
+1. **Default Cold-Start Masking**:
+   - Financial amounts across all views default to masked with 6 bullets (`Rp ••••••`, `+Rp ••••••`, `-Rp ••••••`, `Rp ••••••/day`, `Net: Rp ••••••`).
+   - Maintains monospaced tabular character width without card jitter or layout collapse.
+2. **Session-Scoped Persistence**:
+   - Store toggle in `sessionStorage` (`thelife-hide-nominals`).
+   - Persists revealed state (`false`) during the active session across tab transitions and page navigation, but reverts to masked when the application process is terminated/killed or the tab is closed.
+3. **Tactile Eye Toggle Button**:
+   - Accessible via vector `Eye` and `EyeOff` icons (from `lucide-react`) in the top navigation header bar and beside `TOTAL BALANCE` on `HeroVaultCard`.
+   - Never use Unicode eye emojis.
+

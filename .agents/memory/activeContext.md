@@ -25,9 +25,13 @@
 - **Mobile PWA:**
   - `public/manifest.json` configured with standalone mode, oat milk theme `#FBF9F4`, and bespoke SVG icon.
   - Viewport optimized for mobile notch (`viewportFit: 'cover'`) and smooth touch drag interactions.
-- **Test Suite Status:** 100% passing (**22 test suites, 392 tests passed** via `npm test`).
+- **Test Suite Status:** 100% passing (**23 test suites, 404 tests passed** via `npm test`).
 - **Linter & Typecheck:** 0 errors, 0 warnings (`npm run lint`, `npx tsc --noEmit`).
-- **Automated Mobile Browser Subagent:** 100% passing (7/7 assertions via `scripts/test-mobile-e2e.mjs` / `npm run test:e2e:mobile` on iPhone 14 Pro).
+- **Automated Mobile Browser Subagent:** 100% passing (verified nominal masking, eye toggle, sticky panes, bottom scrolling, horizontal sync, and swipe gestures via `scripts/test-mobile-e2e.mjs` / `npm run test:e2e:mobile` on iPhone 14 Pro emulation both locally and on live Vercel production).
+- **Nominal Masking & Eye Toggle (Langkah 46):**
+  - All nominal amounts across the entire application default to masked (`Rp ••••••`).
+  - Session-persisted via `sessionStorage` (`thelife-hide-nominals`), persisting across page navigation/refreshes until the application is killed.
+  - Tactile `Eye` / `EyeOff` button in header bar and companion eye button beside `TOTAL BALANCE` on `HeroVaultCard`.
 - **Continuous Memory & Skills Law:** Mandatory end-of-turn synchronization across Obsidian vault (`memory/`), Memory Bank (`.agents/memory/`), Engineering Rules (`AGENTS.md` & `GEMINI.md`), and Skills (`.agents/skills/`) on every chat interaction.
 - **Sync Engine Hotfix (Resolved):**
   - Edit Persistence: Created outbox `queuePendingUpserts` so edited existing transactions are queued and pushed to Supabase (`upsert`), preventing cloud fetch from reverting edits.
@@ -83,6 +87,7 @@
 42. **Langkah 43: Activity Freeze Panes & Cascading Sticky Date Headers** (Implemented dynamic freeze pane covering search bar, category chips, and view toggles at `top-0`; Table Ledger row 1 column headers stick seamlessly at `top: [freezeHeight]`; Card View features native iOS-style cascading sticky date headers where each date badge stays frozen until the next date group pushes it off-screen; cleared carousel CSS `transform` on settled tabs to prevent containing block trapping of window-sticky elements; verified with 6 new unit tests in `tests/finance/freeze-panes.test.ts`, 387/387 total tests passing).
 43. **Langkah 44: Freeze Panes Stickiness Overhaul, Synchronized Table Header, Ghost Touch Glitch Elimination & Automated Mobile E2E Testing** (Diagnosed and solved 4 root causes: `<main>` `overflow-x: hidden` computing to scroll container, Framer Motion dynamic `display: none` layout expansion causing 780px ghost-touch jumps, `transform` containing block traps, and table `overflow-x: auto` isolating `thead`. Replaced with normal DOM flow and `overflow-x: clip`, touch-end gesture guards, synchronized Table Ledger header row inside the sticky freeze pane with bidirectional horizontal scroll sync, accurate `freezeHeight` measurement across tab switches, and a real automated mobile browser subagent test suite `scripts/test-mobile-e2e.mjs` verifying iPhone 14 Pro touch physics and freeze pane coordinates on live Vercel production; 22 test suites, 389 unit tests passing, 0 errors, 0 warnings).
 44. **Langkah 45: Table Ledger Default Auto-Scroll to Bottom & Latest Transactions Focus** (Resolved traditional ledger chronological ascending sorting dilemma where oldest rows sat at the top by default; added invisible bottom sentinel anchor `tableBottomAnchorRef` and staged `scrollToLedgerBottom` engine with immediate + 40ms/120ms frame fallback; wired instant scroll-to-top on Card View and instant scroll-to-bottom on Table Ledger; verified via automated mobile subagent `scripts/test-mobile-e2e.mjs` with `scrollY: 9504 / maxScroll: 9616` and 8/8 assertions passing; 22 test suites, 392 unit tests passing).
+45. **Langkah 46: Default Nominal Masking (`Rp ••••••`) with Session-Persisted Eye Toggle** (Implemented session-persisted privacy masking for all financial numbers defaulting to `Rp ••••••` on cold start via `sessionStorage` `thelife-hide-nominals`; added tactile `Eye` / `EyeOff` button in sticky top navigation bar and companion eye button on `HeroVaultCard`; masked all 4 main views including Overview HeroVaultCard/KpiGrid/Charts, Accounts 17 cards and banners, Card View items/refunds/fees, Table Ledger In/Out columns, and Action/Delete modals; verified via 12 new unit tests in `tests/finance/privacy.test.ts` (404/404 passing) and live production mobile browser subagent; 23 test suites, 404 tests green).
 
 ---
 

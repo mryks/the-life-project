@@ -6,6 +6,40 @@
 
 ## 📜 Sprint & Evolution Log
 
+### Langkah 46: Default Nominal Masking (`Rp ••••••`) with Session-Persisted Eye Toggle
+- **User Directive**:
+  - *"sekarang saya mau by default, nominal tidak ditampilkan. mau ada icon mata untuk hide and show. maunya tidak ke menjadi hidden selama tidak dikill. silakan berikan rencana kerjanya dulu"*
+- **Architectural Analysis & Design**:
+  1. **Session Lifecycle via `sessionStorage`**:
+     - Key requirement: "maunya tidak menjadi hidden selama tidak dikill".
+     - Storage engine: `sessionStorage` with key `thelife-hide-nominals`.
+     - When navigation occurs between tabs or the page is refreshed during an active session, `sessionStorage` preserves `'false'` (revealed).
+     - When the application is killed (browser tab closed, smartphone process terminated), the OS automatically purges `sessionStorage`, resetting visibility back to `true` (masked) on cold start.
+  2. **Standard Masked Representation (`Rp ••••••`)**:
+     - Defined `formatMaskedNominal()` and `MASKED_NOMINAL = 'Rp ••••••'` in `lib/privacy.ts`.
+     - Supports signs (`+Rp ••••••`, `-Rp ••••••`), prefixes (`Net: Rp ••••••`), and suffixes (`Rp ••••••/day`).
+  3. **Universal Component & View Masking**:
+     - `components/ui/animated-number.tsx`: Added `hideNominals?: boolean`. When true, renders masked bullets `••••••` while preserving font-mono metrics; when false, rolls digits dynamically via mechanical odometer cascade.
+     - `components/finance/HeroVaultCard.tsx`: Added `hideNominals` and `onToggleHideNominals`. Masks Total Balance, Investment Assets, and Net Worth. Added tactile eye button beside `TOTAL BALANCE` header badge.
+     - `components/finance/KpiGrid.tsx`: Added `hideNominals`. Masks Income, Expenses, Net Cashflow, and Daily Burn Rate.
+     - `app/finance/page.tsx`:
+       * Top navigation header bar: Added tactile `Eye` / `EyeOff` button right beside `Lock`, `Backup`, and `Cloud`.
+       * Charts: PieChart and LineChart tooltips & legend items render masked amounts.
+       * Accounts view: All 17 account cards and aggregate banners pass `hideNominals`.
+       * Activity Card View: Main transaction amounts, refund badges, admin fees, and net expenses masked.
+       * Table Ledger View: `In (+)` and `Out (-)` columns masked.
+       * Action Sheet & Delete Confirmation: Masked amounts displayed when active.
+  4. **Quality & Test Verification**:
+     - **Unit Tests (`tests/finance/privacy.test.ts`)**: 12 new unit tests verifying default hidden state, cold start reset, session persistence, event dispatching, and sign/prefix/suffix formatting. **404/404 unit tests passing (100%) across 23 test suites**.
+     - **TypeScript**: 0 errors (`npx tsc --noEmit`).
+     - **ESLint**: 0 errors, 0 warnings (`npm run lint`).
+     - **Production Build**: 100% green (`npm run build`).
+     - **Automated Mobile Browser Subagent (`scripts/test-mobile-e2e.mjs`)**: Verified with real Chrome iPhone 14 Pro touch emulation on both local build and live Vercel production:
+       * Initial masked nominals count: 14 (`isMaskedByDefault: true`).
+       * Tap eye toggle: unmasks nominals and updates button to "Hide Nominals".
+       * Tap eye toggle again: re-masks nominals.
+       * All freeze panes, table scroll-to-bottom, horizontal sync, and tab swipe gestures passed 100%.
+
 ### Langkah 45: Table Ledger Default Auto-Scroll to Bottom & Latest Transactions Focus
 - **User Directive**:
   - *"sekarang saya mau default dari table ledger tuh scrolled ke paling bawah, agar saya bisa langsung liat latest transaction dan ga harus scroll scroll setiap kali membuka table ledger"*

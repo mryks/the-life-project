@@ -175,4 +175,8 @@ Keep changes minimal and reviewable.
   * **Table Ledger**: Sorted chronologically ascending (oldest at top, latest at bottom). When opening Table Ledger, the view MUST default to being scrolled to the very bottom (`tableBottomAnchorRef`) so latest transactions are immediately visible without manual scrolling.
   * **Card View**: Sorted reverse-chronologically descending (latest at top). When opening Card View, the view MUST default to `top: 0`.
   * Switching between views must always place the user at the latest transactions.
+- **Nominal Privacy & Session Masking Invariant**:
+  * All financial amounts across the entire application (Total Balance, Investment Balance, Net Worth, Income, Expense, Cashflow, Burn Rate, Chart Tooltips/Legends, 17 Account Cards, Card View, and Table Ledger) MUST default to masked (`Rp ••••••`).
+  * Visibility toggle state is scoped to `sessionStorage` (`thelife-hide-nominals`). Revealed state (`false`) persists across tab transitions and page navigation during the session, but automatically reverts to masked on application cold start / tab kill.
+  * Vector eye toggle buttons (`Eye` / `EyeOff` from `lucide-react`) must be provided in the sticky header and on `HeroVaultCard`.
 - **Production Parity**: When building or refining mobile interactions, verification is incomplete until changes are committed, pushed, and deployed live to Vercel.
