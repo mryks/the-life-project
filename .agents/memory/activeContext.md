@@ -25,8 +25,10 @@
 - **Mobile PWA:**
   - `public/manifest.json` configured with standalone mode, oat milk theme `#FBF9F4`, and bespoke SVG icon.
   - Viewport optimized for mobile notch (`viewportFit: 'cover'`) and smooth touch drag interactions.
-- **Test Suite Status:** 100% passing (**22 test suites, 387 tests passed** via `npm test`).
+- **Test Suite Status:** 100% passing (**22 test suites, 389 tests passed** via `npm test`).
 - **Linter & Typecheck:** 0 errors, 0 warnings (`npm run lint`, `npx tsc --noEmit`).
+- **Automated Mobile Browser Subagent:** 100% passing (7/7 assertions via `scripts/test-mobile-e2e.mjs` / `npm run test:e2e:mobile` on iPhone 14 Pro).
+- **Continuous Memory & Skills Law:** Mandatory end-of-turn synchronization across Obsidian vault (`memory/`), Memory Bank (`.agents/memory/`), Engineering Rules (`AGENTS.md` & `GEMINI.md`), and Skills (`.agents/skills/`) on every chat interaction.
 - **Sync Engine Hotfix (Resolved):**
   - Edit Persistence: Created outbox `queuePendingUpserts` so edited existing transactions are queued and pushed to Supabase (`upsert`), preventing cloud fetch from reverting edits.
   - Reorder Persistence: Reordering computes per-date `within_day_order`, queues affected records, and pushes to Supabase so card order is retained permanently across page refreshes.

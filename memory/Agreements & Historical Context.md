@@ -180,3 +180,16 @@ This document provides a permanent, faithful record of every user request, resol
   3. **Cascading Date Badges**: In Card View, date badges stick at `top: [freezeHeight]` and stay pinned until pushed up by the subsequent date group.
   4. **Gesture Disambiguation & Touch Isolation**: Swipeable tab navigation is guarded by strict angle thresholds (`|deltaX| > |deltaY| * 1.5`), min distance (50px), and element immunity (`table`, `button`, `input`). Tab widths must remain static without dynamic `display: none` layout shifts during touch.
   5. **Mandatory Automated Mobile Subagent Testing**: No mobile touch, layout, or freeze pane feature is considered complete until verified by `scripts/test-mobile-e2e.mjs` (`npm run test:e2e:mobile`) on both local and live Vercel production.
+
+---
+
+### 15. Continuous Knowledge & Memory Synchronization Law (Every Chat Interaction)
+- **User Directive**:
+  - *"oke, tolong lakukan update skill, memory, rule, dan lain lain setiap kali chat ya"*
+- **Binding Agreement**:
+  - In **EVERY single chat interaction**, regardless of task type (feature, bugfix, UI design, questions, or clarification), the agent must proactively update and synchronize all 4 knowledge tiers:
+    1. **Obsidian Vault (`memory/`)**: Update `Changelog & Step Log.md`, `Agreements & Historical Context.md`, `UI & Design System.md`, and `00 - Atlas (Index).md`.
+    2. **Agent Memory Bank (`.agents/memory/`)**: Update `activeContext.md` and `progress.md`.
+    3. **Engineering Rules (`AGENTS.md` & `GEMINI.md`)**: Codify any newly emerged invariant, user rule, or anti-pattern.
+    4. **Domain Skills (`.agents/skills/`)**: Expand recipes, test scripts, and guidelines in relevant skill files.
+  - A task or chat turn is never complete until documentation has been updated, verified, committed, and pushed.

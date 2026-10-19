@@ -142,6 +142,23 @@ Keep changes minimal and reviewable.
 - At the start of tasks, consult the Memory Bank before performing redundant codebase rescans.
 - When finishing major milestones, update the relevant Memory Bank files.
 
+## Continuous Memory, Rules & Skills Synchronization Law (Every Chat Interaction)
+
+- **Mandatory End-of-Turn Synchronization**: At the conclusion of EVERY chat interaction (regardless of whether the task was a feature, bugfix, UI polish, design decision, or clarification), the agent MUST proactively update and synchronize all four knowledge repositories:
+  1. **Obsidian Vault (`memory/`)**:
+     * `00 - Atlas (Index).md`: Maintain complete Map of Content (MOC) and accurate sprint step ranges.
+     * `Changelog & Step Log.md`: Chronologically record newly completed sprint steps, root cause analyses, architectural decisions, and verification metrics.
+     * `Agreements & Historical Context.md`: Record every user preference, binding rule, design agreement, or constraint established in the turn.
+     * Domain notes (`UI & Design System.md`, `Domain & Financial Model.md`, `Security & Master PIN.md`, etc.): Keep domain-specific sections evergreen.
+  2. **Agent Memory Bank (`.agents/memory/`)**:
+     * `activeContext.md`: Record current status, immediate next steps, and verified invariants.
+     * `progress.md`: Update milestones, test counts, and completed backlog items.
+  3. **Engineering Rules (`AGENTS.md` & `GEMINI.md`)**:
+     * Enshrine any newly identified laws, user invariants, anti-patterns, or architectural requirements so mistakes are never repeated.
+  4. **Domain Skills (`.agents/skills/`)**:
+     * Update relevant skills (e.g. `senior-frontend-engineer`, `animate`, `casual-modern-ui`) with newly proven recipes, edge-case solutions, and automated test protocols.
+- **Never Skip Documentation**: A task is NEVER complete until all 4 knowledge tiers have been updated, verified, and committed.
+
 ## Front-End & UI Engineering Standard
 
 - The agent must strictly adhere to `.agents/skills/senior-frontend-engineer/SKILL.md` for all UI, layout, animation, and touch gesture tasks.
