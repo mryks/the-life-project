@@ -76,3 +76,23 @@ In banking and modern personal finance UIs, financial privacy is an essential er
    - Accessible via vector `Eye` and `EyeOff` icons (from `lucide-react`) in the top navigation header bar and beside `TOTAL BALANCE` on `HeroVaultCard`.
    - Never use Unicode eye emojis.
 
+---
+
+## 5. Excess Refund & Profit Visualization Pattern
+
+When a refund transaction exceeds the original expense amount (e.g. compensation, goodwill settlement, market dispute payout):
+1. **Single Real-World Transaction Reality**:
+   - Never split into two separate records in the database or user view. Users expect 1:1 parity with their bank/e-wallet statement (e.g., one incoming credit of `+Rp 650.000`).
+2. **Modal Dynamic Feedback**:
+   - Do not block the user with hard error barriers when entering amounts higher than the original expense.
+   - Provide live feedback immediately under the amount input:
+     - If $\text{amount} \le \text{remaining}$: display resulting net balance.
+     - If $\text{amount} > \text{remaining}$: display `Net expense balance: Rp 0 • Excess profit: +Rp Y (recorded in category Others)`.
+3. **Card & Ledger Badging**:
+   - On the parent expense card, display: `Refunded: Rp X • Profit: +Rp Z` and `Net: Rp 0 (Profit: +Rp Z)`.
+   - On the refund transaction card, render a purple `Refund` badge paired with an emerald `Profit: +Rp Z (Others)` badge.
+   - On the table ledger row, display the full transaction amount with combined category badge `${parentCategory} / Others`.
+   - Ensure the category filter for `Others` matches refunds that carry profit.
+
+
+

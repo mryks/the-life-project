@@ -268,3 +268,24 @@ This document provides a permanent, faithful record of every user request, resol
   5. **Mandatory Visual Screenshot Inspection Protocol**:
      - The agent must NEVER hand off a UI change without first capturing screenshots across key interactive states (top, scrolled down, view switch), inspecting the images directly via tools, and iteratively revising until visually refined and ergonomically sound.
 - **Verification Sign-Off**: Formally verified and signed off by the user on their smartphone: *"oke ini lebih baik"* (2026-10-19). Permanent production law.
+
+---
+
+### 20. Refund Exceeding Original Expense & Profit Recognition in Category 'Others'
+- **User Directives**:
+  - *"sekarang saya ingin bahwa tidak apa apa refund melebihi transaksi awalnya. kelebihan itu (keuntungan) akan dicatat dalam kategori others"*
+  - **User Clarification Decision via `ask_question`**: The user explicitly chose: *"1 Transaksi Refund Utuh: Refund tetap dicatat sebagai 1 transaksi (misal: +Rp 150.000 sesuai mutasi rekening), dan sistem otomatis menghitung kelebihan (Rp 50.000) sebagai pemasukan (Income) ber-kategori 'Others'."*
+- **Binding Accounting Rules**:
+  1. **Single Transaction Model**:
+     - The refund is stored as a single `RefundEvent` (preserving 1:1 parity with real-world bank/e-wallet statement transfers).
+     - Relational integrity is preserved: the refund points to the parent expense via `relatedEventId`.
+     - `validateFinancialEvents` allows total refunds to exceed parent expense amount.
+  2. **Deterministic Financial Split**:
+     - **Expense Reversal**: Up to the original expense amount, the refund reduces the parent expense's category spending and monthly expense down to minimum Rp 0.
+     - **Profit (Keuntungan)**: Any cumulative refund amount beyond the original expense is recognized as **Monthly Income** attributed to income category **'Others'**.
+     - **Net Cashflow & Balances**: Net cashflow increases deterministically by the entire refund amount ($\Delta \text{Cashflow} = \text{Reversal} + \text{Profit}$), perfectly matching the destination account balance increase.
+  3. **UI Representation**:
+     - In `RefundModal`: The hard block/error on amount > max refundable is removed. Summary box shows "Refundable Expense" with footnote note. An alert box appears under amount showing: `Net expense balance: Rp 0 • Excess profit: +Rp Y (recorded in category Others)`.
+     - In Card View: Expense card displays `Refunded: Rp X • Profit: +Rp Z` and `Net: Rp 0 (Profit: +Rp Z)`. Refund card displays `Refund` badge and `Profit: +Rp Z (Others)`.
+     - In Table Ledger: Row displays full incoming amount with category `[ExpenseCategory] / Others` or `Others`.
+     - Category filter for `Others` matches refunds that contain profit.

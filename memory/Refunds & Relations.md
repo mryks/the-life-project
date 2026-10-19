@@ -4,20 +4,29 @@
 
 ---
 
-## 🔁 The Core Philosophy of Refunds
+## 🔁 The Core Philosophy of Refunds & Excess Profit
 
-In personal accounting, a **refund is an expense reversal**, never income.
+In personal accounting, a **refund is primarily an expense reversal**:
 
-1. **Refund is NOT Income**:
-   - When you buy groceries for Rp 100,000 and return a defective item for Rp 60,000, you did not earn Rp 60,000. You merely recovered part of your spent capital.
-   - Refunds must **never** be added to monthly income aggregates or inflate savings rate formulas.
-2. **Refund Directly Reduces Net Expense**:
-   - Contribution of the parent expense to monthly spending becomes:
-     $$\text{Net Expense} = \text{Original Expense Amount} - \sum \text{Linked Refunds}$$
-   - Example: Rp 100,000 expense with Rp 60,000 refund = **Rp 40,000 net expense**.
-3. **Card Visualization**:
-   - Parent expense cards display the original amount, a violet badge `Refunded: Rp 60.000`, and the adjusted net expense.
-   - Individual refund cards are highlighted in violet (`text-violet-600`, `bg-violet-50`) and clearly marked with a `Refund` badge.
+1. **Expense Reversal Portion (up to original expense amount)**:
+   - When you spend Rp 100,000 and return a defective item for Rp 60,000, you did not earn Rp 60,000. You recovered spent capital.
+   - Refunds reduce the parent expense's contribution down to a minimum of Rp 0:
+     $$\text{Net Expense} = \max(0, \text{Original Expense Amount} - \sum \text{Linked Refunds})$$
+2. **Excess Portion is Recognized as Profit (Income in Category 'Others')**:
+   - Per explicit user agreement (Langkah 49), refunds **are allowed to exceed the original expense amount**.
+   - Any cumulative refund amount beyond the original expense represents real gain / compensation / dispute profit:
+     $$\text{Profit} = \max(0, \sum \text{Linked Refunds} - \text{Original Expense Amount})$$
+   - This excess is automatically credited to **Monthly Income** under income category **'Others'**.
+   - Net cashflow increases by the full refund amount:
+     $$\Delta \text{Net Cashflow} = \text{Expense Reversal} + \text{Profit} = \text{Total Refund Amount}$$
+   - Bank balance increases by the full refund amount in the destination account.
+3. **Card & Ledger Visualization**:
+   - Parent expense cards display:
+     - If partially/fully refunded: `Refunded: Rp X` and `Net: -Rp Y` (or `Net: Rp 0`).
+     - If refund exceeds expense: `Refunded: Rp X • Profit: +Rp Z` and `Net: Rp 0 (Profit: +Rp Z)`.
+   - Refund cards display the full incoming amount with `Refund` badge, and when profit exists: `Profit: +Rp Z (Others)`.
+   - Table Ledger displays the single full refund transaction with combined category badge e.g. `[ExpenseCategory] / Others` or `Others`.
+   - Category filter for `Others` matches refunds containing profit.
 
 ---
 

@@ -3,7 +3,7 @@
 ## Overall Status: STABLE PRODUCTION (OFFICIALLY GO-LIVE 🚀)
 - **Live Production URL:** [https://the-life-project-os.vercel.app/finance](https://the-life-project-os.vercel.app/finance)
 - **Backend Database:** Supabase PostgreSQL (`peydzblrtfgdoaisljkm.supabase.co`)
-- **Automated Test Suite:** 23 test suites, **405/405 tests passing (100%)**
+- **Automated Test Suite:** 24 test suites, **412/412 tests passing (100%)**
 - **Code Quality:** 0 ESLint errors, 0 TypeScript errors (`npx tsc --noEmit`)
 - **Session Boundary:** Permanently assigned as **Finance Domain Specialist**. All non-finance life domains (Habits, Journal, Tasks) are developed in separate dedicated chat sessions.
 
@@ -209,8 +209,20 @@
 - **Dedicated Table Ledger Container**: Wrapped Table Ledger in `max-h-[62vh] sm:max-h-[70vh] overflow-y-auto overflow-x-auto` with sticky `thead` (`sticky top-0 z-10 bg-stone-100`). Opening Table Ledger auto-scrolls to the bottom (`tableBottomAnchorRef`), displaying latest transactions while `window.scrollY` strictly stays at `0`.
 - **Centered Floating "Top" Pill Button**: When the user scrolls down (`window.scrollY > 350`), a sleek tactile floating pill (`↑ Top`) appears smoothly via Framer Motion at `fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-stone-900/95 text-white`. Tapping it smoothly scrolls `window.scrollTo({ top: 0, behavior: 'smooth' })`. Centered placement ensures zero collision with the green `+ Add` button (`bottom-6 right-6`) and provides equal ergonomics for left- and right-handed users.
 - **Mandatory Visual Inspection Protocol**: Visual screenshot inspection executed across 5 scroll states on iPhone 14 Pro emulation (`1-card-top.png`, `2-card-scrolled-350.png`, `3-card-scrolled-750.png`, `4-table-ledger.png`, `5-table-ledger-scrolled.png`) confirming design hierarchy before handoff.
-- **Verification**: 406/406 unit tests passing across 23 test suites, 0 TypeScript/ESLint errors, and 100% automated mobile browser subagent pass rate.
-- **User Sign-Off**: Formally verified and approved by the user on their smartphone: *"oke ini lebih baik"* (2026-10-19). Live in production.
+### 32. Refunds Exceeding Original Expense with Profit in Category 'Others' (Langkah 49)
+- **User Directive & Consensus**: User requested that refunds can exceed the original expense amount, with the excess portion (keuntungan/profit) recorded in category 'Others'. Clarified and agreed to maintain a single complete refund transaction (1:1 bank parity).
+- **Deterministic Accounting Mechanics (`lib/finance.ts`)**:
+  * `validateFinancialEvents`: Relaxed strict amount capping, allowing total refunds to exceed the parent expense amount.
+  * Deterministic split: Up to the parent expense amount, reverses expense and category totals (minimum Rp 0); any cumulative excess is recognized as Monthly Income under category `'Others'`.
+  * Total net cashflow increases by the full refund amount: $\Delta \text{Cashflow} = \text{expenseReversal} + \text{profit}$.
+  * Day-level net expense clamped to $\ge 0$ so profit does not create negative expense days.
+  * Ledger rows derive combined categories: `[Category] / Others` or `'Others'`.
+- **UI Enhancements (`RefundModal.tsx`, `app/finance/page.tsx`)**:
+  * `RefundModal`: Removed hard error on excess amounts; default amount initializes to `maxRefundableAmount` ($> 0$) or `''`; live alert box computes: `Net expense balance: Rp 0 • Excess profit: +Rp Y (recorded in category Others)`.
+  * Card View: Expense card shows `Refunded: Rp X • Profit: +Rp Z` and `Net: Rp 0 (Profit: +Rp Z)`; Refund card shows purple `Refund` badge and green `Profit: +Rp Z (Others)` badge.
+  * Table Ledger: Rows display single transaction with full incoming amount and combined category.
+  * Category Filter: Filtering for `Others` matches refunds that contain profit; filtering for parent expense category matches refunds with expense reversal.
+- **Verification**: 412/412 unit tests passing across 24 test suites (added `tests/finance/refunds-excess.test.ts`), 0 TypeScript/ESLint errors, 100% automated mobile browser subagent pass rate.
 
 ---
 

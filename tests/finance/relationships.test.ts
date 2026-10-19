@@ -58,11 +58,11 @@ describe('Relationship Integrity (Rule B)', () => {
       expect(validateFinancialEvents([expense, ref1, ref2, ref3])).toBe(true);
     });
 
-    it('rejects refunds when total refunds exceed expense amount', () => {
+    it('allows refunds when total refunds exceed expense amount (excess profit)', () => {
       const expense = createExpense({ id: 'exp-1', accountId: 'g', amount: 100_000 });
       const ref1 = createRefund({ id: 'ref-1', relatedEventId: 'exp-1', accountId: 'g', amount: 60_000 });
       const ref2 = createRefund({ id: 'ref-2', relatedEventId: 'exp-1', accountId: 'g', amount: 45_000 });
-      expect(validateFinancialEvents([expense, ref1, ref2])).toBe(false);
+      expect(validateFinancialEvents([expense, ref1, ref2])).toBe(true);
     });
 
     it('rejects refund pointing to an income event', () => {

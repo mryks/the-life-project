@@ -49,11 +49,11 @@ export type FinancialEvent =
 - For comprehensive rules, see dedicated note: [[Refunds & Relations]].
 - Fields: `id`, `date`, `description`, `amount`, `accountId`, `relatedEventId`.
 - **Fundamental Rule**:
-  - **Refund is NOT Income.** It must never be aggregated into monthly income totals.
-  - **Refund reduces Net Expense**: If an expense of Rp 100,000 has a refund of Rp 60,000, net expense is Rp 40,000.
+  - **Expense Reversal**: Up to the original expense amount, a refund reduces Net Expense down to a minimum of Rp 0. If an expense of Rp 100,000 has a refund of Rp 60,000, net expense is Rp 40,000.
+  - **Excess is Profit (Income in Category 'Others')**: Per explicit user agreement (Langkah 49), refunds may exceed the parent expense amount. Any excess beyond the parent expense is deterministically credited to Monthly Income under category `'Others'`.
   - Money returns to the user-selected destination account (`accountId` can be any valid account, e.g. paid via BCA, refunded to GoPay).
   - Parent expense retains original outflow on its account; refund destination account receives incoming funds.
-  - Total refunds for an expense must never exceed the parent expense amount (`totalRefunds <= parentExpense.amount`).
+  - Total refunds on an expense CAN exceed the parent expense amount; the transaction remains a single 1:1 entity matching bank statements.
 
 ---
 
@@ -84,4 +84,4 @@ All calculations are pure functions located in `lib/finance.ts`:
 3. Every ID must be unique across the entire dataset.
 4. Child events (`refund` or `cashback`) must have a valid parent expense event.
 5. Child cashback event `accountId` matches parent `accountId`. Refund event `accountId` can be any valid account selected by the user.
-6. Sum of refunds on an expense cannot exceed parent expense amount.
+6. Sum of refunds on an expense CAN exceed parent expense amount; any excess beyond the parent expense is recognized deterministically as profit in category 'Others'.

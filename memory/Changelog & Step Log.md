@@ -6,6 +6,49 @@
 
 ## 📜 Sprint & Evolution Log
 
+### Langkah 49: Refunds Exceeding Original Expense with Profit Credited to Category 'Others'
+- **User Directives**:
+  - *"sekarang saya ingin bahwa tidak apa apa refund melebihi transaksi awalnya. kelebihan itu (keuntungan) akan dicatat dalam kategori others"*
+  - **Clarification Decision via `ask_question`**: User explicitly chose: *"1 Transaksi Refund Utuh: Refund tetap dicatat sebagai 1 transaksi (misal: +Rp 150.000 sesuai mutasi rekening), dan sistem otomatis menghitung kelebihan (Rp 50.000) sebagai pemasukan (Income) ber-kategori 'Others'."*
+- **Accounting Architecture & Split Mechanics (`lib/finance.ts`)**:
+  1. **Validation Relaxation**:
+     - Updated `validateFinancialEvents`: removed `totalRefunds <= expense.amount` hard constraint while strictly requiring parent expense existence (`relatedEventId`).
+  2. **Deterministic Split Helper (`computeAllRefundBreakdowns`, `getRefundBreakdown`)**:
+     - Chronologically evaluates all refunds linked to a parent expense.
+     - For each refund:
+       $$\text{expenseReversal} = \min(\text{refund.amount}, \text{remainingExpense})$$
+       $$\text{profit} = \max(0, \text{refund.amount} - \text{remainingExpense})$$
+       $$\text{remainingExpense} \leftarrow \max(0, \text{remainingExpense} - \text{refund.amount})$$
+  3. **Monthly & Daily Stats Calculation (`calculateFinanceStats`, `calculateNetExpenseForDate`)**:
+     - `calculateFinanceStats`: Reverses expense and category totals up to `expenseReversal` (minimum Rp 0, no negative parent expense).
+     - Any excess `profit` is credited directly to `monthlyIncome` under income category `'Others'`.
+     - Net cashflow increases by full refund amount: $\Delta \text{Cashflow} = \text{expenseReversal} + \text{profit}$.
+     - `calculateNetExpenseForDate`: Clamps refund reduction to `expenseReversal` so profit never causes day-level net expense to turn negative.
+  4. **Ledger Derivation (`deriveLedgerEntries`)**:
+     - Categorizes refund ledger entries dynamically:
+       * Pure reversal: `parentCategory`
+       * Combined reversal + profit: `${parentCategory} / Others`
+       * Pure profit (parent already 100% refunded): `'Others'`
+- **User Interface Overhaul (`RefundModal.tsx`, `app/finance/page.tsx`)**:
+  1. **`RefundModal.tsx`**:
+     - Removed hard error blocking amounts exceeding max refundable balance.
+     - Default amount initializes to `maxRefundableAmount` if $> 0$, or empty string `''` if parent is already fully refunded.
+     - Live dynamic alert box displays: `Net expense balance: Rp 0 • Excess profit: +Rp Y (recorded in category Others)`.
+     - Footnote clarifying that excess refund amounts are recorded as profit in category Others.
+  2. **`app/finance/page.tsx`**:
+     - Removed `if (remaining <= 0) alert(...)`, allowing additional profit refunds even on 100% refunded expenses.
+     - Card View: Parent expense card shows `Refunded: Rp X • Profit: +Rp Z` and `Net: Rp 0 (Profit: +Rp Z)`; Refund card shows purple `Refund` badge and green `Profit: +Rp Z (Others)` badge.
+     - Category Filter: Filtering for `Others` matches refunds that contain profit; filtering for parent expense category matches refunds with expense reversal.
+- **Verification & Visual Inspection Protocol**:
+  - **Unit Tests**: Added `tests/finance/refunds-excess.test.ts` (6 comprehensive scenarios) and updated `validation.test.ts`, `relationships.test.ts`, `crud.test.ts`, and `backup-restore.test.ts`. Full test suite: **24 test suites, 412/412 tests passing (100%)**.
+  - **Type Checking & Linting**: `npx tsc --noEmit` 0 errors; `npm run lint` 0 errors, 0 warnings (isolated `bendera-ungu` subproject).
+  - **Production Build**: Next.js production build green (`npm run build`).
+  - **Mobile E2E**: Verified with `scripts/test-mobile-e2e.mjs` on iPhone 14 Pro emulation — 100% PASS.
+  - **Visual Inspection**: Captured and visually verified screenshots:
+    * `1-refund-modal-excess.png`: RefundModal with Rp 650.000 on Rp 500.000 expense showing net Rp 0 and excess profit +Rp 150.000 (Others).
+    * `2-card-view-refund-profit.png`: Card View showing refund card with +Rp 650.000, `Refund` badge, and `Profit: +Rp 150.000 (Others)` badge.
+    * `3-table-ledger-refund-profit.png`: Table Ledger with frozen headers and ledger rows.
+
 ### Langkah 48: Sticky Search Bar Freeze with Natural Header Hide, Clean Static Date Headers & Visual Inspection Protocol
 - **User Directives**:
   - *"terlihat aneh, sekarang halaman atasnya jadi frozen, gabisa kehide. kemudian tanggal yang ada di cardview yang akan berganti seiring discroll itu agak aneh tanggalnya, kurang oke. harusnya anda sudah cek cek sebelum ngasih ke saya, jadi anda udah screenshot ataupun juga screenrecord, baru analisis, baru revisi sendiri, lakukan berulang hingga dirasa sudah oke, baru kasih ke saya"*

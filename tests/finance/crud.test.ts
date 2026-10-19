@@ -140,16 +140,18 @@ describe('CRUD, Event Replacement & Cascade Deletion (Rules C & D)', () => {
       expect(ref?.description).toBe('Updated refund: partial item returned');
     });
 
-    it('rejects updating Refund amount if it exceeds the remaining refundable parent expense', () => {
+    it('allows updating Refund amount even if it exceeds the parent expense (recognizing profit)', () => {
       const expense = createExpense({ id: 'exp-1', accountId: 'g', amount: 100_000 });
       const ref1 = createRefund({ id: 'ref-1', relatedEventId: 'exp-1', accountId: 'g', amount: 40_000 });
       const ref2 = createRefund({ id: 'ref-2', relatedEventId: 'exp-1', accountId: 'g', amount: 50_000 });
       const events: FinancialEvent[] = [expense, ref1, ref2]; // total refunded: 90,000
 
-      // Attempt to increase ref1 to 60,000 (total would be 60,000 + 50,000 = 110,000 > 100,000)
-      const invalidRefund = createRefund({ id: 'ref-1', relatedEventId: 'exp-1', accountId: 'g', amount: 60_000 });
-      const next = replaceFinancialEvent(events, invalidRefund);
-      expect(next).toBeNull();
+      // Increase ref1 to 60,000 (total would be 60,000 + 50,000 = 110,000 > 100,000)
+      const updatedRefund = createRefund({ id: 'ref-1', relatedEventId: 'exp-1', accountId: 'g', amount: 60_000 });
+      const next = replaceFinancialEvent(events, updatedRefund);
+      expect(next).not.toBeNull();
+      const updatedRef1 = next?.find((e) => e.id === 'ref-1');
+      expect(updatedRef1?.amount).toBe(60_000);
     });
 
     it('preserves refund destination account when parent Expense account changes', () => {

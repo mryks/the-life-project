@@ -188,17 +188,17 @@ describe('Event Validation (Rule A)', () => {
       expect(parseEvent(refundNeg)).toBeNull();
     });
 
-    it('rejects refund if single refund exceeds original expense amount', () => {
+    it('allows refund when single refund exceeds original expense amount (profit)', () => {
       const expense = createExpense({ id: 'exp-1', accountId: 'g', amount: 100_000 });
       const refund = createRefund({ id: 'ref-1', relatedEventId: 'exp-1', accountId: 'g', amount: 100_001 });
-      expect(validateFinancialEvents([expense, refund])).toBe(false);
+      expect(validateFinancialEvents([expense, refund])).toBe(true);
     });
 
-    it('rejects refund if cumulative refunds exceed original expense amount', () => {
+    it('allows refund when cumulative refunds exceed original expense amount', () => {
       const expense = createExpense({ id: 'exp-1', accountId: 'g', amount: 100_000 });
       const refund1 = createRefund({ id: 'ref-1', relatedEventId: 'exp-1', accountId: 'g', amount: 60_000 });
       const refund2 = createRefund({ id: 'ref-2', relatedEventId: 'exp-1', accountId: 'g', amount: 50_000 });
-      expect(validateFinancialEvents([expense, refund1, refund2])).toBe(false);
+      expect(validateFinancialEvents([expense, refund1, refund2])).toBe(true);
     });
 
     it('rejects refund with category field attached', () => {

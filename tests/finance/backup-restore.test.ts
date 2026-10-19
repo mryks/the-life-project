@@ -301,8 +301,8 @@ describe('P1.3 Backup, Export and Restore', () => {
     expect(result.success).toBe(false);
   });
 
-  // 18. Refund total exceeding Expense is rejected safely.
-  it('18. refund total exceeding original Expense is rejected safely', () => {
+  // 18. Refund total exceeding Expense is accepted safely (excess recognized as profit).
+  it('18. refund total exceeding original Expense is accepted safely', () => {
     const expense = createExpense({ id: 'exp-100k', amount: 100_000 });
     const refund = createRefund({ id: 'ref-150k', relatedEventId: 'exp-100k', amount: 150_000 });
 
@@ -311,7 +311,11 @@ describe('P1.3 Backup, Export and Restore', () => {
       events: [expense, refund],
     });
     const result = parseAndValidateBackup(json);
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.events).toHaveLength(2);
+      expect(result.summary.refundCount).toBe(1);
+    }
   });
 
   // 19. Invalid event type is rejected safely.

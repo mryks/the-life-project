@@ -25,9 +25,17 @@
 - **Mobile PWA:**
   - `public/manifest.json` configured with standalone mode, oat milk theme `#FBF9F4`, and bespoke SVG icon.
   - Viewport optimized for mobile notch (`viewportFit: 'cover'`) and smooth touch drag interactions.
-- **Test Suite Status:** 100% passing (**23 test suites, 406 tests passed** via `npm test`).
+- **Test Suite Status:** 100% passing (**24 test suites, 412 tests passed** via `npm test`).
 - **Linter & Typecheck:** 0 errors, 0 warnings (`npm run lint`, `npx tsc --noEmit`).
 - **Automated Mobile Browser Subagent:** 100% passing (verified sticky search bar freeze `searchTop: 25`, header hide `isHeaderHidden: true`, nominal masking, eye toggle, internal scroll targeting, horizontal sync, and swipe gestures via `scripts/test-mobile-e2e.mjs` / `npm run test:e2e:mobile` on iPhone 14 Pro emulation both locally and on live Vercel production).
+- **Refunds Exceeding Original Expense with Profit in Category 'Others' (Langkah 49):**
+  - Validation relaxed: `validateFinancialEvents` permits refunds exceeding the parent expense amount while enforcing parent existence.
+  - Deterministic accounting split: Up to parent expense amount, reduces net expense and category spending (minimum Rp 0); any cumulative excess is recognized as Monthly Income under category `'Others'`.
+  - Net cashflow increases deterministically by full refund amount: $\Delta \text{Cashflow} = \text{expenseReversal} + \text{profit}$.
+  - Daily net expense clamped to $\ge 0$ so profit does not create negative expense days.
+  - RefundModal: Removed hard block error on excess amounts; dynamic alert calculates: `Net expense balance: Rp 0 • Excess profit: +Rp Y (recorded in category Others)`.
+  - Card View & Table Ledger: Expense cards show `Profit: +Rp Z`, Refund cards show `Profit: +Rp Z (Others)` badge; Ledger rows show `[Category] / Others` or `'Others'`.
+  - Category filter for `Others` matches refunds containing profit.
 - **Sticky Search Bar Freeze with Natural Header Hide (Langkah 48):**
   - Search Bar Freeze Invariant: `activityFreezeRef` (search input, filter chips, category dropdown, view switcher, and Table Ledger headers) is pinned at `sticky top-0 z-30 bg-[#FBF9F4]/95 backdrop-blur-xs -mx-4 sm:-mx-6 px-4 sm:px-6 pt-2 pb-3 border-b border-stone-200/80 shadow-2xs`.
   - Natural Header Hide ("Bisa Kehide"): Main `<header>` (Logo, + Add button, tabs) scrolls off naturally into the upper page flow to maximize vertical space. Once `activityFreezeRef` reaches `top: 0`, it freezes and stays accessible at all times without having to scroll back to the top.
@@ -98,6 +106,7 @@
 45. **Langkah 46: Default Nominal Masking (`Rp ••••••`) with Session-Persisted Eye Toggle** (Implemented session-persisted privacy masking for all financial numbers defaulting to `Rp ••••••` on cold start via `sessionStorage` `thelife-hide-nominals`; added tactile `Eye` / `EyeOff` button in sticky top navigation bar and companion eye button on `HeroVaultCard`; masked all 4 main views including Overview HeroVaultCard/KpiGrid/Charts, Accounts 17 cards and banners, Card View items/refunds/fees, Table Ledger In/Out columns, and Action/Delete modals; verified via 12 new unit tests in `tests/finance/privacy.test.ts` (404/404 passing) and live production mobile browser subagent; 23 test suites, 404 tests green).
 46. **Langkah 47: Activity Independent Scroll Shell Prototype** (Explored fixed viewport `h-dvh flex flex-col overflow-hidden` architecture with static header and dedicated scroll containers; verified auto-scroll to bottom in Table Ledger and nominal masking; unit tests 405/405 passing).
 47. **Langkah 48: Natural Page Scroll, Clean Static Date Headers & Centered Quick-Access Button** (Restored natural page scrolling to `<main>` (`min-h-screen pb-28 relative overflow-x-clip`), allowing the top header and search bar to scroll off naturally as the user browses transactions ("bisa kehide"); rendered clean, quiet, static date section headers in normal document flow in Card View without sticky overlapping text; wrapped Table Ledger in a dedicated internal scroll container (`max-h-[62vh] sm:max-h-[70vh]`) with bottom auto-scroll on view switch (`scrollToLedgerBottom`) while `window.scrollY === 0`; introduced centered floating "↑ Top & Search" pill button at `fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-stone-900/95` when `window.scrollY > 350` for one-tap return without colliding with the green `+ Add` button (`bottom-6 right-6`); instituted Mandatory Visual Inspection Protocol verifying UI screenshots across scroll states; 23 test suites, 405/405 tests passing, 0 TypeScript/ESLint errors, 100% mobile E2E passing).
+48. **Langkah 49: Refunds Exceeding Original Expense with Profit in Category 'Others'** (Allowed refunds to exceed parent expense amount without being blocked; deterministic accounting engine split: up to parent expense amount reduces net expense and category totals, excess is recognized as Monthly Income under category `'Others'`; net cashflow increases by full refund amount; RefundModal live feedback shows net expense balance and excess profit; Card View shows `Profit: +Rp Z (Others)` badges and Table Ledger shows combined categories; category filter for `Others` matches profit refunds; 24 test suites, 412/412 tests passing, 0 TypeScript/ESLint errors, 100% mobile E2E passing).
 
 ---
 

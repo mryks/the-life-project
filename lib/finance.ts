@@ -2,6 +2,7 @@ import { accounts, liquidAccountIds, investmentAccountIds, isAccountId } from '.
 import type {
   AccountId,
   ExpenseCategory,
+  ExpenseEvent,
   FinancialEvent,
   IncomeCategory,
   IncomeEvent,
@@ -220,10 +221,9 @@ export const validateFinancialEvents = (events: FinancialEvent[]): boolean => {
       refundsByExpense.set(parent.id, (refundsByExpense.get(parent.id) ?? 0) + event.amount);
     }
   }
-  return [...refundsByExpense].every(([expenseId, totalRefunds]) => {
-    const expense = eventById.get(expenseId);
-    return expense?.type === 'expense' && totalRefunds <= expense.amount;
-  });
+  // All refunds must point to an existing parent expense event.
+  // Refunds are allowed to exceed the expense amount (excess is recognized as profit in 'Others').
+  return true;
 };
 
 export const hasOpeningBalanceEvents = (): boolean => false;
@@ -385,8 +385,61 @@ export const subscribeToFinancialEvents = (listener: () => void): (() => void) =
 export const compareEventsNewestFirst = (left: FinancialEvent, right: FinancialEvent): number =>
   right.date.localeCompare(left.date) || right.id.localeCompare(left.id);
 
+export interface RefundBreakdown {
+  expenseReversal: number;
+  profit: number; // Recorded in category 'Others'
+}
+
+export const computeAllRefundBreakdowns = (events: FinancialEvent[]): Map<string, RefundBreakdown> => {
+  const breakdownMap = new Map<string, RefundBreakdown>();
+  const expensesById = new Map<string, ExpenseEvent>();
+  for (const e of events) {
+    if (e.type === 'expense') {
+      expensesById.set(e.id, e);
+    }
+  }
+
+  // Group refunds by parent expense id, preserving chronological order
+  const refundsByParent = new Map<string, Array<{ refund: RefundEvent; originalIndex: number }>>();
+  events.forEach((event, idx) => {
+    if (event.type === 'refund') {
+      const list = refundsByParent.get(event.relatedEventId) || [];
+      list.push({ refund: event, originalIndex: idx });
+      refundsByParent.set(event.relatedEventId, list);
+    }
+  });
+
+  for (const [parentId, refundList] of refundsByParent) {
+    const parent = expensesById.get(parentId);
+    const parentAmount = parent ? parent.amount : 0;
+    // Sort chronologically: date ascending, then original stable index
+    refundList.sort((a, b) => {
+      const dateCmp = a.refund.date.localeCompare(b.refund.date);
+      if (dateCmp !== 0) return dateCmp;
+      return a.originalIndex - b.originalIndex;
+    });
+
+    let accumulatedRefunded = 0;
+    for (const { refund } of refundList) {
+      const remainingExpense = Math.max(0, parentAmount - accumulatedRefunded);
+      const expenseReversal = Math.min(refund.amount, remainingExpense);
+      const profit = Math.max(0, refund.amount - remainingExpense);
+      accumulatedRefunded += refund.amount;
+      breakdownMap.set(refund.id, { expenseReversal, profit });
+    }
+  }
+
+  return breakdownMap;
+};
+
+export const getRefundBreakdown = (events: FinancialEvent[], refundId: string): RefundBreakdown => {
+  const map = computeAllRefundBreakdowns(events);
+  return map.get(refundId) ?? { expenseReversal: 0, profit: 0 };
+};
+
 export const deriveLedgerEntries = (events: FinancialEvent[]): LedgerEntry[] => {
   const expenseById = new Map(events.filter((event) => event.type === 'expense').map((event) => [event.id, event]));
+  const refundBreakdowns = computeAllRefundBreakdowns(events);
 
   const toEntries = (event: FinancialEvent): LedgerEntry[] => {
     if (event.type === 'transfer') {
@@ -409,7 +462,23 @@ export const deriveLedgerEntries = (events: FinancialEvent[]): LedgerEntry[] => 
       return entries;
     }
     if (event.type === 'refund') {
-      return [{ eventId: event.id, date: event.date, description: event.description, accountId: event.accountId, amount: event.amount, direction: 'in', eventType: event.type, category: expenseById.get(event.relatedEventId)?.category }];
+      const breakdown = refundBreakdowns.get(event.id) ?? { expenseReversal: event.amount, profit: 0 };
+      const parentExpense = expenseById.get(event.relatedEventId);
+      const category = breakdown.expenseReversal === 0
+        ? 'Others'
+        : breakdown.profit > 0
+          ? `${parentExpense?.category || 'Expense'} / Others`
+          : parentExpense?.category;
+      return [{
+        eventId: event.id,
+        date: event.date,
+        description: event.description,
+        accountId: event.accountId,
+        amount: event.amount,
+        direction: 'in',
+        eventType: event.type,
+        category,
+      }];
     }
     return [{ eventId: event.id, date: event.date, description: event.description, accountId: event.accountId, amount: event.amount, direction: event.type === 'expense' ? 'out' : 'in', eventType: event.type, category: event.category }];
   };
@@ -457,6 +526,9 @@ export const calculateFinanceStats = (
   const categoryTotals = Object.fromEntries(activeExpenseCategories.map((category) => [category, 0])) as Record<ExpenseCategory, number>;
   let monthlyIncome = 0;
   let monthlyExpense = 0;
+
+  const refundBreakdowns = computeAllRefundBreakdowns(events);
+
   for (const event of events) {
     if (!event.date.startsWith(month)) continue;
     if (event.type === 'income') monthlyIncome += event.amount;
@@ -470,9 +542,13 @@ export const calculateFinanceStats = (
     }
     if (event.type === 'refund') {
       const originalExpense = expensesById.get(event.relatedEventId);
+      const breakdown = refundBreakdowns.get(event.id) ?? { expenseReversal: event.amount, profit: 0 };
       if (originalExpense) {
-        monthlyExpense -= event.amount;
-        categoryTotals[originalExpense.category] = (categoryTotals[originalExpense.category] || 0) - event.amount;
+        monthlyExpense -= breakdown.expenseReversal;
+        categoryTotals[originalExpense.category] = (categoryTotals[originalExpense.category] || 0) - breakdown.expenseReversal;
+      }
+      if (breakdown.profit > 0) {
+        monthlyIncome += breakdown.profit;
       }
     }
   }
@@ -506,11 +582,16 @@ export const calculateFinanceStats = (
 };
 
 export const calculateNetExpenseForDate = (events: FinancialEvent[], date: string): number => {
+  const refundBreakdowns = computeAllRefundBreakdowns(events);
   return events.reduce((total, event) => {
     if (event.date !== date) return total;
     if (event.type === 'expense') return total + event.amount;
     if (event.type === 'transfer' && event.adminFee && event.adminFee > 0) return total + event.adminFee;
-    return event.type === 'refund' ? total - event.amount : total;
+    if (event.type === 'refund') {
+      const breakdown = refundBreakdowns.get(event.id);
+      return total - (breakdown ? breakdown.expenseReversal : event.amount);
+    }
+    return total;
   }, 0);
 };
 

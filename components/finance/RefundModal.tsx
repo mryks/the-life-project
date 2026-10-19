@@ -60,7 +60,9 @@ function RefundModalInner({
   const [amount, setAmount] = useState(() => 
     editingRefund 
       ? editingRefund.amount.toLocaleString('id-ID') 
-      : maxRefundableAmount.toLocaleString('id-ID')
+      : maxRefundableAmount > 0
+        ? maxRefundableAmount.toLocaleString('id-ID')
+        : ''
   );
   const [selectedAccount, setSelectedAccount] = useState<AccountId | null>(() => 
     editingRefund ? editingRefund.accountId : null
@@ -94,10 +96,6 @@ function RefundModalInner({
     e.preventDefault();
     if (!parsedAmount || isNaN(parsedAmount) || parsedAmount <= 0) {
       setLocalError("Refund amount must be a positive number.");
-      return;
-    }
-    if (parsedAmount > maxRefundableAmount) {
-      setLocalError(`Refund amount exceeds the maximum refundable balance (${formatRupiah(maxRefundableAmount)}).`);
       return;
     }
     if (!selectedAccount) {
@@ -190,9 +188,12 @@ function RefundModalInner({
             </div>
           )}
           <div className="flex justify-between items-center pt-2 border-t border-stone-200/80 font-bold text-stone-900">
-            <span>Max Refundable:</span>
+            <span>Refundable Expense:</span>
             <span className="text-sm font-mono-numbers text-violet-700">{formatRupiah(maxRefundableAmount)}</span>
           </div>
+          <p className="text-[10px] text-stone-400 mt-0.5">
+            Refund can exceed this balance. Any excess will be recorded as profit under category &quot;Others&quot;.
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -218,6 +219,21 @@ function RefundModalInner({
               <p className="text-[11px] text-stone-500 mt-1">
                 Partial refund: remaining net expense balance will be {formatRupiah(maxRefundableAmount - parsedAmount)}
               </p>
+            )}
+            {parsedAmount > 0 && parsedAmount === maxRefundableAmount && (
+              <p className="text-[11px] text-emerald-600 font-semibold mt-1">
+                Full refund: net expense balance will be Rp 0
+              </p>
+            )}
+            {parsedAmount > maxRefundableAmount && (
+              <div className="mt-1.5 p-2 rounded-xl bg-emerald-50 border border-emerald-200/80 text-[11px] text-emerald-800 space-y-0.5">
+                <p className="font-bold">
+                  Net expense balance: Rp 0
+                </p>
+                <p>
+                  Excess profit: <span className="font-bold font-mono-numbers">+{formatRupiah(parsedAmount - maxRefundableAmount)}</span> (recorded in category <span className="font-bold">Others</span>)
+                </p>
+              </div>
             )}
           </div>
 

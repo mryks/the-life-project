@@ -129,6 +129,7 @@ Keep changes minimal and reviewable.
 - Any financial change, including edit, delete, refund, cashback, or related-event changes, must be reflected through FinancialEvent data.
 - Derived data must be recalculated deterministically from FinancialEvent.
 - FinancialEvent data must remain sufficient to reconstruct all financial views and calculations.
+- **Refund Excess Profit Invariant**: Refunds may exceed the parent expense amount. The single `RefundEvent` represents the entire incoming refund (maintaining 1:1 parity with bank accounts). The accounting engine deterministically splits the refund: the portion up to the parent expense reduces net expense down to minimum Rp 0; any excess is credited to Monthly Income under category `'Others'`. Day-level net expense is clamped to $\ge 0$.
 
 ## Memory Bank & Session Continuity
 

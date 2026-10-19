@@ -40,6 +40,7 @@ import {
   readCustomCategories,
   type CustomCategoriesState,
   groupCardEventsByDate,
+  getRefundBreakdown,
 } from "@/lib/finance";
 import { useTransactionReorder } from "@/hooks/useTransactionReorder";
 import { useSwipeableTabs } from "@/hooks/useSwipeableTabs";
@@ -995,8 +996,10 @@ export default function FinancePage() {
       filtered = filtered.filter((event) => {
         if ('category' in event) return event.category === categoryFilter;
         if (event.type === 'refund') {
+          const breakdown = getRefundBreakdown(activeDisplayEvents, event.id);
+          if (categoryFilter === 'Others' && breakdown.profit > 0) return true;
           const parent = expensesById.get(event.relatedEventId);
-          return parent?.category === categoryFilter;
+          return parent?.category === categoryFilter && breakdown.expenseReversal > 0;
         }
         return false;
       });
@@ -1056,7 +1059,18 @@ export default function FinancePage() {
       });
     }
     if (categoryFilter !== 'all') {
-      entries = entries.filter((entry) => entry.category === categoryFilter);
+      const expensesById = new Map(activeDisplayEvents.filter((e) => e.type === 'expense').map((e) => [e.id, e]));
+      entries = entries.filter((entry) => {
+        if (entry.category === categoryFilter) return true;
+        if (entry.eventType === 'refund') {
+          const breakdown = getRefundBreakdown(activeDisplayEvents, entry.eventId);
+          if (categoryFilter === 'Others' && breakdown.profit > 0) return true;
+          const ev = activeDisplayEvents.find((e) => e.id === entry.eventId);
+          const parent = ev && ev.type === 'refund' ? expensesById.get(ev.relatedEventId) : null;
+          return parent?.category === categoryFilter && breakdown.expenseReversal > 0;
+        }
+        return false;
+      });
     }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
@@ -1095,15 +1109,6 @@ export default function FinancePage() {
 
   const handleOpenRefund = () => {
     if (!activeEvent || activeEvent.type !== 'expense') return;
-    const existingRefunds = events.filter(
-      (e) => e.type === 'refund' && e.relatedEventId === activeEvent.id
-    );
-    const totalRefunded = existingRefunds.reduce((sum, r) => sum + r.amount, 0);
-    const remaining = Math.max(0, activeEvent.amount - totalRefunded);
-    if (remaining <= 0) {
-      alert("This expense has already been fully refunded.");
-      return;
-    }
     setEditingRefundEvent(null);
     setRefundParentExpense(activeEvent);
     setRefundError(null);
@@ -1128,7 +1133,7 @@ export default function FinancePage() {
       };
       const nextEvents = replaceFinancialEvent(events, updatedRefund);
       if (!nextEvents) {
-        setRefundError("Refund validation failed. Amount cannot exceed remaining original expense.");
+        setRefundError("Failed to update refund.");
         return;
       }
       const oldRefund = editingRefundEvent;
@@ -1173,7 +1178,7 @@ export default function FinancePage() {
     };
     const nextEvents = [...events, refundEvent];
     if (!validateFinancialEvents(nextEvents)) {
-      setRefundError("Refund validation failed. Amount cannot exceed remaining expense.");
+      setRefundError("Failed to save refund.");
       return;
     }
     const prevBalances = { ...accountBalances };
@@ -2376,7 +2381,8 @@ export default function FinancePage() {
                         : event.description;
 
                       const totalRefundedForEvent = event.type === 'expense' ? (refundsByExpenseId.get(event.id) ?? 0) : 0;
-                      const netExpenseForEvent = event.type === 'expense' ? event.amount - totalRefundedForEvent : event.amount;
+                      const profitForEvent = event.type === 'expense' ? Math.max(0, totalRefundedForEvent - event.amount) : 0;
+                      const netExpenseForEvent = event.type === 'expense' ? Math.max(0, event.amount - totalRefundedForEvent) : event.amount;
 
                       const isActive = isEventActive(event.id);
                       const itemProps = isFiltered ? {} : getItemProps(event.id);
@@ -2411,7 +2417,7 @@ export default function FinancePage() {
                           </div>
                           <div className="min-w-0">
                             <p className="font-bold text-stone-900 text-sm truncate">{cardDescription}</p>
-                            <div className="flex items-center gap-1.5 mt-0.5">
+                            <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                               {'category' in event && (
                                 <span className="text-[10px] bg-stone-100 text-stone-700 px-2 py-0.5 rounded-full font-bold border border-stone-200/60">
                                   {event.category}
@@ -2420,6 +2426,7 @@ export default function FinancePage() {
                               {event.type === 'expense' && totalRefundedForEvent > 0 && (
                                 <span className="text-[10px] bg-violet-50 text-violet-700 px-2 py-0.5 rounded-full font-bold border border-violet-200/70">
                                   Refunded: {hideNominals ? 'Rp ••••••' : formatRupiah(totalRefundedForEvent)}
+                                  {profitForEvent > 0 && ` • Profit: +${hideNominals ? 'Rp ••••••' : formatRupiah(profitForEvent)}`}
                                 </span>
                               )}
                               {event.type === 'transfer' && event.adminFee && (
@@ -2427,11 +2434,21 @@ export default function FinancePage() {
                                   Fee: {hideNominals ? 'Rp ••••••' : formatRupiah(event.adminFee)}
                                 </span>
                               )}
-                              {event.type === 'refund' && (
-                                <span className="text-[10px] bg-violet-100 text-violet-800 border border-violet-200 px-2 py-0.5 rounded-full font-bold">
-                                  Refund
-                                </span>
-                              )}
+                              {event.type === 'refund' && (() => {
+                                const breakdown = getRefundBreakdown(activeDisplayEvents, event.id);
+                                return (
+                                  <>
+                                    <span className="text-[10px] bg-violet-100 text-violet-800 border border-violet-200 px-2 py-0.5 rounded-full font-bold">
+                                      Refund
+                                    </span>
+                                    {breakdown.profit > 0 && (
+                                      <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200/80 px-2 py-0.5 rounded-full font-bold">
+                                        Profit: +{hideNominals ? 'Rp ••••••' : formatRupiah(breakdown.profit)} (Others)
+                                      </span>
+                                    )}
+                                  </>
+                                );
+                              })()}
                             </div>
                           </div>
                         </div>
@@ -2457,8 +2474,10 @@ export default function FinancePage() {
                                   : `${transferDirection === 'neutral' ? '' : transferDirection === 'out' ? '-' : '+'}${formatRupiah(event.amount)}`)}
                           </p>
                           {event.type === 'expense' && totalRefundedForEvent > 0 && (
-                            <p className="text-[11px] font-bold text-stone-400 font-mono-numbers mt-0.5">
-                              Net: -{hideNominals ? 'Rp ••••••' : formatRupiah(netExpenseForEvent)}
+                            <p className={`text-[11px] font-bold font-mono-numbers mt-0.5 ${profitForEvent > 0 ? 'text-emerald-600' : 'text-stone-400'}`}>
+                              {profitForEvent > 0
+                                ? `Net: Rp 0 (Profit: +${hideNominals ? 'Rp ••••••' : formatRupiah(profitForEvent)})`
+                                : `Net: -${hideNominals ? 'Rp ••••••' : formatRupiah(netExpenseForEvent)}`}
                             </p>
                           )}
                         </div>
