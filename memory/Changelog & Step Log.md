@@ -39,6 +39,7 @@
        * Tap eye toggle: unmasks nominals and updates button to "Hide Nominals".
        * Tap eye toggle again: re-masks nominals.
        * All freeze panes, table scroll-to-bottom, horizontal sync, and tab swipe gestures passed 100%.
+     - **User Direct Verification**: Confirmed working by user on device ("oke sudah saya cek dan bisa").
 
 ### Langkah 45: Table Ledger Default Auto-Scroll to Bottom & Latest Transactions Focus
 - **User Directive**:
