@@ -42,14 +42,19 @@ Custom CSS utilities in `app/globals.css`:
   - Strict Indonesian Rupiah dot grouping (e.g. `Rp 48.250.000`) with stable column keying from the right for organic numeric transitions.
   - Deployed on the Accounts page across Total Liquid, Total Investment, Total Net Worth, and all individual account cards.
   - Paired with an amber spring pulse ring (`ring-4 ring-amber-400`), card lift, `"UPDATED"` badge, and smooth viewport auto-scroll upon transaction completion.
-- **Hardware-Accelerated Swipeable Tabs (`hooks/useSwipeableTabs.ts` & `lib/swipe-tabs.ts`)**:
-  - GPU-accelerated gesture engine powered by Framer Motion (`<motion.div style={{ x }} drag="x" dragConstraints={dragConstraints} dragElastic={0.3} onDragEnd={handleDragEnd}>`).
-  - **Single-Step Pagination Invariant (`calculateBoundedSwipeTarget`)**: A single touch swipe gesture is strictly constrained to advance by **at most $\pm 1$ tab**. It can NEVER skip or fly over multiple screens regardless of how fast or hard the user flicks.
-  - **Touch Velocity Momentum Handoff (Zero-Jank / Stutter Elimination)**: On touch release (`onDragEnd`), real finger velocity (`info.velocity.x`) is directly injected into `animate(x, targetX, { velocity: releaseVelocity, stiffness: 280, damping: 32, mass: 0.8 })`, eliminating the zero-velocity jerk/hesitation of declarative springs.
-  - **Zero Layout Thrashing with `settledTab`**: Overview and Accounts maintain natural heights without mid-gesture collapse. Activity (14,434px) is capped at 1600px when inactive and only uncaps after the gesture completely settles (`settledTab === 'ledger'`), preventing main-thread layout thrashing during the 60fps frame budget.
-  - **Full-Bleed Viewport Hierarchy (Zero Tab Peeking / Bleed)**: The outer carousel clipping container (`containerRef`) MUST have full viewport width (`w-full overflow-hidden`) with zero horizontal padding (`px-0`). Tab panels span 100% of the viewport (`w-full min-w-full shrink-0`), and horizontal padding / max-width constraints (`max-w-5xl mx-auto px-4 sm:px-6`) are applied strictly *inside* each panel.
-  - **Fluid Tab Pill Badge**: Active tab indicator synchronized with matching Apple-grade spring physics (`stiffness: 320, damping: 32`).
-  - **Senior Front-End Playbook**: Codified in `.agents/skills/senior-frontend-engineer/SKILL.md` and enforced in `AGENTS.md`.
+- **Activity Freeze Panes & Synchronized Table Header Bar (`app/finance/page.tsx`)**:
+  - **Top Sticky Freeze Pane (`activityFreezeRef`)**: Covers Active Account Filter Banner (if present), Search Bar, Filter Chips (Type & Category), and View Mode Switcher (Card vs Table) pinned at `sticky top-0 z-30` with `bg-[#FBF9F4]/95 backdrop-blur-md`.
+  - **Synchronized Table Ledger Header**: In Table Ledger mode, row 1 column headers (`Date`, `Description`, `Account`, `In (+)`, `Out (-)`, `Category`) are placed directly inside the sticky freeze pane. When the table body is scrolled horizontally, bidirectional `scrollLeft` synchronization keeps header and data columns in perfect lockstep down to the subpixel.
+  - **Cascading Sticky Date Badges**: In Card View, each date badge sticks at `top: [freezeHeight]` beneath the freeze pane, staying frozen while scrolling through that date's cards and naturally scrolling off as the next date group pushes it up.
+  - **Zero Containing Block Traps (`overflow-x: clip`)**: Active tab renders in normal DOM flow with `overflow-x: clip` on `<main>`, guaranteeing that vertical window scroll maintains native 120 FPS hardware acceleration.
+- **Ghost-Touch-Free Gesture Handler (`hooks/useSwipeableTabs.ts`)**:
+  - Replaced global `drag="x"` container with targeted touch handlers (`onTouchStart`, `onTouchEnd`).
+  - **Angle & Axis Guard**: Requires `Math.abs(deltaX) > Math.abs(deltaY) * 1.5` so vertical scrolling is 100% ignored.
+  - **Element Isolation Guard**: Touch gestures starting on `table`, `button`, `input`, `select`, or elements with `data-no-swipe="true"` will never trigger tab navigation.
+  - **Static Width Stability**: Tabs do not dynamically toggle `display: none` during touches, eliminating the violent 780px layout shifts that caused ghost-swipe bouncing.
+- **Mandatory Automated Mobile Subagent Testing**:
+  - Integrated `scripts/test-mobile-e2e.mjs` (`npm run test:e2e:mobile`) using Puppeteer with real Chrome emulating iPhone 14 Pro touch events.
+  - Automatically verifies sticky coordinates (`isFreezeStickyAtZero`), subheader pinning (`isPinnedToFreeze`), horizontal scroll sync, rapid tapping immunity, and tab swipe transitions before delivery.
 
 
 

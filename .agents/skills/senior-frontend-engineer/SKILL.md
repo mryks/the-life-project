@@ -69,6 +69,33 @@ Before building gesture-driven UI, align on:
   1. Verify with full unit test suite (`npm test`).
   2. Verify with zero linter errors/warnings (`npm run lint`).
   3. Verify with production compilation (`npm run build`).
-  4. Commit with descriptive semantic message (`feat(...)`, `fix(...)`).
-  5. Push to remote branches (`finance-foundation` & `main`) to trigger CI/CD deployment.
-  6. Verify live deployment status on Vercel before reporting completion.
+  4. Run automated mobile browser subagent verification (`npm run test:e2e:mobile`).
+  5. Commit with descriptive semantic message (`feat(...)`, `fix(...)`).
+  6. Push to remote branches (`finance-foundation` & `main`) to trigger CI/CD deployment.
+  7. Run automated mobile browser subagent verification against the live Vercel URL before reporting completion.
+
+---
+
+## 5. Mandatory Automated Mobile Subagent Testing Protocol
+
+- **Zero-Guesswork Mobile Verification**: Any feature introducing or refining mobile touch gestures, tab carousels, or freeze panes MUST be verified with an automated headless mobile browser subagent running Puppeteer on real Chrome (`scripts/test-mobile-e2e.mjs`).
+- **Standard Emulation Profile**: iPhone 14 Pro (`width: 393`, `height: 852`, `deviceScaleFactor: 3`, `isMobile: true`, `hasTouch: true`).
+- **Core Assertion Checklist**:
+  1. **Sticky Coordinate Verification**: Scroll window down $\ge 400\text{px}$, assert `freezeRect.top === 0` (`isFreezeStickyAtZero: true`).
+  2. **Subheader Pinning Verification**: Assert child sticky elements (e.g. Card View date headers) stick at `top === freezeHeight` (`isPinnedToFreeze: true`).
+  3. **Touch Axis Disambiguation**: Simulate vertical touch drag (`touchStart -> touchMove -> touchEnd`), assert active tab does NOT switch.
+  4. **Ghost Touch Immunity**: Simulate rapid tapping (6 taps in 200ms), assert no erratic layout shifts, unwanted modal triggers, or spurious auto-swiping.
+  5. **Horizontal Scroll Isolation**: When interacting with an horizontally scrollable element (e.g. Table Ledger), assert swipe gestures scroll the element content and do NOT trigger outer tab carousel navigation.
+  6. **Intentional Tab Swipe**: When swiping horizontally across neutral page area or card feed, assert clean $\pm 1$ tab navigation without velocity overshoot.
+
+---
+
+## 6. The CSS Overflow, Containing Block & Position Sticky Law
+
+- **The `overflow-x: hidden` Trap**: Under W3C CSS Overflow Module Level 3, setting `overflow-x: hidden` forces `overflow-y` to compute to `auto`. This converts the element into an internal scroll container with 0 vertical scroll offset, permanently breaking window-relative `position: sticky`. **ALWAYS use `overflow-x: clip`** to prevent horizontal bleed without creating a scroll container.
+- **The Containing Block Trap**: Any ancestor with CSS `transform` (e.g. `transform: translateX(...)`), `perspective`, or `filter` creates a new containing block for all `position: fixed` and `position: sticky` descendants, detaching them from viewport scroll. Render active views in normal DOM flow with `transform: none`.
+- **The Table Horizontal Scroll Sticky Header Law**:
+  - An HTML `<table>` wrapper with `overflow-x: auto` computes `overflow-y: auto`. Any `thead` with `position: sticky` will ONLY stick if the wrapper itself scrolls vertically. Because the window scrolls instead, the `thead` will scroll off the screen.
+  - **The Proven Architecture**: Place the frozen table header directly inside the viewport-sticky freeze pane container (`top: 0`). When the table body is scrolled horizontally, synchronize `scrollLeft` bidirectionally between the header bar and table body (`onScroll`). Both remain perfectly aligned down to the sub-pixel at 120 FPS.
+- **Dynamic DOM Expansion Guard**: Never toggle `display: none` (`hidden`) on adjacent inactive tabs or views while a touch gesture is active. Suddenly expanding container width (e.g. 393px to 1179px) during a touch event causes gesture trackers to register violent multi-thousand px/sec velocity spikes, producing erratic "ghost touch" auto-swipes.
+

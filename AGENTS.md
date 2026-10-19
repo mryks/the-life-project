@@ -146,4 +146,12 @@ Keep changes minimal and reviewable.
 
 - The agent must strictly adhere to `.agents/skills/senior-frontend-engineer/SKILL.md` for all UI, layout, animation, and touch gesture tasks.
 - **Single-Step Pagination Invariant**: Multi-view tab carousels must strictly advance by at most $\pm 1$ tab per swipe gesture. Fast flicks or large drags must never skip adjacent screens.
+- **Mandatory Automated Mobile Subagent Verification**: Any change to mobile touch gestures, swipe carousels, or freeze panes MUST be verified by an automated mobile browser subagent (`scripts/test-mobile-e2e.mjs` / `npm run test:e2e:mobile`) testing real touch physics, bounding rects (`rect.top === 0`), and gesture disambiguation on both local build and live Vercel production before reporting completion.
+- **CSS Overflow & Position Sticky Law**:
+  * NEVER use `overflow-x: hidden` on page root or layout containers — use `overflow-x: clip` so vertical scroll does NOT compute to `auto` and break window-relative `position: sticky`.
+  * **Containing Block Trap**: Never leave persistent CSS `transform` on containers hosting `position: sticky` or `fixed` children.
+  * **Table Horizontal Scroll with Window Sticky Header**: An HTML `<table>` wrapper with `overflow-x: auto` computes `overflow-y: auto`, isolating table `thead` inside that wrapper. Window scroll will NOT stick the `thead`. The proven architecture: place the frozen table header directly inside the viewport-sticky freeze pane (`top: 0`), and synchronize horizontal `scrollLeft` bidirectionally with the table body on horizontal swipe.
+- **Gesture Disambiguation & Touch Isolation**:
+  * Multi-view tab swipe gestures must be guarded by strict angle thresholds (`|deltaX| > |deltaY| * 1.5`), min distance (50px), and element immunity (`table`, `button`, `input`, modal overlays).
+  * Never dynamically expand container width (e.g. toggling `display: none` on inactive tabs) while a touch is in progress, as it causes violent layout-shift velocity jumps ("ghost touches").
 - **Production Parity**: When building or refining mobile interactions, verification is incomplete until changes are committed, pushed, and deployed live to Vercel.

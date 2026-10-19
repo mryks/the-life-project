@@ -182,7 +182,7 @@
 - **CSS Containing Block Trap Fix (`hooks/useSwipeableTabs.ts`)**: Cleared Framer Motion CSS `transform` on settled tabs (`style={isTransitioning ? { x } : { transform: 'none' }}`), restoring native compositor-level window sticky scrolling at 120 FPS.
 - **100% Automated Test Coverage**: Added tests in `tests/finance/freeze-panes.test.ts` (389/389 tests passing).
 
-### 22. Freeze Panes Stickiness Overhaul, Synchronized Table Header & Mobile E2E Testing
+### 27. Freeze Panes Stickiness Overhaul, Synchronized Table Header & Mobile E2E Testing
 - **Ghost Touch Elimination**: Replaced unstable dynamic `hidden` carousel layout with pure native DOM flow and touch-end angle guards (`useSwipeableTabs.ts`), completely eliminating spontaneous auto-swiping.
 - **Table Ledger Header Synchronization**: Placed Table Ledger column headers directly inside the Sticky Freeze Pane (`top: 0`), bidirectionally synchronized with the table data body via `scrollLeft` when swiping horizontally.
 - **Automated Mobile Browser Subagent**: Created `scripts/test-mobile-e2e.mjs` (`npm run test:e2e:mobile`) using Puppeteer with real Chrome emulating iPhone 14 Pro touch physics, verifying 100% passage on both local build and live Vercel production.

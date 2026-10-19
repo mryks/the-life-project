@@ -121,3 +121,62 @@ This document provides a permanent, faithful record of every user request, resol
        * **730ms Jeda Baca Akhir**: Final settled balance is cleanly visible for 730ms before the amber highlight ring clears.
        * **3940ms Total Highlight**: Amber ring and `"UPDATED"` badge persist for exactly 3940ms ($710\text{ms} + 2500\text{ms} + 730\text{ms} = 3940\text{ms}$).
 
+
+
+---
+
+### 10. Live Motion Transaction Reordering & Zero Rubber Scaling
+- **User Directives**:
+  - *"jangan bikin selama itu untuk suatu transaksi bisa digeser"* (Hold delay too long).
+  - *"saya merasa live reorder (draggingnya) lemot atau delay"* (Sluggish drag).
+  - *"saat saya hold ada efek bounce/squiishy sedikit. kenapa bisa begitu ya? saya tidak ada pernah minta"* (Remove unwanted bounce/squishy effect).
+- **Binding Agreements**:
+  1. **Hold Delays**: Desktop mouse hold is snappy at 50ms (or instant drag on $\ge 4\text{px}$ movement); mobile touch hold is 150ms with subtle 40ms haptic tap.
+  2. **120 FPS GPU Tracking**: Held card follows pointer via direct GPU translation (`translate3d(0, y, 0)`) without main-thread layout thrashing or calling `getBoundingClientRect()` on every pixel.
+  3. **No Squishy/Rubbery Scale**: Card scale is permanently locked to flat 1.0 (no `scale(0.98)` or `scale(1.02)`). Dragged state is indicated cleanly by `border-2 border-dashed border-emerald-500 shadow-xl z-40 bg-white`.
+  4. **Same-Date Hard Stop**: Reordering is strictly restricted within the same date. Auto-scroll hard-stops when the pointer reaches the top or bottom of that date's transactions.
+
+---
+
+### 11. Dynamic Custom Categories & In-Use Transaction Guard
+- **User Directive**: Allow adding custom categories inline for Income and Expense, and deleting unused ones, without breaking existing financial history.
+- **Binding Agreements**:
+  1. **Quick Inline Creation**: Users can add a custom category directly from the category pill list via `+ Add`.
+  2. **Immutable System Defaults**: Built-in default categories (Food & Drinks, Salary, etc.) can never be deleted.
+  3. **Financial Integrity Guard**: A custom category can only be deleted if it has 0 associated transactions. If in use, deletion is rejected with an explanatory notice.
+  4. **Open TypeScript Modeling**: Uses `DefaultExpenseCategory | (string & {})` for full autocomplete while allowing arbitrary persisted custom strings.
+
+---
+
+### 12. Master PIN Security & 1-Day Trusted Device Policy
+- **User Directives**:
+  - Remove fingerprint / WebAuthn biometrics entirely in favor of instant Master PIN keypad.
+  - *"tolong buat trust this device itu hanya untuk 1 hari, ganti hari harus masukin pin lagi, dan tombol trust this device jangan default checked"*.
+- **Binding Agreements**:
+  1. **Pure Keypad**: WebAuthn and biometric prompts are permanently removed. Keypad is immediately ready for input on launch.
+  2. **1-Day Calendar Limit**: Device trust is bounded strictly to local calendar day `YYYY-MM-DD`. Trust expires automatically at midnight ("ganti hari").
+  3. **Default Unchecked**: "Trust this device for today" starts unchecked (`false`), enforcing temporary session security unless explicitly opted in.
+  4. **Manual Revocation**: Tapping the Lock button immediately clears all session keys and trust tokens.
+
+---
+
+### 13. Table Ledger Month Separator (Option 4: Deep Slate Blue Bar)
+- **User Directive**: Table ledger month name must be center-aligned, bold, and distinct in color to clearly mark monthly boundaries. User selected Option 4.
+- **Binding Agreements**:
+  1. Row is styled with Deep Slate Blue (`bg-slate-800 text-slate-100 border-y border-slate-900 shadow-inner`).
+  2. Cell spans all 6 columns with `text-center`, `font-black`, and `tracking-widest`.
+  3. Provides authoritative high contrast without colliding with semantic transaction colors (green income, red expense, blue transfer, purple refund).
+
+---
+
+### 14. Activity Freeze Panes, Cascading Date Badges & Automated Mobile Subagent Testing
+- **User Directives**:
+  - Search bar down to Card View / Table Ledger must freeze on scroll. Table Ledger row 1 headers (`Date`, `Description`, `Account`, etc.) must be frozen. Card View date badge must freeze until pushed by the next date group.
+  - Fix ghost touch auto-swipe glitch.
+  - Subagent must test every feature change in a real mobile browser (iPhone touch emulation) before delivery.
+- **Binding Agreements**:
+  1. **CSS Overflow & Containing Block Law**: `<main>` must use `overflow-x: clip` (never `hidden`) so vertical scrolling does not compute to `auto` and break window `position: sticky`. Active views must render in normal DOM flow with `transform: none`.
+  2. **Synchronized Table Ledger Header Bar**: Table header row is placed directly inside the viewport-sticky freeze pane (`top: 0`) and synchronizes horizontal `scrollLeft` bidirectionally with the table body on swipe.
+  3. **Cascading Date Badges**: In Card View, date badges stick at `top: [freezeHeight]` and stay pinned until pushed up by the subsequent date group.
+  4. **Gesture Disambiguation & Touch Isolation**: Swipeable tab navigation is guarded by strict angle thresholds (`|deltaX| > |deltaY| * 1.5`), min distance (50px), and element immunity (`table`, `button`, `input`). Tab widths must remain static without dynamic `display: none` layout shifts during touch.
+  5. **Mandatory Automated Mobile Subagent Testing**: No mobile touch, layout, or freeze pane feature is considered complete until verified by `scripts/test-mobile-e2e.mjs` (`npm run test:e2e:mobile`) on both local and live Vercel production.
