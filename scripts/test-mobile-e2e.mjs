@@ -137,50 +137,45 @@ export async function runTest(targetUrl = process.argv[2] || 'http://localhost:3
     console.log('   Active Tab now:', await getActiveTab());
 
     // 3. Test Freeze Pane in Card View
-    console.log('\n3. Testing Freeze Pane & Sticky Date Badges in Card View...');
+    console.log('\n3. Testing Independent Scroll Shell & Sticky Date Badges in Card View...');
     await page.evaluate(() => window.scrollTo(0, 0));
     await new Promise((r) => setTimeout(r, 300));
 
-    // Scroll window down 450px
-    await page.evaluate(() => window.scrollBy(0, 450));
-    await new Promise((r) => setTimeout(r, 400));
-
-    const cardViewFreezeMetrics = await page.evaluate(() => {
-      const search = document.querySelector('input[placeholder*="Search"]');
-      let cur = search;
-      let freeze = null;
-      while (cur && cur !== document.body) {
-        if (window.getComputedStyle(cur).position === 'sticky') {
-          freeze = cur;
-          break;
-        }
-        cur = cur.parentElement;
+    // Scroll card container down 450px
+    const cardViewScrollMetrics = await page.evaluate(() => {
+      const cardContainer = document.querySelector('div.overflow-y-auto');
+      if (cardContainer) {
+        cardContainer.scrollTop = 450;
+        cardContainer.dispatchEvent(new Event('scroll'));
       }
-      if (!freeze) return { found: false };
-      const fRect = freeze.getBoundingClientRect();
+      const header = document.querySelector('header');
+      const headerRect = header ? header.getBoundingClientRect() : null;
+      const search = document.querySelector('input[placeholder*="Search"]');
+      const searchRect = search ? search.getBoundingClientRect() : null;
 
-      // Check sticky date badges
+      // Check sticky date badges inside card container
       const dateHeaders = Array.from(document.querySelectorAll('div.sticky h3')).map((h3) => {
         const parent = h3.parentElement;
         const rect = parent ? parent.getBoundingClientRect() : null;
         return {
           text: h3.textContent.trim(),
           top: rect ? Math.round(rect.top) : null,
-          isPinnedToFreeze: rect ? Math.abs(rect.top - fRect.height) < 4 : false,
+          isPinnedAtTop: rect && searchRect ? rect.top <= searchRect.bottom + 20 : false,
         };
       });
 
       return {
-        found: true,
-        scrollY: window.scrollY,
-        freezeTop: Math.round(fRect.top),
-        freezeHeight: Math.round(fRect.height),
-        isFreezeStickyAtZero: Math.abs(fRect.top) < 1,
+        hasCardContainer: Boolean(cardContainer),
+        containerScrollTop: cardContainer ? cardContainer.scrollTop : 0,
+        windowScrollY: window.scrollY,
+        isWindowAtZero: window.scrollY === 0,
+        isHeaderVisibleAtTop: headerRect ? Math.abs(headerRect.top) < 2 : false,
+        isSearchVisible: Boolean(searchRect && searchRect.bottom > 0),
         dateHeaders: dateHeaders.slice(0, 4),
       };
     });
 
-    console.log('   Card View Freeze Metrics:', cardViewFreezeMetrics);
+    console.log('   Card View Scroll Shell Metrics:', cardViewScrollMetrics);
 
     // 4. Switch to Table Ledger View
     console.log('\n4. Switching to Table Ledger View...');
@@ -202,50 +197,44 @@ export async function runTest(targetUrl = process.argv[2] || 'http://localhost:3
     await tableBtn.click();
     await new Promise((r) => setTimeout(r, 600));
 
-    // 5. Test Table Ledger Default Scroll-to-Bottom & Freeze Pane
-    console.log('\n5. Testing Table Ledger Default Scroll-to-Bottom & Header Row...');
+    // 5. Test Table Ledger Default Scroll-to-Bottom & Static Upper Shell
+    console.log('\n5. Testing Table Ledger Default Scroll-to-Bottom & Static Upper Shell...');
     const initialLedgerScroll = await page.evaluate(() => {
-      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+      const tableBody = document.querySelector('.overflow-y-auto.overflow-x-auto');
+      const header = document.querySelector('header');
+      const headerRect = header ? header.getBoundingClientRect() : null;
+      const search = document.querySelector('input[placeholder*="Search"]');
+      const searchRect = search ? search.getBoundingClientRect() : null;
+
       return {
-        scrollY: window.scrollY,
-        scrollHeight: document.documentElement.scrollHeight,
-        maxScroll,
-        isAutoScrolledToBottom: window.scrollY > 100,
+        windowScrollY: window.scrollY,
+        isWindowAtZero: window.scrollY === 0,
+        isHeaderVisibleAtTop: headerRect ? Math.abs(headerRect.top) < 2 : false,
+        isSearchVisible: Boolean(searchRect && searchRect.bottom > 0),
+        tableScrollTop: tableBody ? tableBody.scrollTop : 0,
+        tableScrollHeight: tableBody ? tableBody.scrollHeight : 0,
+        tableClientHeight: tableBody ? tableBody.clientHeight : 0,
+        isAutoScrolledToBottom: tableBody ? tableBody.scrollTop > 50 : false,
       };
     });
     console.log('   Table Ledger Default Bottom Scroll:', initialLedgerScroll);
 
     const tableLedgerMetrics = await page.evaluate(() => {
-      const search = document.querySelector('input[placeholder*="Search"]');
-      let cur = search;
-      let freeze = null;
-      while (cur && cur !== document.body) {
-        if (window.getComputedStyle(cur).position === 'sticky') {
-          freeze = cur;
-          break;
-        }
-        cur = cur.parentElement;
-      }
-      if (!freeze) return { found: false };
-      const fRect = freeze.getBoundingClientRect();
-
-      // Find table header row inside freeze pane
-      const headerTable = freeze.querySelector('table');
+      const headerTable = document.querySelector('div.overflow-x-auto table');
       const headerCols = headerTable ? Array.from(headerTable.querySelectorAll('th')).map((th) => th.textContent.trim()) : [];
 
       // Find month separator row inside table body
       const monthRow = document.querySelector('tr.bg-slate-800');
       const monthText = monthRow ? monthRow.textContent.trim() : null;
 
+      const header = document.querySelector('header');
+      const headerRect = header ? header.getBoundingClientRect() : null;
+
       return {
-        found: true,
-        scrollY: window.scrollY,
-        freezeTop: Math.round(fRect.top),
-        freezeHeight: Math.round(fRect.height),
-        isFreezeStickyAtZero: Math.abs(fRect.top) < 1,
         headerCols,
         monthSeparatorFound: Boolean(monthRow),
         monthSeparatorText: monthText,
+        isHeaderVisible: Boolean(headerRect && headerRect.top >= 0),
       };
     });
     console.log('   Table Ledger Metrics:', tableLedgerMetrics);
@@ -349,9 +338,11 @@ export async function runTest(targetUrl = process.argv[2] || 'http://localhost:3
     console.log(`\n   Saved screenshot to: ${screenshotPath}`);
 
     const allPassed =
-      cardViewFreezeMetrics.isFreezeStickyAtZero &&
+      cardViewScrollMetrics.isWindowAtZero &&
+      cardViewScrollMetrics.isHeaderVisibleAtTop &&
       initialLedgerScroll.isAutoScrolledToBottom &&
-      tableLedgerMetrics.isFreezeStickyAtZero &&
+      initialLedgerScroll.isWindowAtZero &&
+      initialLedgerScroll.isHeaderVisibleAtTop &&
       scrollSyncResult.isSynchronized &&
       tabAfterVertical.includes('Activity') &&
       tabAfterTaps.includes('Activity') &&
@@ -367,7 +358,7 @@ export async function runTest(targetUrl = process.argv[2] || 'http://localhost:3
     }
 
     return {
-      cardViewFreezeMetrics,
+      cardViewScrollMetrics,
       tableLedgerMetrics,
       scrollSyncResult,
       tabAfterVertical,

@@ -3,7 +3,7 @@
 ## Overall Status: STABLE PRODUCTION (OFFICIALLY GO-LIVE 🚀)
 - **Live Production URL:** [https://the-life-project-os.vercel.app/finance](https://the-life-project-os.vercel.app/finance)
 - **Backend Database:** Supabase PostgreSQL (`peydzblrtfgdoaisljkm.supabase.co`)
-- **Automated Test Suite:** 23 test suites, **404/404 tests passing (100%)**
+- **Automated Test Suite:** 23 test suites, **405/405 tests passing (100%)**
 - **Code Quality:** 0 ESLint errors, 0 TypeScript errors (`npx tsc --noEmit`)
 - **Session Boundary:** Permanently assigned as **Finance Domain Specialist**. All non-finance life domains (Habits, Journal, Tasks) are developed in separate dedicated chat sessions.
 
@@ -197,6 +197,14 @@
 - **Session-Scoped Persistence**: State is stored in `sessionStorage` (`thelife-hide-nominals`), persisting revealed state during the active browsing session across tabs and refreshes, but cleanly reverting to hidden upon application kill or tab close.
 - **Dual Vector Eye Toggles**: Tactile `Eye` / `EyeOff` button in the sticky top navigation header bar and companion eye button on `HeroVaultCard`.
 - **Comprehensive Quality Verification**: 12 new unit tests in `tests/finance/privacy.test.ts` (404/404 total tests passing across 23 test suites) and automated mobile browser subagent verifying nominal masking and toggle states on live Vercel production.
+
+### 30. Independent Scroll Shell Architecture for Activity (Langkah 47)
+- **Static Upper Shell (`shrink-0`)**: Main `<header>` (Logo, Add, Backup, Cloud, Eye, Lock) + Segmented navigation tabs + `activityFreezeRef` (Search input, filter chips, category dropdown, view switcher, and table column headers) remain permanently visible at `top: 0` without scrolling.
+- **Dedicated Independent Scroll Containers (`flex-1 min-h-0 overflow-y-auto`)**:
+  * **Card View (`cardScrollRef`)**: Card list scrolls in its own container; sticky date badges stick to `top: 0` inside `cardScrollRef` beneath the search controls.
+  * **Table Ledger (`tableBodyScrollRef`)**: Table body scrolls vertically and horizontally within its container. Opening Table Ledger auto-scrolls to the bottom (`tableBodyScrollRef.scrollTop = tableBodyScrollRef.scrollHeight`), immediately revealing today's latest transactions while `window.scrollY` strictly stays at `0`.
+- **Zero Scroll-to-Top Fatigue**: Users never need to scroll back to the top of the page to reveal the header bar or switch tabs.
+- **Verification**: 405/405 unit tests passing across 23 test suites and 100% automated mobile browser subagent verification on iPhone 14 Pro emulation.
 
 ---
 

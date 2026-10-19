@@ -222,3 +222,21 @@ This document provides a permanent, faithful record of every user request, resol
      - Primary toggle: Tactile `Eye` / `EyeOff` button in the sticky top header bar beside `Lock`, `Backup`, and `Cloud`.
      - Secondary companion toggle: Small eye icon button beside `TOTAL BALANCE` on `HeroVaultCard`.
   5. **Arithmetic & State Non-Interference**: Masking is strictly presentational. Underlying numbers, financial ledger records, calculations, and sync operations remain 100% deterministic and unmodified.
+
+---
+
+### 18. Activity Independent Scroll Shell & Static Upper Controls Invariant
+- **User Directive**:
+  - *"iya, by default di table ledger tablenya ke scroll ke bawah tapi halaman atasnya tetap."*
+  - *"selain itu, baik di card view maupun table ledger, saya maunya area search itu beda scroll dengan bawahnya. jadi baik di card view maupun table ledger, saya tidak harus scroll ke paling atas agar memunculkan header"*
+  - *"pahami dulu ya"*
+- **Binding Agreement**:
+  1. **Two-Zone Independent Scroll Shell**:
+     - The top area of the application—comprising the main `<header>` (Brand Logo, Add, Backup, Cloud, Eye toggle, Lock) + Segmented navigation tab pills (Overview, Accounts, Activity) + `activityFreezeRef` (Search input, filter chips, category dropdown, view switcher, and table column headers)—must remain permanently static and visible at `top: 0` without scrolling off-screen.
+     - Users must NEVER be forced to scroll back to the top of the page simply to reveal the header, change tabs, or access search filters.
+  2. **Dedicated Content Scroll Containers**:
+     - **Card View (`cardScrollRef`)**: Has its own independent vertical scroll container (`flex-1 min-h-0 overflow-y-auto`). Date badges stick to `top: 0` inside `cardScrollRef` beneath the search controls.
+     - **Table Ledger (`tableBodyScrollRef`)**: Has its own independent vertical and horizontal scroll container (`flex-1 min-h-0 overflow-y-auto overflow-x-auto`).
+  3. **Table Ledger Auto-Scroll to Bottom Scope**:
+     - When Table Ledger opens, auto-scroll to the bottom targets strictly `tableBodyScrollRef.current.scrollTop = tableBodyScrollRef.current.scrollHeight`.
+     - `window.scrollY` strictly remains at `0`, preventing the upper shell from jumping or sliding into sticky freeze positions.

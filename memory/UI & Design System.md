@@ -42,11 +42,13 @@ Custom CSS utilities in `app/globals.css`:
   - Strict Indonesian Rupiah dot grouping (e.g. `Rp 48.250.000`) with stable column keying from the right for organic numeric transitions.
   - Deployed on the Accounts page across Total Liquid, Total Investment, Total Net Worth, and all individual account cards.
   - Paired with an amber spring pulse ring (`ring-4 ring-amber-400`), card lift, `"UPDATED"` badge, and smooth viewport auto-scroll upon transaction completion.
-- **Activity Freeze Panes & Synchronized Table Header Bar (`app/finance/page.tsx`)**:
-  - **Top Sticky Freeze Pane (`activityFreezeRef`)**: Covers Active Account Filter Banner (if present), Search Bar, Filter Chips (Type & Category), and View Mode Switcher (Card vs Table) pinned at `sticky top-0 z-30` with `bg-[#FBF9F4]/95 backdrop-blur-md`.
-  - **Synchronized Table Ledger Header**: In Table Ledger mode, row 1 column headers (`Date`, `Description`, `Account`, `In (+)`, `Out (-)`, `Category`) are placed directly inside the sticky freeze pane. When the table body is scrolled horizontally, bidirectional `scrollLeft` synchronization keeps header and data columns in perfect lockstep down to the subpixel.
-  - **Cascading Sticky Date Badges**: In Card View, each date badge sticks at `top: [freezeHeight]` beneath the freeze pane, staying frozen while scrolling through that date's cards and naturally scrolling off as the next date group pushes it up.
-  - **Table Ledger Default Auto-Scroll to Bottom**: Because Table Ledger is sorted chronologically ascending (oldest at top, latest at bottom), opening Table Ledger automatically scrolls to the bottom (`tableBottomAnchorRef`). Switching to Card View (sorted reverse-chronologically) scrolls to `top: 0`, guaranteeing both views immediately present the latest transactions upon opening.
+- **Activity Independent Scroll Shell & Static Upper Shell (`app/finance/page.tsx`)**:
+  - **Static Upper Shell (`shrink-0`)**: Main `<header>` (Logo, Add, Backup, Cloud, Eye, Lock) + Segmented navigation tabs + `activityFreezeRef` (Account filter banner, Search bar, Filter chips, View Mode toggle, and synchronized table column headers) remain permanently visible at `top: 0` without scrolling.
+  - **Dedicated Independent Scroll Containers (`flex-1 min-h-0 overflow-y-auto`)**:
+    * **Card View (`cardScrollRef`)**: Card list scrolls in its own container; sticky date badges stick to `top: 0` inside `cardScrollRef` beneath the search controls.
+    * **Table Ledger (`tableBodyScrollRef`)**: Table body scrolls vertically and horizontally within its container. Opening Table Ledger auto-scrolls to the bottom (`tableBodyScrollRef.scrollTop = tableBodyScrollRef.scrollHeight`), immediately revealing today's latest transactions while `window.scrollY` strictly stays at `0`.
+  - **Zero Scroll-to-Top Fatigue**: Users never need to scroll back to the top of the page to reveal the header bar or switch tabs.
+  - **Synchronized Table Ledger Header**: In Table Ledger mode, row 1 column headers (`Date`, `Description`, `Account`, `In (+)`, `Out (-)`, `Category`) are placed directly inside the static upper shell. When the table body is scrolled horizontally, bidirectional `scrollLeft` synchronization keeps header and data columns in perfect lockstep down to the subpixel.
   - **Zero Containing Block Traps (`overflow-x: clip`)**: Active tab renders in normal DOM flow with `overflow-x: clip` on `<main>`, guaranteeing that vertical window scroll maintains native 120 FPS hardware acceleration.
 - **Ghost-Touch-Free Gesture Handler (`hooks/useSwipeableTabs.ts`)**:
   - Replaced global `drag="x"` container with targeted touch handlers (`onTouchStart`, `onTouchEnd`).

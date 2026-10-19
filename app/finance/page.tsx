@@ -365,9 +365,8 @@ export default function FinancePage() {
   const [accountViewMode, setAccountViewMode] = useState<'card' | 'ledger'>('card');
   const [filterAccountId, setFilterAccountId] = useState<AccountId | null>(null);
 
-  // Activity Freeze Panes Dynamic Height Reference
+  // Activity Top Shell Reference
   const activityFreezeRef = useRef<HTMLDivElement>(null);
-  const [freezeHeight, setFreezeHeight] = useState(130);
 
   // Table Ledger Freeze Pane Horizontal Scroll Sync
   const tableHeaderScrollRef = useRef<HTMLDivElement>(null);
@@ -375,15 +374,17 @@ export default function FinancePage() {
   const isSyncingHeaderScroll = useRef(false);
   const isSyncingBodyScroll = useRef(false);
 
-  // Table Ledger Bottom Anchor for Auto-Scroll to Latest Transactions
+  // Independent Scroll Containers for Card View and Table Ledger
+  const cardScrollRef = useRef<HTMLDivElement>(null);
   const tableBottomAnchorRef = useRef<HTMLDivElement>(null);
 
   const scrollToLedgerBottom = useCallback(() => {
     const doScroll = () => {
-      if (tableBottomAnchorRef.current) {
-        tableBottomAnchorRef.current.scrollIntoView({ block: 'end', behavior: 'instant' });
-      } else {
-        window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'instant' });
+      if (tableBodyScrollRef.current) {
+        tableBodyScrollRef.current.scrollTop = tableBodyScrollRef.current.scrollHeight;
+      }
+      if (typeof window !== 'undefined' && window.scrollY > 0) {
+        window.scrollTo({ top: 0, behavior: 'instant' });
       }
     };
 
@@ -396,7 +397,7 @@ export default function FinancePage() {
     });
   }, []);
 
-  // Auto-scroll Table Ledger to bottom by default when opened
+  // Auto-scroll Table Ledger to bottom by default when opened without shifting upper shell
   const prevViewRef = useRef(view);
   const prevAccountViewModeRef = useRef(accountViewMode);
   const isInitialMountRef = useRef(true);
@@ -404,8 +405,13 @@ export default function FinancePage() {
   useEffect(() => {
     if (isInitialMountRef.current) {
       isInitialMountRef.current = false;
-      if (view === 'ledger' && accountViewMode === 'ledger') {
-        scrollToLedgerBottom();
+      if (view === 'ledger') {
+        window.scrollTo({ top: 0, behavior: 'instant' });
+        if (accountViewMode === 'ledger') {
+          scrollToLedgerBottom();
+        } else {
+          cardScrollRef.current?.scrollTo({ top: 0, behavior: 'instant' });
+        }
       }
       return;
     }
@@ -415,8 +421,15 @@ export default function FinancePage() {
 
     if (!wasInLedger && isInLedger) {
       scrollToLedgerBottom();
-    } else if (prevViewRef.current !== 'ledger' && view === 'ledger' && accountViewMode === 'card') {
+    } else if (prevViewRef.current !== 'ledger' && view === 'ledger') {
       window.scrollTo({ top: 0, behavior: 'instant' });
+      if (accountViewMode === 'ledger') {
+        scrollToLedgerBottom();
+      } else {
+        cardScrollRef.current?.scrollTo({ top: 0, behavior: 'instant' });
+      }
+    } else if (prevViewRef.current === 'ledger' && prevAccountViewModeRef.current === 'ledger' && accountViewMode === 'card') {
+      cardScrollRef.current?.scrollTo({ top: 0, behavior: 'instant' });
     }
 
     prevViewRef.current = view;
@@ -761,20 +774,6 @@ export default function FinancePage() {
     filterAccountId || searchQuery.trim() || typeFilter !== 'all' || categoryFilter !== 'all'
   );
 
-  useEffect(() => {
-    if (!activityFreezeRef.current) return;
-    const updateHeight = () => {
-      if (activityFreezeRef.current) {
-        setFreezeHeight(Math.round(activityFreezeRef.current.getBoundingClientRect().height));
-      }
-    };
-    updateHeight();
-    const ro = new ResizeObserver(() => {
-      updateHeight();
-    });
-    ro.observe(activityFreezeRef.current);
-    return () => ro.disconnect();
-  }, [view, accountViewMode, isFiltered, filterAccountId]);
 
   const handleReorder = (activeEventId: string, targetEventId: string, placement: "before" | "after") => {
     if (undoDeleteStateRef.current) {
@@ -1583,13 +1582,15 @@ export default function FinancePage() {
 
   return (
     <main 
-      className="min-h-screen bg-[#FBF9F4] text-stone-900 pb-28 relative overflow-x-clip"
+      className={`bg-[#FBF9F4] text-stone-900 relative overflow-x-clip ${
+        view === 'ledger' ? 'h-dvh flex flex-col overflow-hidden pb-0' : 'min-h-screen pb-28'
+      }`}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
       
       {/* ================= HEADER BAR (ARC + DUOLINGO FUSION) ================= */}
-      <header className="bg-white/95 backdrop-blur-md border-b border-stone-200/80 relative z-30 shadow-2xs">
+      <header className="bg-white/95 backdrop-blur-md border-b border-stone-200/80 relative z-30 shadow-2xs shrink-0">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between">
           <BrandLogo />
 
@@ -1764,7 +1765,7 @@ export default function FinancePage() {
       </header>
 
       {/* ================= MAIN CONTENT TABS ================= */}
-      <div className="w-full pt-6">
+      <div className={`w-full ${view === 'ledger' ? 'flex-1 min-h-0 flex flex-col pt-3' : 'pt-6'}`}>
         {/* ================= 1. OVERVIEW VIEW ================= */}
         {view === 'dashboard' && (
           <div className="w-full">
@@ -2202,13 +2203,13 @@ export default function FinancePage() {
 
         {/* ================= 3. ACTIVITY & LEDGER VIEW ================= */}
         {view === 'ledger' && (
-          <div className="w-full">
-            <div className="max-w-5xl mx-auto px-4 sm:px-6 space-y-4">
+          <div className="w-full flex-1 min-h-0 flex flex-col">
+            <div className="w-full flex-1 min-h-0 flex flex-col max-w-5xl mx-auto px-4 sm:px-6">
             
-            {/* STICKY FREEZE PANE CONTAINER */}
+            {/* STATIC SEARCH & FILTERS TOP SHELL (NEVER SCROLLS AWAY) */}
             <div 
               ref={activityFreezeRef}
-              className="sticky top-0 z-30 bg-[#FBF9F4]/95 backdrop-blur-md pt-2 pb-3 space-y-3 -mx-4 sm:-mx-6 px-4 sm:px-6 border-b border-stone-200/60 shadow-2xs"
+              className="shrink-0 bg-[#FBF9F4] pt-1 pb-3 space-y-3 border-b border-stone-200/60"
             >
               {/* Active Account Filter Banner */}
               {filterAccountId && (() => {
@@ -2260,7 +2261,7 @@ export default function FinancePage() {
                   type="button"
                   onClick={() => {
                     setAccountViewMode('card');
-                    window.scrollTo({ top: 0, behavior: 'instant' });
+                    cardScrollRef.current?.scrollTo({ top: 0, behavior: 'instant' });
                   }}
                   className={`flex-1 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                     accountViewMode === 'card'
@@ -2293,7 +2294,7 @@ export default function FinancePage() {
                 <div 
                   ref={tableHeaderScrollRef}
                   onScroll={handleHeaderScroll}
-                  className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pt-1 -mx-4 sm:-mx-6 px-4 sm:px-6"
+                  className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pt-1"
                 >
                   <table className="w-full text-sm text-left border-collapse table-fixed min-w-[680px]">
                     <colgroup>
@@ -2319,9 +2320,12 @@ export default function FinancePage() {
               )}
             </div>
 
-            {/* Content: Card View */}
+            {/* Content: Card View (Independent Vertical Scroll Container) */}
             {accountViewMode === 'card' ? (
-              <div className="space-y-3">
+              <div 
+                ref={cardScrollRef}
+                className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain pt-3 pb-24 space-y-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              >
                 {cardEvents.length === 0 && (
                   <EmptyState 
                     title="No transactions match your search"
@@ -2347,10 +2351,9 @@ export default function FinancePage() {
                       </div>
                     )}
                     
-                    {/* Sticky Date Badge: Freezes until the next date group pushes it up */}
+                    {/* Sticky Date Badge: Freezes inside cardScrollRef at top: 0 */}
                     <div 
-                      style={{ top: `${freezeHeight}px` }} 
-                      className="sticky z-20 py-1.5 -mx-4 sm:-mx-6 px-4 sm:px-6 bg-[#FBF9F4]/95 backdrop-blur-md"
+                      className="sticky top-0 z-20 py-1.5 bg-[#FBF9F4]/95 backdrop-blur-md"
                     >
                       <h3 className="text-xs font-bold text-stone-500">
                         {formatDateCard(group.date)}
@@ -2467,12 +2470,25 @@ export default function FinancePage() {
                 ))}
               </div>
             ) : (
-              /* Content: Table Ledger View */
-              <div className="space-y-2">
+              /* Content: Table Ledger View (Independent Scroll Container) */
+              <div className="flex-1 min-h-0 flex flex-col pt-1 pb-4">
+                {ledgerEntries.length === 0 && (
+                  <EmptyState 
+                    title="No transactions match your search"
+                    description="Try resetting your filters or search keywords to view all transaction records."
+                    actionLabel="Reset All Filters"
+                    onAction={() => {
+                      setFilterAccountId(null);
+                      setSearchQuery("");
+                      setTypeFilter('all');
+                      setCategoryFilter('all');
+                    }}
+                  />
+                )}
                 <div 
                   ref={tableBodyScrollRef}
                   onScroll={handleBodyScroll}
-                  className="bg-white rounded-3xl border border-stone-200/90 border-b-[3px] border-b-stone-300/80 shadow-xs overflow-x-auto"
+                  className="flex-1 min-h-0 overflow-y-auto overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden bg-white rounded-2xl border border-stone-200/90 border-b-[3px] border-b-stone-300/80 shadow-xs"
                 >
                 <table className="w-full text-sm text-left border-collapse table-fixed min-w-[680px]">
                   <colgroup>
@@ -2567,9 +2583,9 @@ export default function FinancePage() {
                     })}
                   </tbody>
                 </table>
+                {/* Bottom anchor for scrolling to latest transactions */}
+                <div ref={tableBottomAnchorRef} className="h-1 w-full pointer-events-none" aria-hidden="true" />
               </div>
-              {/* Bottom anchor for scrolling to latest transactions */}
-              <div ref={tableBottomAnchorRef} className="h-1 w-full pointer-events-none" aria-hidden="true" />
             </div>
           )}
             </div>

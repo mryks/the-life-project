@@ -110,5 +110,22 @@ Before building gesture-driven UI, align on:
   * Merely calling `scrollIntoView` or `window.scrollTo` once is insufficient in dynamic modern web apps because font loading, layout calculations, and dynamic rows take multiple frames to paint.
   * **The Proven Architecture**: Combine an invisible bottom sentinel anchor (`<div ref={anchorRef} className="h-1 w-full pointer-events-none" aria-hidden="true" />`) with an immediate scroll execution plus staged `requestAnimationFrame` + `window.setTimeout(..., 40)` and `window.setTimeout(..., 120)` fallbacks.
   * **View Switch Symmetry**: When switching to Card View, instantly scroll to `top: 0`. When switching to Table Ledger, instantly scroll to bottom. Both views immediately present the latest transactions.
+---
 
+## 8. The Independent Scroll Shell & Static Upper Shell Invariant
 
+- **Scroll-to-Top Fatigue Trap**:
+  * In data-dense applications with long feeds (Card views) and chronological ledgers (Table views), scrolling the outer browser `window` down to reach latest transactions pushes the app header, search bar, and filter controls completely off-screen.
+  * Forcing the user to manually scroll 5000+ pixels back to the top just to search, filter by category, or change accounts destroys mobile ergonomics.
+- **The Proven Independent Scroll Shell Architecture**:
+  * **Page Root Shell**: Configure `<main>` as a fixed-viewport flex column: `h-dvh flex flex-col overflow-hidden pb-0`.
+  * **Static Upper Shell (`shrink-0`)**:
+    - App `<header>` and Search/Filter/View controls (`activityFreezeRef`) remain strictly outside the scrollable body with `shrink-0 bg-[#FBF9F4]`.
+    - `window.scrollY` remains strictly `0` at all times.
+  * **Dedicated Internal Scroll Containers (`flex-1 min-h-0 overflow-y-auto`)**:
+    - **Card View Feed (`cardScrollRef`)**: Has `flex-1 min-h-0 overflow-y-auto overscroll-y-contain pt-3 pb-24 space-y-3`. Date headers stick naturally inside the container using `sticky top-0 z-20` without manual offset math.
+    - **Table Ledger Body (`tableBodyScrollRef`)**: Has `flex-1 min-h-0 overflow-y-auto overflow-x-auto`. The frozen column headers remain static in the upper shell, synchronized horizontally with table body `scrollLeft`.
+  * **Auto-Scroll Isolation**:
+    - When switching to Table Ledger, `scrollToLedgerBottom()` targets the internal container: `tableBodyScrollRef.current.scrollTop = tableBodyScrollRef.current.scrollHeight`.
+    - It enforces `window.scrollTo({ top: 0, behavior: 'instant' })` so the upper page shell never jumps into a freeze-pane state.
+  * **Ergonomic Outcome**: Search bar, category filters, and account controls are 100% accessible at all times without scrolling.

@@ -25,9 +25,14 @@
 - **Mobile PWA:**
   - `public/manifest.json` configured with standalone mode, oat milk theme `#FBF9F4`, and bespoke SVG icon.
   - Viewport optimized for mobile notch (`viewportFit: 'cover'`) and smooth touch drag interactions.
-- **Test Suite Status:** 100% passing (**23 test suites, 404 tests passed** via `npm test`).
+- **Test Suite Status:** 100% passing (**23 test suites, 405 tests passed** via `npm test`).
 - **Linter & Typecheck:** 0 errors, 0 warnings (`npm run lint`, `npx tsc --noEmit`).
-- **Automated Mobile Browser Subagent:** 100% passing (verified nominal masking, eye toggle, sticky panes, bottom scrolling, horizontal sync, and swipe gestures via `scripts/test-mobile-e2e.mjs` / `npm run test:e2e:mobile` on iPhone 14 Pro emulation both locally and on live Vercel production).
+- **Automated Mobile Browser Subagent:** 100% passing (verified independent scroll shell, static upper controls, nominal masking, eye toggle, internal scroll targeting, horizontal sync, and swipe gestures via `scripts/test-mobile-e2e.mjs` / `npm run test:e2e:mobile` on iPhone 14 Pro emulation both locally and on live Vercel production).
+- **Independent Scroll Shell for Activity (Langkah 47):**
+  - Partitioned Activity into a Two-Zone Independent Scroll Shell: static upper shell (`shrink-0`: main `<header>` + tabs + search controls + table header) and dedicated independent vertical scroll containers (`flex-1 min-h-0 overflow-y-auto`).
+  - Card View (`cardScrollRef`): scrolls internally; sticky date badges stick to `top: 0` inside container.
+  - Table Ledger (`tableBodyScrollRef`): scrolls internally; auto-scrolls to latest transactions at the bottom (`scrollTop = scrollHeight`) while `window.scrollY` strictly stays at `0`.
+  - Zero scroll-to-top fatigue: Header bar and search controls never scroll away.
 - **Nominal Masking & Eye Toggle (Langkah 46):**
   - All nominal amounts across the entire application default to masked (`Rp ••••••`).
   - Session-persisted via `sessionStorage` (`thelife-hide-nominals`), persisting across page navigation/refreshes until the application is killed.

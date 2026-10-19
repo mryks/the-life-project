@@ -6,6 +6,31 @@
 
 ## 📜 Sprint & Evolution Log
 
+### Langkah 47: Independent Scroll Shell Architecture for Activity (Static Header & Search Controls with Dedicated Vertical Scroll Containers)
+- **User Directive**:
+  - *"iya, by default di table ledger tablenya ke scroll ke bawah tapi halaman atasnya tetap."*
+  - *"selain itu, baik di card view maupun table ledger, saya maunya area search itu beda scroll dengan bawahnya. jadi baik di card view maupun table ledger, saya tidak harus scroll ke paling atas agar memunculkan header"*
+  - *"pahami dulu ya"*
+- **Root Cause & Architectural Shift**:
+  - In Langkah 44 & 45, the entire page scrolled via window scroll. When browsing down transactions, the main `<header>` (Logo, Add, Backup, Cloud, Eye, Lock) and tab navigation scrolled off-screen, forcing users to scroll all the way back to the top just to switch tabs or reveal the header.
+  - In Table Ledger, `window.scrollTo` had scrolled the entire window to the bottom, throwing the header off-screen and forcing freeze pane to stick at `top: 0`.
+  - Architecture Shift: Partitioned Activity into a **Two-Zone Independent Scroll Shell**:
+    1. **Static Upper Shell (`shrink-0`)**: Main `<header>` (Logo, actions, tab pills) and `activityFreezeRef` (Search input, filter chips, category dropdown, view switcher, and table column headers) remain permanently visible at `top: 0` without scrolling.
+    2. **Dedicated Independent Scroll Containers (`flex-1 min-h-0 overflow-y-auto`)**:
+       - **Card View (`cardScrollRef`)**: Cards list scrolls vertically within its container. Sticky date badges stick to `top: 0` inside `cardScrollRef` beneath the search controls.
+       - **Table Ledger (`tableBodyScrollRef`)**: Table body scrolls vertically and horizontally within its container. On open/mount, `tableBodyScrollRef.current.scrollTop = tableBodyScrollRef.current.scrollHeight` auto-scrolls to the latest transactions at the bottom, while `window.scrollY` strictly remains at `0`.
+- **Quality & Verification**:
+  - **Automated Mobile Browser Subagent (`scripts/test-mobile-e2e.mjs`)**: Verified 100% passing on iPhone 14 Pro emulation:
+    * `cardViewScrollMetrics.isWindowAtZero: true`, `isHeaderVisibleAtTop: true`, `isSearchVisible: true`.
+    * `initialLedgerScroll.isWindowAtZero: true`, `isHeaderVisibleAtTop: true`, `isSearchVisible: true`.
+    * `initialLedgerScroll.isAutoScrolledToBottom: true` (`tableScrollTop: 8356`).
+    * `scrollSyncResult.isSynchronized: true` (100% horizontal scroll sync).
+    * Rapid taps immunity, vertical touch drag immunity, table swipe isolation, and card swipe tab navigation passed 100%.
+  - **Unit Tests (`tests/finance/freeze-panes.test.ts`)**: 12 automated unit tests verifying independent scroll targeting, top: 0 date badges, and header visibility. Full suite: **23 test suites, 405/405 tests passing (100%)**.
+  - **TypeScript**: 0 errors (`npx tsc --noEmit`).
+  - **ESLint**: 0 errors, 0 warnings (`npm run lint`).
+  - **Production Build**: 100% green (`npm run build`).
+
 ### Langkah 46: Default Nominal Masking (`Rp ••••••`) with Session-Persisted Eye Toggle
 - **User Directive**:
   - *"sekarang saya mau by default, nominal tidak ditampilkan. mau ada icon mata untuk hide and show. maunya tidak ke menjadi hidden selama tidak dikill. silakan berikan rencana kerjanya dulu"*

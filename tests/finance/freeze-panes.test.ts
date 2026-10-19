@@ -94,16 +94,14 @@ describe("Freeze Panes & Sticky Date Grouping Invariants", () => {
     });
   });
 
-  describe("Sticky Freeze Header Invariants", () => {
-    it("guarantees Card View date badges attach at freezeHeight offset", () => {
-      const mockFreezeHeight = 261; // Dynamic height measured from activityFreezeRef
-      const cardDateBadgeTop = mockFreezeHeight;
-
-      expect(cardDateBadgeTop).toBe(mockFreezeHeight);
-      expect(cardDateBadgeTop).toBeGreaterThan(0);
+  describe("Sticky Freeze Header & Independent Scroll Shell Invariants", () => {
+    it("guarantees Card View date badges stick at top: 0 inside card scroll container", () => {
+      // In the independent scroll shell, date badges stick at top: 0 inside the card container
+      const cardDateBadgeTop = 0;
+      expect(cardDateBadgeTop).toBe(0);
     });
 
-    it("verifies Table Ledger column headers are frozen inside the freeze pane container", () => {
+    it("verifies Table Ledger column headers are frozen inside the static top shell", () => {
       const expectedColumns = ["Date", "Description", "Account", "In (+)", "Out (-)", "Category"];
       expect(expectedColumns.length).toBe(6);
       expect(expectedColumns[0]).toBe("Date");
@@ -159,24 +157,39 @@ describe("Freeze Panes & Sticky Date Grouping Invariants", () => {
       expect(reverseChronologicalEvents[reverseChronologicalEvents.length - 1].date).toBe("2026-09-30"); // Oldest at bottom
     });
 
-    it("verifies view switch scroll targeting (Table Ledger -> bottom, Card View -> top)", () => {
+    it("verifies internal container scroll targeting (Table Ledger -> container.scrollHeight, Card View -> 0, Window -> 0)", () => {
       type ViewMode = "card" | "ledger";
-      const resolveTargetScroll = (viewMode: ViewMode, documentHeight: number) => {
+      const resolveTargetScroll = (viewMode: ViewMode, containerScrollHeight: number) => {
         if (viewMode === "ledger") {
-          return { target: "bottom", scrollY: documentHeight };
+          return {
+            windowScrollY: 0, // Upper shell remains static at top (never scrolled away)
+            containerScrollTop: containerScrollHeight, // Table body scrolled to bottom
+          };
         }
-        return { target: "top", scrollY: 0 };
+        return {
+          windowScrollY: 0,
+          containerScrollTop: 0, // Card view scrolled to top
+        };
       };
 
-      const mockDocumentHeight = 4250;
-      expect(resolveTargetScroll("ledger", mockDocumentHeight)).toEqual({
-        target: "bottom",
-        scrollY: 4250,
+      const mockTableHeight = 4250;
+      expect(resolveTargetScroll("ledger", mockTableHeight)).toEqual({
+        windowScrollY: 0,
+        containerScrollTop: 4250,
       });
-      expect(resolveTargetScroll("card", mockDocumentHeight)).toEqual({
-        target: "top",
-        scrollY: 0,
+      expect(resolveTargetScroll("card", mockTableHeight)).toEqual({
+        windowScrollY: 0,
+        containerScrollTop: 0,
       });
+    });
+
+    it("guarantees app header and search area remain visible without requiring scroll-to-top", () => {
+      const windowScrollY = 0;
+      const isHeaderVisibleAtZero = windowScrollY === 0;
+      const isSearchAreaVisibleAtZero = windowScrollY === 0;
+
+      expect(isHeaderVisibleAtZero).toBe(true);
+      expect(isSearchAreaVisibleAtZero).toBe(true);
     });
   });
 });

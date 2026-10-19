@@ -179,4 +179,10 @@ Keep changes minimal and reviewable.
   * All financial amounts across the entire application (Total Balance, Investment Balance, Net Worth, Income, Expense, Cashflow, Burn Rate, Chart Tooltips/Legends, 17 Account Cards, Card View, and Table Ledger) MUST default to masked (`Rp ••••••`).
   * Visibility toggle state is scoped to `sessionStorage` (`thelife-hide-nominals`). Revealed state (`false`) persists across tab transitions and page navigation during the session, but automatically reverts to masked on application cold start / tab kill.
   * Vector eye toggle buttons (`Eye` / `EyeOff` from `lucide-react`) must be provided in the sticky header and on `HeroVaultCard`.
+- **Activity Independent Scroll Shell & Static Header Invariant**:
+  * In the Activity & Ledger domain, partition layout into a Two-Zone Independent Scroll Shell:
+    1. Static Upper Shell (`shrink-0`): Main app `<header>` + Segmented navigation tabs + search/filter controls + synchronized table column headers remain permanently visible at `top: 0` without scrolling.
+    2. Dedicated Independent Scroll Containers (`flex-1 min-h-0 overflow-y-auto`): Card View (`cardScrollRef`) and Table Ledger (`tableBodyScrollRef`) scroll in their own internal containers.
+  * **Table Ledger Auto-Scroll Scope**: Opening Table Ledger auto-scrolls strictly `tableBodyScrollRef.current.scrollTop = tableBodyScrollRef.current.scrollHeight` (to latest transactions at bottom), while `window.scrollY` strictly stays at `0`.
+  * **Zero Scroll-to-Top Fatigue**: The user must NEVER have to scroll to the top of the page simply to reveal the header bar, access search filters, or switch tabs.
 - **Production Parity**: When building or refining mobile interactions, verification is incomplete until changes are committed, pushed, and deployed live to Vercel.
