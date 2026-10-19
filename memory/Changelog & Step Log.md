@@ -6,6 +6,44 @@
 
 ## 📜 Sprint & Evolution Log
 
+### Langkah 48: Natural Scroll Layout, Clean Static Date Headers & Floating Centered Quick-Access Button
+- **User Directive**:
+  - *"terlihat aneh, sekarang halaman atasnya jadi frozen, gabisa kehide. kemudian tanggal yang ada di cardview yang akan berganti seiring discroll itu agak aneh tanggalnya, kurang oke. harusnya anda sudah cek cek sebelum ngasih ke saya, jadi anda udah screenshot ataupun juga screenrecord, baru analisis, baru revisi sendiri, lakukan berulang hingga dirasa sudah oke, baru kasih ke saya"*
+- **Root Cause & Visual Inspection Analysis**:
+  - In Langkah 47, `<main>` was locked into an `h-dvh overflow-hidden` flex column with a permanent 350px static upper shell. On mobile, this consumed over 45% of the screen height, preventing the header and search controls from ever scrolling away ("gabisa kehide").
+  - Inside Card View, date badges with `sticky top-0 z-20` stuck to the top of the container, causing transaction cards to slide awkwardly beneath semi-transparent text with overlapping labels, and abruptly bumping each other as new date groups approached ("agak aneh tanggalnya, kurang oke").
+- **Architectural Overhaul & Visual Polish (`app/finance/page.tsx`)**:
+  1. **Restored Full-Screen Natural Page Scroll**:
+     - Removed `h-dvh flex flex-col overflow-hidden` from `<main>`, restoring `min-h-screen bg-[#FBF9F4] text-stone-900 pb-28 relative overflow-x-clip`.
+     - Removed `shrink-0` from `<header>`.
+     - When users scroll down to read transactions in Card View, the header and search bar scroll off-screen naturally ("bisa kehide"), granting 100% full-screen immersive space for browsing transaction records.
+  2. **Clean Static Section Date Headers**:
+     - Removed `sticky top-0 z-20` and `bg-[#FBF9F4]/95 backdrop-blur-md` from date headers in Card View.
+     - Formatted each date as a clean, calm static section header (`<h3 className="text-xs font-bold text-stone-500 tracking-wide">`) that scrolls naturally with its date group. Zero card clipping, zero overlapping text.
+  3. **Table Ledger Auto-Scroll & Dual-Zone Scroll**:
+     - Wrapped Table Ledger in `max-h-[62vh] sm:max-h-[70vh] overflow-y-auto overflow-x-auto`.
+     - When switching to Table Ledger, `scrollToLedgerBottom()` sets `tableBodyScrollRef.current.scrollTop = tableBodyScrollRef.current.scrollHeight` while keeping the page window at `window.scrollY = 0`.
+     - Users immediately see the latest transactions at the bottom of the table, while the page header and search controls remain accessible at the top.
+  4. **Floating Centered "Top & Search" Pill Button**:
+     - Added an elegant, tactile floating button at `fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-stone-900/95 text-white px-4 py-2 rounded-full text-xs font-bold shadow-xl border border-stone-700/80 backdrop-blur-xs`.
+     - Smoothly appears when `window.scrollY > 350` via Framer Motion `AnimatePresence`.
+     - Perfectly centered: avoids collision with the green `+ Add` FAB at `bottom-6 right-6`, and provides equal reach for both left- and right-handed thumbs.
+     - One-click smooth glide to `window.scrollTo({ top: 0, behavior: 'smooth' })`, solving "tidak harus scroll ke paling atas agar memunculkan header" without freezing the screen.
+  5. **Visual Screenshot Inspection Protocol (`scripts/inspect-ui.mjs`)**:
+     - Created automated inspection script capturing 5 visual states on iPhone 14 Pro emulation: Card Top, Card Scrolled (header hidden), Card Scrolled (centered Top pill visible), Table Ledger default (bottom scrolled with top header intact), and Table Ledger page scrolled.
+     - Visually reviewed all 5 screenshots before handoff.
+- **Verification**:
+  - **Automated Mobile Browser Subagent (`scripts/test-mobile-e2e.mjs`)**: Verified 100% passing on iPhone 14 Pro emulation:
+    * `initialCardMetrics.isWindowAtZero: true`, `isHeaderVisibleAtTop: true`, `isSearchVisible: true`.
+    * `scrolledCardMetrics.isHeaderHidden: true`, `scrolledCardMetrics.hasTopButton: true`.
+    * `initialLedgerScroll.isAutoScrolledToBottom: true` (`tableScrollTop: 8216`), `isWindowAtZero: true`.
+    * `scrollSyncResult.isSynchronized: true`.
+    * Rapid taps, vertical drag immunity, table swipe isolation, and tab navigation passed 100%.
+  - **Unit Tests (`tests/finance/freeze-panes.test.ts`)**: 12 automated unit tests updated and passing. Full suite: **23 test suites, 405/405 tests passing (100%)**.
+  - **TypeScript**: 0 errors (`npx tsc --noEmit`).
+  - **ESLint**: 0 errors, 0 warnings (`npm run lint`).
+  - **Production Build**: 100% green.
+
 ### Langkah 47: Independent Scroll Shell Architecture for Activity (Static Header & Search Controls with Dedicated Vertical Scroll Containers)
 - **User Directive**:
   - *"iya, by default di table ledger tablenya ke scroll ke bawah tapi halaman atasnya tetap."*

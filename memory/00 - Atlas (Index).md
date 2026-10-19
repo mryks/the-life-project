@@ -22,7 +22,7 @@
 
 ### 📜 History & Agreements
 - [[Agreements & Historical Context]] — Complete record of user requests, decisions, resolved dilemmas, and binding agreements.
-- [[Changelog & Step Log]] — Chronological progress tracker and engineering log across all development sprints (Langkah 1–47).
+- [[Changelog & Step Log]] — Chronological progress tracker and engineering log across all development sprints (Langkah 1–48).
 
 ---
 

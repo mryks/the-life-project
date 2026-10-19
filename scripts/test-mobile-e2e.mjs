@@ -136,46 +136,58 @@ export async function runTest(targetUrl = process.argv[2] || 'http://localhost:3
     await new Promise((r) => setTimeout(r, 600));
     console.log('   Active Tab now:', await getActiveTab());
 
-    // 3. Test Freeze Pane in Card View
-    console.log('\n3. Testing Independent Scroll Shell & Sticky Date Badges in Card View...');
+    // 3. Test Natural Scrolling & Clean Date Headers in Card View
+    console.log('\n3. Testing Natural Scrolling & Clean Date Headers in Card View...');
     await page.evaluate(() => window.scrollTo(0, 0));
     await new Promise((r) => setTimeout(r, 300));
 
-    // Scroll card container down 450px
-    const cardViewScrollMetrics = await page.evaluate(() => {
-      const cardContainer = document.querySelector('div.overflow-y-auto');
-      if (cardContainer) {
-        cardContainer.scrollTop = 450;
-        cardContainer.dispatchEvent(new Event('scroll'));
-      }
+    // Initial state at top
+    const initialCardMetrics = await page.evaluate(() => {
       const header = document.querySelector('header');
       const headerRect = header ? header.getBoundingClientRect() : null;
       const search = document.querySelector('input[placeholder*="Search"]');
       const searchRect = search ? search.getBoundingClientRect() : null;
 
-      // Check sticky date badges inside card container
-      const dateHeaders = Array.from(document.querySelectorAll('div.sticky h3')).map((h3) => {
-        const parent = h3.parentElement;
-        const rect = parent ? parent.getBoundingClientRect() : null;
-        return {
-          text: h3.textContent.trim(),
-          top: rect ? Math.round(rect.top) : null,
-          isPinnedAtTop: rect && searchRect ? rect.top <= searchRect.bottom + 20 : false,
-        };
-      });
+      // Check clean static date headers in normal flow
+      const dateHeaders = Array.from(document.querySelectorAll('div.space-y-3 h3')).map((h3) => h3.textContent.trim());
 
       return {
-        hasCardContainer: Boolean(cardContainer),
-        containerScrollTop: cardContainer ? cardContainer.scrollTop : 0,
         windowScrollY: window.scrollY,
         isWindowAtZero: window.scrollY === 0,
         isHeaderVisibleAtTop: headerRect ? Math.abs(headerRect.top) < 2 : false,
         isSearchVisible: Boolean(searchRect && searchRect.bottom > 0),
-        dateHeaders: dateHeaders.slice(0, 4),
+        dateHeadersCount: dateHeaders.length,
       };
     });
 
-    console.log('   Card View Scroll Shell Metrics:', cardViewScrollMetrics);
+    // Scroll window down 500px to verify header hides and Top button appears
+    await page.evaluate(() => {
+      window.scrollTo(0, 500);
+      window.dispatchEvent(new Event('scroll'));
+    });
+    await new Promise((r) => setTimeout(r, 400));
+
+    const scrolledCardMetrics = await page.evaluate(() => {
+      const topBtn = Array.from(document.querySelectorAll('button')).find(b => b.textContent?.includes('Top'));
+      const header = document.querySelector('header');
+      const headerRect = header ? header.getBoundingClientRect() : null;
+
+      return {
+        windowScrollY: window.scrollY,
+        isHeaderHidden: headerRect ? headerRect.bottom <= 0 : false,
+        hasTopButton: Boolean(topBtn),
+      };
+    });
+
+    // Scroll back to top
+    await page.evaluate(() => {
+      window.scrollTo(0, 0);
+      window.dispatchEvent(new Event('scroll'));
+    });
+    await new Promise((r) => setTimeout(r, 400));
+
+    console.log('   Card View Initial Metrics:', initialCardMetrics);
+    console.log('   Card View Scrolled Metrics (Header Hidden & Top Button Visible):', scrolledCardMetrics);
 
     // 4. Switch to Table Ledger View
     console.log('\n4. Switching to Table Ledger View...');
@@ -338,8 +350,10 @@ export async function runTest(targetUrl = process.argv[2] || 'http://localhost:3
     console.log(`\n   Saved screenshot to: ${screenshotPath}`);
 
     const allPassed =
-      cardViewScrollMetrics.isWindowAtZero &&
-      cardViewScrollMetrics.isHeaderVisibleAtTop &&
+      initialCardMetrics.isWindowAtZero &&
+      initialCardMetrics.isHeaderVisibleAtTop &&
+      scrolledCardMetrics.isHeaderHidden &&
+      scrolledCardMetrics.hasTopButton &&
       initialLedgerScroll.isAutoScrolledToBottom &&
       initialLedgerScroll.isWindowAtZero &&
       initialLedgerScroll.isHeaderVisibleAtTop &&
@@ -358,7 +372,8 @@ export async function runTest(targetUrl = process.argv[2] || 'http://localhost:3
     }
 
     return {
-      cardViewScrollMetrics,
+      initialCardMetrics,
+      scrolledCardMetrics,
       tableLedgerMetrics,
       scrollSyncResult,
       tabAfterVertical,

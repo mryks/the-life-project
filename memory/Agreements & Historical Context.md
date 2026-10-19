@@ -240,3 +240,26 @@ This document provides a permanent, faithful record of every user request, resol
   3. **Table Ledger Auto-Scroll to Bottom Scope**:
      - When Table Ledger opens, auto-scroll to the bottom targets strictly `tableBodyScrollRef.current.scrollTop = tableBodyScrollRef.current.scrollHeight`.
      - `window.scrollY` strictly remains at `0`, preventing the upper shell from jumping or sliding into sticky freeze positions.
+
+
+---
+
+### 19. Natural Page Scroll, Clean Static Date Headers & Mandatory Visual Screenshot Inspection Protocol
+- **User Directive**:
+  - *"terlihat aneh, sekarang halaman atasnya jadi frozen, gabisa kehide. kemudian tanggal yang ada di cardview yang akan berganti seiring discroll itu agak aneh tanggalnya, kurang oke. harusnya anda sudah cek cek sebelum ngasih ke saya, jadi anda udah screenshot ataupun juga screenrecord, baru analisis, baru revisi sendiri, lakukan berulang hingga dirasa sudah oke, baru kasih ke saya"*
+- **Binding Agreement**:
+  1. **Natural Page Scroll Invariant (Anti-Frozen Shell)**:
+     - Never lock the page into a rigid `h-dvh flex flex-col overflow-hidden` container where the upper header and search controls permanently consume 45% of mobile screen space without being able to hide.
+     - The page MUST scroll naturally (`min-h-screen pb-28 relative overflow-x-clip`), allowing the header to scroll off-screen as the user browses transactions to maximize readability and vertical real estate.
+  2. **Clean Static Section Date Headers (Anti-Sticky Date Jitter)**:
+     - Date headers in Card View must NEVER use `sticky top-0 z-20` or translucent backdrop blur.
+     - Date headers must render as clean, quiet static section headings in normal document flow (`<h3 className="text-xs font-bold text-stone-500 tracking-wide">`), scrolling naturally with each date group. Zero card overlap, zero text collision.
+  3. **Table Ledger Dedicated Container Scroll**:
+     - Table Ledger is wrapped in a dedicated scroll container with `max-h-[62vh] sm:max-h-[70vh] overflow-y-auto overflow-x-auto`.
+     - When switching to Table Ledger, `scrollToLedgerBottom()` auto-scrolls the table container to the bottom (`tableBodyScrollRef.current.scrollTop = tableBodyScrollRef.current.scrollHeight`) while keeping the page at `window.scrollY = 0`.
+  4. **Floating Centered "Top & Search" Pill**:
+     - When `window.scrollY > 350`, a tactile, elegant pill button appears at `fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-stone-900/95 text-white px-4 py-2 rounded-full text-xs font-bold shadow-xl border border-stone-700/80 backdrop-blur-xs`.
+     - Centered alignment eliminates collision with the green `+ Add` FAB at `bottom-6 right-6`.
+     - One-click smooth scroll to `window.scrollTo({ top: 0, behavior: 'smooth' })`, solving "tidak harus scroll ke paling atas agar memunculkan header" without freezing the screen.
+  5. **Mandatory Visual Screenshot Inspection Protocol**:
+     - The agent must NEVER hand off a UI change without first capturing screenshots across key interactive states (top, scrolled down, view switch), inspecting the images directly via tools, and iteratively revising until visually refined and ergonomically sound.

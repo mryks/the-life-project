@@ -179,10 +179,13 @@ Keep changes minimal and reviewable.
   * All financial amounts across the entire application (Total Balance, Investment Balance, Net Worth, Income, Expense, Cashflow, Burn Rate, Chart Tooltips/Legends, 17 Account Cards, Card View, and Table Ledger) MUST default to masked (`Rp ••••••`).
   * Visibility toggle state is scoped to `sessionStorage` (`thelife-hide-nominals`). Revealed state (`false`) persists across tab transitions and page navigation during the session, but automatically reverts to masked on application cold start / tab kill.
   * Vector eye toggle buttons (`Eye` / `EyeOff` from `lucide-react`) must be provided in the sticky header and on `HeroVaultCard`.
-- **Activity Independent Scroll Shell & Static Header Invariant**:
-  * In the Activity & Ledger domain, partition layout into a Two-Zone Independent Scroll Shell:
-    1. Static Upper Shell (`shrink-0`): Main app `<header>` + Segmented navigation tabs + search/filter controls + synchronized table column headers remain permanently visible at `top: 0` without scrolling.
-    2. Dedicated Independent Scroll Containers (`flex-1 min-h-0 overflow-y-auto`): Card View (`cardScrollRef`) and Table Ledger (`tableBodyScrollRef`) scroll in their own internal containers.
-  * **Table Ledger Auto-Scroll Scope**: Opening Table Ledger auto-scrolls strictly `tableBodyScrollRef.current.scrollTop = tableBodyScrollRef.current.scrollHeight` (to latest transactions at bottom), while `window.scrollY` strictly stays at `0`.
-  * **Zero Scroll-to-Top Fatigue**: The user must NEVER have to scroll to the top of the page simply to reveal the header bar, access search filters, or switch tabs.
+- **Natural Page Scroll, Clean Static Date Headers & Centered Quick-Access Invariant**:
+  * **No Frozen Shells (`overflow-hidden` on main / layout root)**: Never lock the main document into a fixed-viewport frozen upper shell (`shrink-0` > 300px) that cannot hide when scrolling. Users need full vertical screen space on mobile ("bisa kehide"). Use natural page flow (`min-h-screen pb-28 relative overflow-x-clip`).
+  * **Clean Static Date Headers**: In Card View, date headers must be quiet, static section headers in normal document flow (`pt-2 pb-0.5 text-xs font-bold text-stone-500 tracking-wide`). Do NOT use sticky translucent date badges that collide, jitter, or allow cards to slide awkwardly under semi-transparent text.
+  * **Table Ledger Auto-Scroll Scope**: Table Ledger is wrapped in a dedicated container (`max-h-[62vh] sm:max-h-[70vh] overflow-y-auto overflow-x-auto`). Opening Table Ledger auto-scrolls strictly `tableBodyScrollRef.current.scrollTop = tableBodyScrollRef.current.scrollHeight` (to latest transactions at bottom) while `window.scrollY` strictly stays at `0`.
+  * **Centered Floating Quick-Access Pill**: When scrolled down (`window.scrollY > 350`), display a floating tactile pill (`↑ Top & Search`) centered at `fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-stone-900/95 text-white`. Tapping it smoothly returns the user to the top and reveals search controls. Centered placement ensures zero collision with the green `+ Add` button (`bottom-6 right-6`) and provides equal ergonomics for left- and right-handed users.
+- **Mandatory Visual Inspection Protocol Before Handoff**:
+  * Never deliver UI/UX changes blindly based solely on unit tests.
+  * The agent MUST capture screenshots or recordings across key scroll states (top, scrolled 350px, scrolled 750px+, and view switches) on mobile viewport emulation (e.g. via Puppeteer / Chrome DevTools).
+  * Visually inspect each image, analyze visual hierarchy, layout cleanliness, and micro-interactions, iterate and self-correct until refined, and provide verified artifacts before presenting to the user.
 - **Production Parity**: When building or refining mobile interactions, verification is incomplete until changes are committed, pushed, and deployed live to Vercel.

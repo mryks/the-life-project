@@ -107,7 +107,8 @@ import {
   RefreshCw,
   Database,
   Eye,
-  EyeOff
+  EyeOff,
+  ArrowUp
 } from "lucide-react";
 
 // Curated playful & vibrant fintech palette for charts
@@ -375,8 +376,17 @@ export default function FinancePage() {
   const isSyncingBodyScroll = useRef(false);
 
   // Independent Scroll Containers for Card View and Table Ledger
-  const cardScrollRef = useRef<HTMLDivElement>(null);
   const tableBottomAnchorRef = useRef<HTMLDivElement>(null);
+
+  // Floating Back to Top & Quick Search button state
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  useEffect(() => {
+    const handleWindowScroll = () => {
+      setShowScrollTop(window.scrollY > 350);
+    };
+    window.addEventListener('scroll', handleWindowScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleWindowScroll);
+  }, []);
 
   const scrollToLedgerBottom = useCallback(() => {
     const doScroll = () => {
@@ -397,7 +407,7 @@ export default function FinancePage() {
     });
   }, []);
 
-  // Auto-scroll Table Ledger to bottom by default when opened without shifting upper shell
+  // Auto-scroll Table Ledger to bottom by default when opened without shifting page window
   const prevViewRef = useRef(view);
   const prevAccountViewModeRef = useRef(accountViewMode);
   const isInitialMountRef = useRef(true);
@@ -409,8 +419,6 @@ export default function FinancePage() {
         window.scrollTo({ top: 0, behavior: 'instant' });
         if (accountViewMode === 'ledger') {
           scrollToLedgerBottom();
-        } else {
-          cardScrollRef.current?.scrollTo({ top: 0, behavior: 'instant' });
         }
       }
       return;
@@ -425,11 +433,9 @@ export default function FinancePage() {
       window.scrollTo({ top: 0, behavior: 'instant' });
       if (accountViewMode === 'ledger') {
         scrollToLedgerBottom();
-      } else {
-        cardScrollRef.current?.scrollTo({ top: 0, behavior: 'instant' });
       }
     } else if (prevViewRef.current === 'ledger' && prevAccountViewModeRef.current === 'ledger' && accountViewMode === 'card') {
-      cardScrollRef.current?.scrollTo({ top: 0, behavior: 'instant' });
+      window.scrollTo({ top: 0, behavior: 'instant' });
     }
 
     prevViewRef.current = view;
@@ -1582,15 +1588,13 @@ export default function FinancePage() {
 
   return (
     <main 
-      className={`bg-[#FBF9F4] text-stone-900 relative overflow-x-clip ${
-        view === 'ledger' ? 'h-dvh flex flex-col overflow-hidden pb-0' : 'min-h-screen pb-28'
-      }`}
+      className="min-h-screen bg-[#FBF9F4] text-stone-900 pb-28 relative overflow-x-clip"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
       
       {/* ================= HEADER BAR (ARC + DUOLINGO FUSION) ================= */}
-      <header className="bg-white/95 backdrop-blur-md border-b border-stone-200/80 relative z-30 shadow-2xs shrink-0">
+      <header className="bg-white/95 backdrop-blur-md border-b border-stone-200/80 relative z-30 shadow-2xs">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between">
           <BrandLogo />
 
@@ -1765,7 +1769,7 @@ export default function FinancePage() {
       </header>
 
       {/* ================= MAIN CONTENT TABS ================= */}
-      <div className={`w-full ${view === 'ledger' ? 'flex-1 min-h-0 flex flex-col pt-3' : 'pt-6'}`}>
+      <div className="w-full pt-6">
         {/* ================= 1. OVERVIEW VIEW ================= */}
         {view === 'dashboard' && (
           <div className="w-full">
@@ -2203,13 +2207,13 @@ export default function FinancePage() {
 
         {/* ================= 3. ACTIVITY & LEDGER VIEW ================= */}
         {view === 'ledger' && (
-          <div className="w-full flex-1 min-h-0 flex flex-col">
-            <div className="w-full flex-1 min-h-0 flex flex-col max-w-5xl mx-auto px-4 sm:px-6">
+          <div className="w-full">
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 space-y-4">
             
-            {/* STATIC SEARCH & FILTERS TOP SHELL (NEVER SCROLLS AWAY) */}
+            {/* SEARCH & FILTERS TOP CONTROLS */}
             <div 
               ref={activityFreezeRef}
-              className="shrink-0 bg-[#FBF9F4] pt-1 pb-3 space-y-3 border-b border-stone-200/60"
+              className="pt-1 pb-2 space-y-3"
             >
               {/* Active Account Filter Banner */}
               {filterAccountId && (() => {
@@ -2261,7 +2265,7 @@ export default function FinancePage() {
                   type="button"
                   onClick={() => {
                     setAccountViewMode('card');
-                    cardScrollRef.current?.scrollTo({ top: 0, behavior: 'instant' });
+                    window.scrollTo({ top: 0, behavior: 'instant' });
                   }}
                   className={`flex-1 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                     accountViewMode === 'card'
@@ -2320,12 +2324,9 @@ export default function FinancePage() {
               )}
             </div>
 
-            {/* Content: Card View (Independent Vertical Scroll Container) */}
+            {/* Content: Card View */}
             {accountViewMode === 'card' ? (
-              <div 
-                ref={cardScrollRef}
-                className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain pt-3 pb-24 space-y-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-              >
+              <div className="space-y-3">
                 {cardEvents.length === 0 && (
                   <EmptyState 
                     title="No transactions match your search"
@@ -2351,11 +2352,9 @@ export default function FinancePage() {
                       </div>
                     )}
                     
-                    {/* Sticky Date Badge: Freezes inside cardScrollRef at top: 0 */}
-                    <div 
-                      className="sticky top-0 z-20 py-1.5 bg-[#FBF9F4]/95 backdrop-blur-md"
-                    >
-                      <h3 className="text-xs font-bold text-stone-500">
+                    {/* Date Header: Clean static section header that scrolls naturally */}
+                    <div className="pt-2 pb-0.5">
+                      <h3 className="text-xs font-bold text-stone-500 tracking-wide">
                         {formatDateCard(group.date)}
                       </h3>
                     </div>
@@ -2470,8 +2469,8 @@ export default function FinancePage() {
                 ))}
               </div>
             ) : (
-              /* Content: Table Ledger View (Independent Scroll Container) */
-              <div className="flex-1 min-h-0 flex flex-col pt-1 pb-4">
+              /* Content: Table Ledger View */
+              <div className="space-y-2 pt-1 pb-4">
                 {ledgerEntries.length === 0 && (
                   <EmptyState 
                     title="No transactions match your search"
@@ -2488,7 +2487,7 @@ export default function FinancePage() {
                 <div 
                   ref={tableBodyScrollRef}
                   onScroll={handleBodyScroll}
-                  className="flex-1 min-h-0 overflow-y-auto overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden bg-white rounded-2xl border border-stone-200/90 border-b-[3px] border-b-stone-300/80 shadow-xs"
+                  className="max-h-[62vh] sm:max-h-[70vh] overflow-y-auto overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden bg-white rounded-2xl border border-stone-200/90 border-b-[3px] border-b-stone-300/80 shadow-xs"
                 >
                 <table className="w-full text-sm text-left border-collapse table-fixed min-w-[680px]">
                   <colgroup>
@@ -2605,6 +2604,24 @@ export default function FinancePage() {
       >
         <Plus className="w-6 h-6 stroke-[3]" />
       </button>
+
+      {/* ================= FLOATING BACK TO TOP BUTTON ================= */}
+      <AnimatePresence>
+        {showScrollTop && view === 'ledger' && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8, y: 15 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: 15 }}
+            type="button"
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-stone-900/95 hover:bg-stone-900 text-white px-4 py-2 rounded-full text-xs font-bold shadow-xl flex items-center gap-1.5 active:scale-95 cursor-pointer border border-stone-700/80 backdrop-blur-xs"
+            title="Jump to Top & Search"
+          >
+            <ArrowUp className="w-3.5 h-3.5 stroke-[2.5]" />
+            <span>Top & Search</span>
+          </motion.button>
+        )}
+      </AnimatePresence>
 
       {/* ================= FORM MODAL (TACTILE 3D BUTTONS) ================= */}
       {showForm && (

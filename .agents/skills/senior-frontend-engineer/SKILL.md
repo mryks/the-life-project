@@ -112,20 +112,34 @@ Before building gesture-driven UI, align on:
   * **View Switch Symmetry**: When switching to Card View, instantly scroll to `top: 0`. When switching to Table Ledger, instantly scroll to bottom. Both views immediately present the latest transactions.
 ---
 
-## 8. The Independent Scroll Shell & Static Upper Shell Invariant
+## 8. Natural Page Scroll, Clean Static Date Headers & Centered Quick-Access Invariant
 
-- **Scroll-to-Top Fatigue Trap**:
-  * In data-dense applications with long feeds (Card views) and chronological ledgers (Table views), scrolling the outer browser `window` down to reach latest transactions pushes the app header, search bar, and filter controls completely off-screen.
-  * Forcing the user to manually scroll 5000+ pixels back to the top just to search, filter by category, or change accounts destroys mobile ergonomics.
-- **The Proven Independent Scroll Shell Architecture**:
-  * **Page Root Shell**: Configure `<main>` as a fixed-viewport flex column: `h-dvh flex flex-col overflow-hidden pb-0`.
-  * **Static Upper Shell (`shrink-0`)**:
-    - App `<header>` and Search/Filter/View controls (`activityFreezeRef`) remain strictly outside the scrollable body with `shrink-0 bg-[#FBF9F4]`.
-    - `window.scrollY` remains strictly `0` at all times.
-  * **Dedicated Internal Scroll Containers (`flex-1 min-h-0 overflow-y-auto`)**:
-    - **Card View Feed (`cardScrollRef`)**: Has `flex-1 min-h-0 overflow-y-auto overscroll-y-contain pt-3 pb-24 space-y-3`. Date headers stick naturally inside the container using `sticky top-0 z-20` without manual offset math.
-    - **Table Ledger Body (`tableBodyScrollRef`)**: Has `flex-1 min-h-0 overflow-y-auto overflow-x-auto`. The frozen column headers remain static in the upper shell, synchronized horizontally with table body `scrollLeft`.
-  * **Auto-Scroll Isolation**:
-    - When switching to Table Ledger, `scrollToLedgerBottom()` targets the internal container: `tableBodyScrollRef.current.scrollTop = tableBodyScrollRef.current.scrollHeight`.
-    - It enforces `window.scrollTo({ top: 0, behavior: 'instant' })` so the upper page shell never jumps into a freeze-pane state.
-  * **Ergonomic Outcome**: Search bar, category filters, and account controls are 100% accessible at all times without scrolling.
+- **The Frozen Shell Anti-Pattern**:
+  * Locking the layout root to `h-dvh flex flex-col overflow-hidden` with a large static upper shell (>300px of headers, tabs, search, filters) causes severe mobile claustrophobia.
+  * Over 50% of the mobile viewport is permanently consumed by frozen controls, and users can never scroll them off to view transaction feeds in full-screen mode ("gabisa kehide").
+- **The Modern Natural Scroll Architecture**:
+  * **Page Root Shell**: Configure `<main>` with natural document flow: `min-h-screen pb-28 relative overflow-x-clip`. Headers and search controls scroll off smoothly as the user browses content.
+  * **Clean Static Date Headers**: In Card feeds, render date headers as quiet, static section headers in normal document flow (`pt-2 pb-0.5 text-xs font-bold text-stone-500 tracking-wide`). Completely eliminate sticky translucent badges with backdrop-blur that collide, clip text, or let cards slide awkwardly underneath.
+  * **Dedicated Table Ledger Container**:
+    - Wrap the Table Ledger in a dedicated height-bounded container: `max-h-[62vh] sm:max-h-[70vh] overflow-y-auto overflow-x-auto`.
+    - Column headers stick inside the container using `sticky top-0 z-10 bg-stone-100`.
+    - When switching to Table Ledger, auto-scroll strictly `tableBodyScrollRef.current.scrollTop = tableBodyScrollRef.current.scrollHeight` (to latest transactions at bottom) while `window.scrollY` strictly stays at `0`.
+  * **Centered Floating Quick-Access Pill (`↑ Top & Search`)**:
+    - When `window.scrollY > 350`, render a sleek tactile floating pill button centered at `fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-stone-900/95 text-white shadow-xl backdrop-blur-xs`.
+    - Tapping it smoothly scrolls `window.scrollTo({ top: 0, behavior: 'smooth' })`, instantly revealing header and search controls.
+    - Centered placement ensures zero collision with the right-aligned floating action button (e.g. green `+ Add` button at `bottom-6 right-6`) and provides equal reachability for left- and right-handed users.
+
+---
+
+## 9. Mandatory Visual Inspection Protocol Before Delivery
+
+- **Zero Blind Handoff**: Never hand off UI, layout, or animation changes based solely on automated unit tests passing.
+- **Multi-State Screenshot Verification**:
+  * The engineer/agent MUST capture high-resolution screenshots across key states using mobile viewport emulation (e.g. Puppeteer / Chrome DevTools on iPhone 14 Pro):
+    1. Top initial state (`scrollY === 0`).
+    2. Mid-scroll state (`scrollY === 350px`) verifying natural header hide.
+    3. Deep-scroll state (`scrollY === 750px+`) verifying centered floating Top pill visibility and absence of collisions.
+    4. View mode switches (e.g. Card View to Table Ledger default bottom state).
+- **Inspect, Critique & Refine**:
+  * Visually inspect each capture. Analyze visual hierarchy, contrast, text clipping, and tactile micro-interactions.
+  * Proactively self-correct and re-capture until the craft standard is uncompromised before presenting to the user.
