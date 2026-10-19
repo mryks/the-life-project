@@ -19,6 +19,8 @@ export interface AnimatedNumberProps {
   suffix?: string;
   /** Custom class name */
   className?: string;
+  /** When true, masks the numeric value with bullets (Rp ••••••) */
+  hideNominals?: boolean;
 }
 
 export const formatIDR = (val: number): string => {
@@ -197,7 +199,24 @@ export const AnimatedNumber: React.FC<AnimatedNumberProps> = ({
   prefix = '',
   suffix = '',
   className,
+  hideNominals = false,
 }) => {
+  if (hideNominals) {
+    return (
+      <span
+        className={cn(
+          'inline-flex items-baseline font-mono-numbers tracking-tight select-none',
+          className
+        )}
+        aria-label={`${prefix}••••••${suffix}`}
+      >
+        {prefix && <span className="mr-0.5 select-none">{prefix}</span>}
+        <span className="inline-block tracking-wider font-mono">••••••</span>
+        {suffix && <span className="ml-0.5 select-none">{suffix}</span>}
+      </span>
+    );
+  }
+
   const targetFormatted = formatIDR(value);
   const targetChars = targetFormatted.split('');
 

@@ -62,6 +62,11 @@ import {
   touchActivity,
   SECURITY_CHANGE_EVENT,
 } from "@/lib/security";
+import {
+  readHideNominals,
+  writeHideNominals,
+  PRIVACY_CHANGE_EVENT,
+} from "@/lib/privacy";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import {
   syncWithCloud,
@@ -100,7 +105,9 @@ import {
   Lock,
   Cloud,
   RefreshCw,
-  Database
+  Database,
+  Eye,
+  EyeOff
 } from "lucide-react";
 
 // Curated playful & vibrant fintech palette for charts
@@ -220,6 +227,37 @@ function TransferAccountDropdown({
 export default function FinancePage() {
   // Security & Master PIN Lock State
   const [isLocked, setIsLocked] = useState(() => !isSessionUnlocked());
+
+  // Privacy & Nominal Masking State (Default: Masked unless revealed during active session)
+  const [hideNominals, setHideNominals] = useState(() => readHideNominals());
+
+  const handleToggleHideNominals = useCallback(() => {
+    setHideNominals((prev) => {
+      const next = !prev;
+      writeHideNominals(next);
+      return next;
+    });
+    if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+      try {
+        navigator.vibrate([15]);
+      } catch {
+        // Safe fallback
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    const handlePrivacyChange = (e: Event) => {
+      const customEvent = e as CustomEvent<{ hide: boolean }>;
+      if (typeof customEvent.detail?.hide === 'boolean') {
+        setHideNominals(customEvent.detail.hide);
+      }
+    };
+    window.addEventListener(PRIVACY_CHANGE_EVENT, handlePrivacyChange);
+    return () => {
+      window.removeEventListener(PRIVACY_CHANGE_EVENT, handlePrivacyChange);
+    };
+  }, []);
 
   useEffect(() => {
     const checkLock = () => {
@@ -1627,6 +1665,21 @@ export default function FinancePage() {
 
             <button
               type="button"
+              onClick={handleToggleHideNominals}
+              className="btn-tactile-neutral px-2.5 sm:px-3 py-1.5 text-xs flex items-center gap-1.5 cursor-pointer shadow-2xs shrink-0 text-stone-700 hover:text-stone-900"
+              title={hideNominals ? "Show Nominals" : "Hide Nominals"}
+              aria-label={hideNominals ? "Show Nominals" : "Hide Nominals"}
+            >
+              {hideNominals ? (
+                <EyeOff className="w-3.5 h-3.5 text-stone-600" />
+              ) : (
+                <Eye className="w-3.5 h-3.5 text-stone-600" />
+              )}
+              <span className="hidden sm:inline font-bold">{hideNominals ? "Show" : "Hide"}</span>
+            </button>
+
+            <button
+              type="button"
               onClick={() => {
                 lockSession();
                 setIsLocked(true);
@@ -1733,6 +1786,8 @@ export default function FinancePage() {
               savingsRate={stats.savingsRate}
               formatRupiah={formatRupiah}
               onViewAccounts={() => goToTab('accounts')}
+              hideNominals={hideNominals}
+              onToggleHideNominals={handleToggleHideNominals}
             />
 
             {/* 4 TACTILE PLAYFUL KPI CARDS */}
@@ -1744,6 +1799,7 @@ export default function FinancePage() {
               dailyAverageExpense={stats.dailyAverageExpense}
               monthName={formatMonthName(selectedMonth)}
               formatRupiah={formatRupiah}
+              hideNominals={hideNominals}
             />
 
             {/* CHARTS ROW (EXPENSES BY CATEGORY + DAILY TREND) */}
@@ -1789,7 +1845,7 @@ export default function FinancePage() {
                             ))}
                           </Pie>
                           <Tooltip 
-                            formatter={(value) => [formatRupiah(Number(value)), 'Amount']}
+                            formatter={(value) => [hideNominals ? 'Rp ••••••' : formatRupiah(Number(value)), 'Amount']}
                             contentStyle={{
                               backgroundColor: '#FFFFFF',
                               borderColor: '#E7E4DC',
@@ -1816,7 +1872,7 @@ export default function FinancePage() {
                             style={{ backgroundColor: CHART_COLORS[idx % CHART_COLORS.length] }} 
                           />
                           <span>{cat.name}:</span>
-                          <strong className="font-mono-numbers text-stone-900">{formatRupiah(cat.value)}</strong>
+                          <strong className="font-mono-numbers text-stone-900">{hideNominals ? 'Rp ••••••' : formatRupiah(cat.value)}</strong>
                         </span>
                       ))}
                     </div>
@@ -1890,7 +1946,7 @@ export default function FinancePage() {
                           domain={['auto', 'auto']} 
                         />
                         <Tooltip 
-                          formatter={(value) => [formatRupiah(Number(value)), 'Expense']}
+                          formatter={(value) => [hideNominals ? 'Rp ••••••' : formatRupiah(Number(value)), 'Expense']}
                           contentStyle={{
                             backgroundColor: '#FFFFFF',
                             borderColor: '#E7E4DC',
@@ -1976,6 +2032,7 @@ export default function FinancePage() {
                       duration={2.5}
                       delay={0.71}
                       prefix="Rp " 
+                      hideNominals={hideNominals}
                     />
                   </span>
                 </div>
@@ -2025,6 +2082,7 @@ export default function FinancePage() {
                             delay={0.71}
                             prefix="Rp " 
                             className={isFilteredAcc ? 'text-white' : 'text-stone-900'} 
+                            hideNominals={hideNominals}
                           />
                         </span>
                       </div>
@@ -2058,6 +2116,7 @@ export default function FinancePage() {
                       delay={0.71}
                       prefix="Rp " 
                       className="text-violet-700" 
+                      hideNominals={hideNominals}
                     />
                   </span>
                 </div>
@@ -2107,6 +2166,7 @@ export default function FinancePage() {
                             delay={0.71}
                             prefix="Rp " 
                             className={isFilteredAcc ? 'text-white' : 'text-stone-900'} 
+                            hideNominals={hideNominals}
                           />
                         </span>
                       </div>
@@ -2128,6 +2188,7 @@ export default function FinancePage() {
                     delay={0.71}
                     prefix="Rp " 
                     className="text-white" 
+                    hideNominals={hideNominals}
                   />
                 </p>
               </div>
@@ -2356,12 +2417,12 @@ export default function FinancePage() {
                               )}
                               {event.type === 'expense' && totalRefundedForEvent > 0 && (
                                 <span className="text-[10px] bg-violet-50 text-violet-700 px-2 py-0.5 rounded-full font-bold border border-violet-200/70">
-                                  Refunded: {formatRupiah(totalRefundedForEvent)}
+                                  Refunded: {hideNominals ? 'Rp ••••••' : formatRupiah(totalRefundedForEvent)}
                                 </span>
                               )}
                               {event.type === 'transfer' && event.adminFee && (
                                 <span className="text-[10px] bg-violet-100 text-violet-800 px-2 py-0.5 rounded-full font-bold border border-violet-200">
-                                  Fee: {formatRupiah(event.adminFee)}
+                                  Fee: {hideNominals ? 'Rp ••••••' : formatRupiah(event.adminFee)}
                                 </span>
                               )}
                               {event.type === 'refund' && (
@@ -2383,13 +2444,19 @@ export default function FinancePage() {
                                   ? 'text-emerald-600' 
                                   : 'text-stone-900'
                           }`}>
-                            {event.type === 'refund'
-                              ? `+${formatRupiah(event.amount)}`
-                              : `${transferDirection === 'neutral' ? '' : transferDirection === 'out' ? '-' : '+'}${formatRupiah(event.amount)}`}
+                            {hideNominals
+                              ? (event.type === 'refund' || transferDirection === 'in'
+                                  ? '+Rp ••••••'
+                                  : transferDirection === 'neutral'
+                                    ? 'Rp ••••••'
+                                    : '-Rp ••••••')
+                              : (event.type === 'refund'
+                                  ? `+${formatRupiah(event.amount)}`
+                                  : `${transferDirection === 'neutral' ? '' : transferDirection === 'out' ? '-' : '+'}${formatRupiah(event.amount)}`)}
                           </p>
                           {event.type === 'expense' && totalRefundedForEvent > 0 && (
                             <p className="text-[11px] font-bold text-stone-400 font-mono-numbers mt-0.5">
-                              Net: -{formatRupiah(netExpenseForEvent)}
+                              Net: -{hideNominals ? 'Rp ••••••' : formatRupiah(netExpenseForEvent)}
                             </p>
                           )}
                         </div>
@@ -2478,12 +2545,16 @@ export default function FinancePage() {
                             <td className="px-4 py-3 text-right font-bold font-mono-numbers">
                               {entry.direction === 'in' ? (
                                 <span className={entry.eventType === 'refund' ? "text-violet-600" : "text-emerald-600"}>
-                                  +{formatRupiah(entry.amount)}
+                                  {hideNominals ? '+Rp ••••••' : `+${formatRupiah(entry.amount)}`}
                                 </span>
                               ) : '-'}
                             </td>
                             <td className="px-4 py-3 text-right font-bold font-mono-numbers">
-                              {entry.direction === 'out' ? <span className="text-rose-600">-{formatRupiah(entry.amount)}</span> : '-'}
+                              {entry.direction === 'out' ? (
+                                <span className="text-rose-600">
+                                  {hideNominals ? '-Rp ••••••' : `-${formatRupiah(entry.amount)}`}
+                                </span>
+                              ) : '-'}
                             </td>
                             <td className="px-4 py-3 text-right text-xs">
                               <span className="bg-stone-100 border border-stone-200 px-2 py-0.5 rounded-full text-stone-700 font-medium">
@@ -2976,7 +3047,7 @@ export default function FinancePage() {
                 {activeEvent.description}
               </h4>
               <p className="text-xs font-mono-numbers text-stone-500 mt-0.5">
-                {formatRupiah(activeEvent.amount)} • {formatDateDisplay(activeEvent.date)}
+                {hideNominals ? 'Rp ••••••' : formatRupiah(activeEvent.amount)} • {formatDateDisplay(activeEvent.date)}
               </p>
             </div>
 
@@ -3037,7 +3108,7 @@ export default function FinancePage() {
             </div>
             <h4 className="text-xl font-black text-stone-900">Delete Transaction?</h4>
             <p className="text-xs text-stone-600 leading-relaxed">
-              Are you sure you want to permanently delete <strong>{pendingDeleteEvent.description}</strong> ({formatRupiah(pendingDeleteEvent.amount)})?
+              Are you sure you want to permanently delete <strong>{pendingDeleteEvent.description}</strong> ({hideNominals ? 'Rp ••••••' : formatRupiah(pendingDeleteEvent.amount)})?
             </p>
             {pendingDeleteRelatedCount > 0 && (
               <p className="text-[11px] text-rose-800 bg-rose-50 p-2.5 rounded-xl border border-rose-200 text-left font-semibold">

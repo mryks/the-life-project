@@ -1,6 +1,7 @@
 "use client";
 
 import { Vault, ArrowRight, ShieldCheck } from "@phosphor-icons/react";
+import { Eye, EyeOff } from "lucide-react";
 
 interface HeroVaultCardProps {
   totalBalance: number;
@@ -9,6 +10,8 @@ interface HeroVaultCardProps {
   savingsRate: number;
   formatRupiah: (num: number) => string;
   onViewAccounts: () => void;
+  hideNominals?: boolean;
+  onToggleHideNominals?: () => void;
 }
 
 export default function HeroVaultCard({
@@ -18,9 +21,15 @@ export default function HeroVaultCard({
   savingsRate,
   formatRupiah,
   onViewAccounts,
+  hideNominals = false,
+  onToggleHideNominals,
 }: HeroVaultCardProps) {
   // Compute visual health progress (0 to 100%)
   const clampedProgress = Math.min(100, Math.max(8, savingsRate > 0 ? savingsRate : 12));
+
+  const displayTotal = hideNominals ? 'Rp ••••••' : formatRupiah(totalBalance);
+  const displayInvestment = hideNominals ? 'Rp ••••••' : formatRupiah(investmentBalance);
+  const displayNetWorth = hideNominals ? 'Rp ••••••' : formatRupiah(netWorth);
 
   return (
     <div 
@@ -29,10 +38,31 @@ export default function HeroVaultCard({
     >
       {/* Top Header Pill Row */}
       <div className="flex flex-wrap items-center justify-between gap-2.5">
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-amber-100/90 text-amber-950 border border-amber-300/80 shadow-2xs tracking-wide">
-          <Vault className="w-3.5 h-3.5 text-amber-700" weight="duotone" />
-          <span>TOTAL BALANCE</span>
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-amber-100/90 text-amber-950 border border-amber-300/80 shadow-2xs tracking-wide">
+            <Vault className="w-3.5 h-3.5 text-amber-700" weight="duotone" />
+            <span>TOTAL BALANCE</span>
+          </span>
+
+          {onToggleHideNominals && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleHideNominals();
+              }}
+              className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-100/80 hover:bg-amber-200/90 text-amber-950 border border-amber-300/80 transition cursor-pointer shadow-2xs active:scale-95"
+              title={hideNominals ? "Show Nominals" : "Hide Nominals"}
+              aria-label={hideNominals ? "Show Nominals" : "Hide Nominals"}
+            >
+              {hideNominals ? (
+                <EyeOff className="w-3.5 h-3.5" />
+              ) : (
+                <Eye className="w-3.5 h-3.5" />
+              )}
+            </button>
+          )}
+        </div>
 
         <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-900/80 group-hover:text-amber-950 transition-colors shrink-0">
           <span>View Accounts</span>
@@ -43,7 +73,7 @@ export default function HeroVaultCard({
       {/* Main Big Balance Amount */}
       <div className="mt-3">
         <h2 className="text-3xl sm:text-5xl font-extrabold text-stone-900 font-sora-numbers tracking-tight">
-          {formatRupiah(totalBalance)}
+          {displayTotal}
         </h2>
         <p className="text-xs font-medium text-stone-500 mt-1">
           Available funds across everyday checking accounts and e-wallets
@@ -90,13 +120,13 @@ export default function HeroVaultCard({
         <div className="flex items-center gap-2 text-stone-600">
           <span>Investment Assets:</span>
           <strong className="font-sora-numbers text-stone-900 font-bold bg-white/90 border border-stone-200 px-2 py-0.5 rounded-lg shadow-2xs">
-            {formatRupiah(investmentBalance)}
+            {displayInvestment}
           </strong>
         </div>
 
         <div className="inline-flex items-center self-start sm:self-auto gap-1.5 bg-stone-900 text-white px-3 py-1 rounded-xl font-bold shadow-xs">
           <span className="text-stone-300 font-normal">Total Net Worth:</span>
-          <span className="font-sora-numbers text-white font-bold">{formatRupiah(netWorth)}</span>
+          <span className="font-sora-numbers text-white font-bold">{displayNetWorth}</span>
         </div>
       </div>
     </div>

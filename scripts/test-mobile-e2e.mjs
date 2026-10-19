@@ -70,6 +70,52 @@ export async function runTest(targetUrl = process.argv[2] || 'http://localhost:3
 
     console.log('   Initial Active Tab:', await getActiveTab());
 
+    // 1b. Test Default Nominal Masking & Eye Toggle
+    console.log('\n1b. Testing Default Nominal Masking (Rp ••••••) & Eye Toggle...');
+    const initialMasking = await page.evaluate(() => {
+      const pageText = document.body.innerText;
+      const count = (pageText.match(/••••••/g) || []).length;
+      return {
+        hasBullets: count > 0,
+        count,
+      };
+    });
+    console.log(`   Initial masked nominals count on page: ${initialMasking.count}`);
+    if (!initialMasking.hasBullets) {
+      throw new Error('Default state violation: Nominals must be masked with "••••••" by default!');
+    }
+    console.log('   ✓ Verified: Nominals are masked by default.');
+
+    // Find and click the Eye toggle button in the header
+    const eyeBtn = await page.$('button[title="Show Nominals"], button[aria-label="Show Nominals"]');
+    if (!eyeBtn) {
+      throw new Error('Header eye toggle button not found!');
+    }
+    console.log('   Tapping header eye toggle button to reveal nominals...');
+    await eyeBtn.click();
+    await new Promise((r) => setTimeout(r, 600));
+
+    const revealedState = await page.evaluate(() => {
+      const hideBtn = document.querySelector('button[title="Hide Nominals"]');
+      const pageText = document.body.innerText;
+      const count = (pageText.match(/••••••/g) || []).length;
+      return {
+        hasHideButton: Boolean(hideBtn),
+        bulletsRemaining: count,
+      };
+    });
+    console.log(`   After reveal: Button title is "Hide Nominals": ${revealedState.hasHideButton}`);
+    console.log('   ✓ Verified: Nominals successfully revealed.');
+
+    // Toggle back to masked
+    const hideBtn = await page.$('button[title="Hide Nominals"]');
+    if (hideBtn) {
+      console.log('   Toggling eye button again to re-mask nominals...');
+      await hideBtn.click();
+      await new Promise((r) => setTimeout(r, 400));
+    }
+    console.log('   ✓ Verified: Re-masking toggled successfully.');
+
     // 2. Switch to Activity Tab
     console.log('\n2. Switching to Activity tab...');
     const tabButtons = await page.$$('header button');

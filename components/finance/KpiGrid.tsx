@@ -10,6 +10,7 @@ interface KpiGridProps {
   dailyAverageExpense: number;
   monthName: string;
   formatRupiah: (num: number) => string;
+  hideNominals?: boolean;
 }
 
 export default function KpiGrid({
@@ -20,6 +21,7 @@ export default function KpiGrid({
   dailyAverageExpense,
   monthName,
   formatRupiah,
+  hideNominals = false,
 }: KpiGridProps) {
   const shortMonth = monthName.split(' ')[0];
 
@@ -36,7 +38,7 @@ export default function KpiGrid({
           </div>
         </div>
         <p className="text-lg sm:text-xl font-bold font-sora-numbers text-emerald-600 mt-2 truncate">
-          +{formatRupiah(monthlyIncome)}
+          {hideNominals ? '+Rp ••••••' : `+${formatRupiah(monthlyIncome)}`}
         </p>
         <p className="text-[11px] text-emerald-800/80 font-medium mt-0.5 truncate">
           {shortMonth} cash inflow
@@ -54,7 +56,7 @@ export default function KpiGrid({
           </div>
         </div>
         <p className="text-lg sm:text-xl font-bold font-sora-numbers text-rose-600 mt-2 truncate">
-          -{formatRupiah(monthlyExpense)}
+          {hideNominals ? '-Rp ••••••' : `-${formatRupiah(monthlyExpense)}`}
         </p>
         <p className="text-[11px] text-rose-800/80 font-medium mt-0.5 truncate">
           {shortMonth} spending outflow
@@ -74,7 +76,9 @@ export default function KpiGrid({
         <p className={`text-lg sm:text-xl font-bold font-sora-numbers mt-2 truncate ${
           netCashflow >= 0 ? 'text-stone-900' : 'text-rose-600'
         }`}>
-          {netCashflow >= 0 ? '+' : ''}{formatRupiah(netCashflow)}
+          {hideNominals
+            ? (netCashflow >= 0 ? '+Rp ••••••' : '-Rp ••••••')
+            : `${netCashflow >= 0 ? '+' : ''}${formatRupiah(netCashflow)}`}
         </p>
         <p className="text-[11px] text-amber-900/80 font-medium mt-0.5 truncate">
           {savingsRate.toFixed(1)}% savings rate
@@ -92,7 +96,7 @@ export default function KpiGrid({
           </div>
         </div>
         <p className="text-lg sm:text-xl font-bold font-sora-numbers text-stone-900 mt-2 truncate">
-          {formatRupiah(dailyAverageExpense)}<span className="text-xs font-normal text-stone-400">/day</span>
+          {hideNominals ? 'Rp ••••••' : formatRupiah(dailyAverageExpense)}<span className="text-xs font-normal text-stone-400">/day</span>
         </p>
         <p className="text-[11px] text-violet-800/80 font-medium mt-0.5 truncate">
           Daily average runway
