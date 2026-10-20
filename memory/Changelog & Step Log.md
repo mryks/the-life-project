@@ -6,6 +6,25 @@
 
 ## 📜 Sprint & Evolution Log
 
+### Langkah 51: Multi-Device Cloud Sync for Custom Accounts & Orphan Poisoning Fix
+- **User Directives**:
+  - *"saya coba tambahkan akun berhasil di pc, tetapi pas saya buka di browser lain, akunnya gaada. demikian pula di hp tidak muncul akun barunya. mengapa hal seperti ini kembali terjadi? perbaiki ya"*
+  - *"masih tidak bisa nih. sekarang udah ada akun ovo saldonya 0. lalu saya buka di hp lalu hapus akun ovo tersebut, buat akun lagi dengan saldo 6693. di hp saya sudah tercreate akun tersebut, tapi saya buka di pc masih yang lama yaitu ovo dengan saldo 0, kondisi ketika belum saya hapus. gimana sih ini"*
+- **Root Cause Analysis**:
+  1. **Orphan Poisoning Bug**: Two legacy test transactions in Supabase referencing an unregistered account (`bank-syariah-indonesia`) caused `validateFinancialEvents` to reject the merged batch, which threw away all transactions and fell back to local cache.
+  2. **Stale Local Cache Overwrite & Resurrection**: PC merged local accounts over cloud accounts with `...existing, ...acc`, resurrecting deleted accounts and overwriting new cloud styling/state.
+- **Architectural Solution**:
+  1. **Tombstone-Safe Cloud Metadata Envelope (`vault_security`)**:
+     - `vault-custom-accounts` stores `{ accounts: Account[], deletedIds: string[] }`.
+     - Deleting an account records its ID in `deletedIds`. Other devices honor this tombstone and purge their local cache instead of resurrecting it.
+     - Cloud accounts take precedence over stale local cache during bidirectional reconciliation.
+  2. **Soft-Deleted Orphan Rows in Database**: Cleaned up the 2 orphaned test rows in Supabase `financial_events`, unblocking the transaction merge pipeline.
+- **Verification**:
+  - All 25 test suites passed (436/436 tests, 100%).
+  - `npx tsc --noEmit` and `npm run lint` clean (0 errors, 0 warnings).
+  - Production build compiled successfully and pushed to `main`.
+  - Supabase database verified: 211 active financial events with OVO initial balance (Rp 6.693) and purple/white linear gradient metadata.
+
 ### Langkah 50: Custom Accounts Feature (Fitur Menambahkan Akun Baru)
 - **User Directives**:
   - *"saya kepikiran untuk membuat fitur menambahkan akun baru. bagaimana menurut anda?"* — User agreed to implement.

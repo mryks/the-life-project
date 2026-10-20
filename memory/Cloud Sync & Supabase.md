@@ -18,7 +18,10 @@
 
 To avoid schema migrations while guaranteeing multi-device sync for user-defined configuration:
 - `vault-custom-accounts`: Stores JSON payload of user-created custom accounts (`id`, `name`, `fullName`, `group`, `colorClass`, `colorStyle`, `isCustom`).
+- `vault-custom-accounts`: Stores JSON payload of user-created custom accounts with explicit deletion tombstones: `{ accounts: Account[], deletedIds: string[] }`.
 - `vault-custom-categories`: Stores JSON payload of custom expense and income category arrays.
+- **Tombstone-Safe Custom Accounts Sync**: When an account is deleted on Mobile, its ID is recorded in `deletedIds` in `vault-custom-accounts`. When PC syncs, it checks `tombstoneSet` and removes the account from local storage rather than resurrecting it. Furthermore, cloud accounts take precedence over stale local caches to guarantee color/name edits apply across devices.
+- **Orphan Prevention & Poisoning Guard**: Supabase `financial_events` must not contain orphaned test events referencing deleted/unregistered account IDs, as schema validation would abort full batch merging. Test rows must be soft-deleted (`deleted_at = now()`).
 - **Sync Order Invariant**: In `syncWithCloud`, custom accounts and categories are synchronized *before* processing transaction rows. This ensures that when incoming transactions referencing custom accounts (or categories) are deserialized, their account visual definitions are already loaded in memory and localStorage, preventing valid financial events from being dropped.
 - **Defensive Deserialization**: `dbRowToEvent` uses `isAccountId(id) || isValidAccountIdFormat(id)` so transactions with valid account slugs are never discarded even if metadata sync is momentarily in flight.
 
