@@ -14,7 +14,18 @@ import type {
   ExpenseCategory,
   IncomeCategory,
 } from './types';
-import { isAccountId } from './accounts';
+import {
+  isAccountId,
+  isValidAccountIdFormat,
+  syncCustomAccountsWithCloud,
+  pushCloudCustomAccounts,
+  readCustomAccounts,
+} from './accounts';
+import {
+  syncCustomCategoriesWithCloud,
+  pushCloudCustomCategories,
+  readCustomCategories,
+} from './categories';
 import { isExpenseCategory, isIncomeCategory } from './finance';
 
 export const PENDING_DELETIONS_KEY = 'thelife-pending-deleted-ids';
@@ -138,7 +149,7 @@ export const dbRowToEvent = (row: FinancialEventDbRow): FinancialEvent | null =>
   };
 
   if (row.type === 'income') {
-    if (!row.account_id || !isAccountId(row.account_id)) return null;
+    if (!row.account_id || (!isAccountId(row.account_id) && !isValidAccountIdFormat(row.account_id))) return null;
     const cat = typeof row.category === 'string' ? row.category.trim() : '';
     if (!cat || !isIncomeCategory(cat)) return null;
     const event: IncomeEvent = {
@@ -154,7 +165,7 @@ export const dbRowToEvent = (row: FinancialEventDbRow): FinancialEvent | null =>
   }
 
   if (row.type === 'expense') {
-    if (!row.account_id || !isAccountId(row.account_id)) return null;
+    if (!row.account_id || (!isAccountId(row.account_id) && !isValidAccountIdFormat(row.account_id))) return null;
     const cat = typeof row.category === 'string' ? row.category.trim() : '';
     if (!cat || !isExpenseCategory(cat)) return null;
     const event: ExpenseEvent = {
@@ -167,8 +178,8 @@ export const dbRowToEvent = (row: FinancialEventDbRow): FinancialEvent | null =>
   }
 
   if (row.type === 'transfer') {
-    if (!row.source_account_id || !isAccountId(row.source_account_id)) return null;
-    if (!row.destination_account_id || !isAccountId(row.destination_account_id)) return null;
+    if (!row.source_account_id || (!isAccountId(row.source_account_id) && !isValidAccountIdFormat(row.source_account_id))) return null;
+    if (!row.destination_account_id || (!isAccountId(row.destination_account_id) && !isValidAccountIdFormat(row.destination_account_id))) return null;
     if (row.source_account_id === row.destination_account_id) return null;
     const event: TransferEvent = {
       ...base,
@@ -183,7 +194,7 @@ export const dbRowToEvent = (row: FinancialEventDbRow): FinancialEvent | null =>
   }
 
   if (row.type === 'refund') {
-    if (!row.account_id || !isAccountId(row.account_id)) return null;
+    if (!row.account_id || (!isAccountId(row.account_id) && !isValidAccountIdFormat(row.account_id))) return null;
     if (!row.related_event_id || typeof row.related_event_id !== 'string') return null;
     const event: RefundEvent = {
       ...base,
@@ -485,6 +496,14 @@ export const syncWithCloud = async (
   notifySyncState({ status: 'syncing', errorMessage: null });
 
   try {
+    // 0. Synchronize custom accounts and categories metadata before reconciling transactions
+    try {
+      await syncCustomAccountsWithCloud(undefined, client);
+      await syncCustomCategoriesWithCloud(undefined, client);
+    } catch {
+      // Non-fatal: proceed with event sync even if metadata check fails
+    }
+
     const local = currentEvents || readFinancialEvents();
 
     // 1. Process pending deletions to mark tombstones in cloud
@@ -647,6 +666,20 @@ export const forceUploadAllToCloud = async (
 
     clearPendingUpserts(local.map((e) => e.id));
     clearPendingDeletions(getPendingDeletedIds());
+    // Also backup custom accounts and categories
+    try {
+      const customAccounts = readCustomAccounts();
+      if (customAccounts.length > 0) {
+        await pushCloudCustomAccounts(customAccounts, client);
+      }
+      const customCategories = readCustomCategories();
+      if (customCategories.expense.length > 0 || customCategories.income.length > 0) {
+        await pushCloudCustomCategories(customCategories, client);
+      }
+    } catch {
+      // Non-fatal
+    }
+
     const nowIso = new Date().toISOString();
     notifySyncState({ status: 'synced', lastSyncedAt: nowIso, errorMessage: null });
     return { success: true, count: rows.length };

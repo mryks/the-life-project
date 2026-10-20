@@ -12,6 +12,10 @@ import {
   deleteCustomAccount,
   readCustomAccounts,
   slugifyAccountId,
+  isValidAccountIdFormat,
+  fetchCloudCustomAccounts,
+  pushCloudCustomAccounts,
+  syncCustomAccountsWithCloud,
 } from '@/lib/accounts';
 import {
   getAccountBalances,
@@ -342,6 +346,172 @@ describe('Custom Accounts Feature', () => {
       expect(getLiquidBalance(events)).toBe(6000000);
       expect(getInvestmentBalance(events)).toBe(4000000);
       expect(getNetWorth(events)).toBe(10000000);
+    });
+  });
+  describe('Account Slug Format & Cloud Synchronization', () => {
+    it('validates account slug format correctly', () => {
+      expect(isValidAccountIdFormat('ovo')).toBe(true);
+      expect(isValidAccountIdFormat('bank-jago')).toBe(true);
+      expect(isValidAccountIdFormat('gopay_plus')).toBe(true);
+      expect(isValidAccountIdFormat('')).toBe(false);
+      expect(isValidAccountIdFormat('a'.repeat(33))).toBe(false);
+      expect(isValidAccountIdFormat('has space')).toBe(false);
+      expect(isValidAccountIdFormat('special@account!')).toBe(false);
+    });
+
+    it('fetches and parses custom accounts from cloud vault', async () => {
+      const mockSupabase = {
+        from: () => ({
+          select: () => ({
+            eq: () => ({
+              maybeSingle: async () => ({
+                data: {
+                  pin_hash: JSON.stringify([
+                    {
+                      id: 'ovo',
+                      name: 'OVO',
+                      fullName: 'OVO',
+                      group: 'liquid',
+                      colorClass: 'bg-purple-600',
+                      colorStyle: '#7c3aed',
+                      isCustom: true,
+                    },
+                  ]),
+                },
+                error: null,
+              }),
+            }),
+          }),
+        }),
+      };
+
+      // @ts-expect-error test mock
+      const accounts = await fetchCloudCustomAccounts(mockSupabase);
+      expect(accounts.length).toBe(1);
+      expect(accounts[0].id).toBe('ovo');
+      expect(accounts[0].fullName).toBe('OVO');
+      expect(accounts[0].colorStyle).toBe('#7c3aed');
+    });
+
+    it('synchronizes cloud accounts to empty local storage on a fresh device', async () => {
+      expect(readCustomAccounts().length).toBe(0);
+
+      const mockSupabase = {
+        from: () => ({
+          select: () => ({
+            eq: () => ({
+              maybeSingle: async () => ({
+                data: {
+                  pin_hash: JSON.stringify([
+                    {
+                      id: 'ovo',
+                      name: 'OVO',
+                      fullName: 'OVO',
+                      group: 'liquid',
+                      colorClass: 'bg-purple-600',
+                      colorStyle: '#7c3aed',
+                      isCustom: true,
+                    },
+                  ]),
+                },
+                error: null,
+              }),
+            }),
+          }),
+          upsert: async () => ({ error: null }),
+        }),
+      };
+
+      // @ts-expect-error test mock
+      const synced = await syncCustomAccountsWithCloud(undefined, mockSupabase);
+      expect(synced.length).toBe(1);
+      expect(synced[0].id).toBe('ovo');
+
+      // Verify it was written to localStorage
+      const local = readCustomAccounts();
+      expect(local.length).toBe(1);
+      expect(local[0].id).toBe('ovo');
+    });
+
+
+    it('pushes custom accounts to cloud vault', async () => {
+      let insertedRecord: unknown = null;
+      const mockSupabase = {
+        from: () => ({
+          upsert: async (record: unknown) => {
+            insertedRecord = record;
+            return { error: null };
+          },
+        }),
+      };
+
+      const customAcc = [
+        {
+          id: 'ovo' as const,
+          name: 'OVO',
+          fullName: 'OVO',
+          group: 'liquid' as const,
+          colorClass: 'bg-purple-600',
+          colorStyle: '#7c3aed',
+          isCustom: true,
+        },
+      ];
+
+      // @ts-expect-error test mock
+      const ok = await pushCloudCustomAccounts(customAcc, mockSupabase);
+      expect(ok).toBe(true);
+      expect(insertedRecord).not.toBeNull();
+      // @ts-expect-error test inspection
+      expect(insertedRecord.id).toBe('vault-custom-accounts');
+    });
+    it('merges local and cloud accounts bidirectionally without duplicates', async () => {
+      // Local has 'blu-bca'
+      addCustomAccount({
+        fullName: 'Blu BCA',
+        name: 'BLU',
+        group: 'liquid',
+        colorClass: 'bg-blue-600',
+      });
+
+      let upsertPayload: unknown = null;
+      const mockSupabase = {
+        from: () => ({
+          select: () => ({
+            eq: () => ({
+              maybeSingle: async () => ({
+                data: {
+                  pin_hash: JSON.stringify([
+                    {
+                      id: 'ovo',
+                      name: 'OVO',
+                      fullName: 'OVO',
+                      group: 'liquid',
+                      colorClass: 'bg-purple-600',
+                      colorStyle: '#7c3aed',
+                      isCustom: true,
+                    },
+                  ]),
+                },
+                error: null,
+              }),
+            }),
+          }),
+          upsert: async (record: { pin_hash: string }) => {
+            upsertPayload = JSON.parse(record.pin_hash);
+            return { error: null };
+          },
+        }),
+      };
+
+      // @ts-expect-error test mock
+      const merged = await syncCustomAccountsWithCloud(undefined, mockSupabase);
+      expect(merged.length).toBe(2);
+      expect(merged.map((a) => a.id).sort()).toEqual(['blu-bca', 'ovo']);
+
+      // Cloud was pushed the merged result
+      expect(Array.isArray(upsertPayload)).toBe(true);
+      // @ts-expect-error test inspection
+      expect(upsertPayload.length).toBe(2);
     });
   });
 });

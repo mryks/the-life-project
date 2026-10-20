@@ -506,4 +506,74 @@ describe('Sync Engine & Supabase Data Mapper', () => {
       expect(state.status).toBe('unconfigured');
     });
   });
+  describe('Custom Accounts & Multi-Device Cloud Sync Deserialization', () => {
+    it('successfully deserializes cloud transactions referencing custom accounts even if not in local storage', () => {
+      // Simulating a fresh device/browser where localStorage has no custom accounts
+      const cloudOvoRow: FinancialEventDbRow = {
+        id: 'a9c02f43-a0f4-4ef0-9e5a-fd192bd9aa38',
+        date: '2026-10-20',
+        description: 'Initial balance - ovo',
+        amount: 6693,
+        type: 'income',
+        category: 'Others',
+        account_id: 'ovo',
+        source_account_id: null,
+        destination_account_id: null,
+        admin_fee: null,
+        related_event_id: null,
+        within_day_order: 0,
+        created_at: '2026-10-20T16:21:44.172Z',
+        updated_at: '2026-10-20T16:21:44.172Z',
+        deleted_at: null,
+        user_id: 'single-user',
+      };
+
+      const event = dbRowToEvent(cloudOvoRow);
+      expect(event).not.toBeNull();
+      expect(event?.id).toBe('a9c02f43-a0f4-4ef0-9e5a-fd192bd9aa38');
+      expect(event?.amount).toBe(6693);
+      if (event && event.type === 'income') {
+        expect(event.accountId).toBe('ovo');
+        expect(event.category).toBe('Others');
+      }
+    });
+
+    it('merges new custom account transactions from cloud without dropping them', async () => {
+      // Account metadata was synced from cloud vault to local accounts
+      localStorage.setItem(
+        'thelife-custom-accounts',
+        JSON.stringify([{
+          id: 'ovo',
+          name: 'OVO',
+          fullName: 'OVO',
+          group: 'liquid',
+          colorClass: 'bg-purple-600',
+          isCustom: true,
+        }])
+      );
+      const cloudOvoRow: FinancialEventDbRow = {
+        id: 'a9c02f43-a0f4-4ef0-9e5a-fd192bd9aa38',
+        date: '2026-10-20',
+        description: 'Initial balance - ovo',
+        amount: 6693,
+        type: 'income',
+        category: 'Others',
+        account_id: 'ovo',
+        source_account_id: null,
+        destination_account_id: null,
+        admin_fee: null,
+        related_event_id: null,
+        within_day_order: 0,
+        created_at: '2026-10-20T16:21:44.172Z',
+        updated_at: '2026-10-20T16:21:44.172Z',
+        deleted_at: null,
+        user_id: 'single-user',
+      };
+
+      const { mergedEvents } = mergeLocalAndCloudEvents([], [cloudOvoRow], []);
+      expect(mergedEvents.length).toBe(1);
+      expect(mergedEvents[0].id).toBe('a9c02f43-a0f4-4ef0-9e5a-fd192bd9aa38');
+      expect((mergedEvents[0] as IncomeEvent).accountId).toBe('ovo');
+    });
+  });
 });

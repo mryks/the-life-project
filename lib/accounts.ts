@@ -1,5 +1,7 @@
 // src/lib/accounts.ts
 import type { Account, AccountGroup, AccountId, FinancialEvent } from './types';
+import { getSupabaseClient, isSupabaseConfigured } from './supabase';
+type SupabaseClient = ReturnType<typeof getSupabaseClient>;
 
 export const DEFAULT_ACCOUNTS: Account[] = [
   // 10 Liquid Accounts (Kas, Bank, E-Wallet, Personal)
@@ -34,6 +36,25 @@ export const investmentAccountIds: AccountId[] = investmentAccounts.map((acc) =>
 
 export const CUSTOM_ACCOUNTS_STORAGE_KEY = 'thelife-custom-accounts';
 export const CUSTOM_ACCOUNTS_CHANGE_EVENT = 'thelife-custom-accounts-change';
+export const VAULT_CUSTOM_ACCOUNTS_RECORD_ID = 'vault-custom-accounts';
+export const VAULT_ACCOUNTS_SALT = 'accounts_metadata_v1';
+
+/**
+ * Fast format check for account slug: 1-32 chars alphanumeric, dash, underscore.
+ * Used defensively during deserialization to never drop valid transactions.
+ */
+export const isValidAccountIdFormat = (value: unknown): value is string => {
+  if (typeof value !== 'string') return false;
+  const trimmed = value.trim().toLowerCase();
+  if (trimmed.length === 0 || trimmed.length > 32) return false;
+  return /^[a-z0-9_-]+$/.test(trimmed);
+};
+
+const getStorage = (): Storage | null => {
+  if (typeof window !== 'undefined' && window.localStorage) return window.localStorage;
+  if (typeof localStorage !== 'undefined') return localStorage;
+  return null;
+};
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -42,10 +63,11 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
  * Reads user-created custom accounts from localStorage.
  */
 export const readCustomAccounts = (): Account[] => {
-  if (typeof window === 'undefined') return [];
+  const storage = getStorage();
+  if (!storage) return [];
 
   try {
-    const raw = window.localStorage.getItem(CUSTOM_ACCOUNTS_STORAGE_KEY);
+    const raw = storage.getItem(CUSTOM_ACCOUNTS_STORAGE_KEY);
     if (!raw) return [];
 
     const parsed: unknown = JSON.parse(raw);
@@ -80,7 +102,8 @@ export const readCustomAccounts = (): Account[] => {
  * Writes custom accounts to localStorage and triggers change event.
  */
 export const writeCustomAccounts = (customAccounts: Account[]): void => {
-  if (typeof window === 'undefined') return;
+  const storage = getStorage();
+  if (!storage) return;
 
   try {
     const sanitized = customAccounts.map((acc) => ({
@@ -93,10 +116,151 @@ export const writeCustomAccounts = (customAccounts: Account[]): void => {
       isCustom: true,
     }));
 
-    window.localStorage.setItem(CUSTOM_ACCOUNTS_STORAGE_KEY, JSON.stringify(sanitized));
-    window.dispatchEvent(new Event(CUSTOM_ACCOUNTS_CHANGE_EVENT));
+    storage.setItem(CUSTOM_ACCOUNTS_STORAGE_KEY, JSON.stringify(sanitized));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event(CUSTOM_ACCOUNTS_CHANGE_EVENT));
+    }
   } catch {
     // Graceful fallback for storage quota or privacy mode
+  }
+};
+
+/**
+ * Fetches user custom accounts from Supabase vault_security table.
+ */
+export const fetchCloudCustomAccounts = async (
+  client?: SupabaseClient
+): Promise<Account[]> => {
+  if (!client && !isSupabaseConfigured()) return [];
+  const sb = client ?? getSupabaseClient();
+  if (!sb) return [];
+
+  try {
+    const { data, error } = await sb
+      .from('vault_security')
+      .select('pin_hash')
+      .eq('id', VAULT_CUSTOM_ACCOUNTS_RECORD_ID)
+      .maybeSingle();
+
+    if (error || !data || !data.pin_hash) return [];
+
+    const parsed: unknown = JSON.parse(data.pin_hash);
+    if (!Array.isArray(parsed)) return [];
+
+    const validAccounts: Account[] = [];
+    for (const item of parsed) {
+      if (!isRecord(item)) continue;
+      if (typeof item.id !== 'string' || !item.id.trim()) continue;
+      if (typeof item.name !== 'string' || !item.name.trim()) continue;
+      if (typeof item.fullName !== 'string' || !item.fullName.trim()) continue;
+      const group: AccountGroup = item.group === 'investment' ? 'investment' : 'liquid';
+
+      validAccounts.push({
+        id: item.id.trim().toLowerCase() as AccountId,
+        name: item.name.trim().toUpperCase().slice(0, 4),
+        fullName: item.fullName.trim(),
+        colorClass: typeof item.colorClass === 'string' && item.colorClass ? item.colorClass : 'bg-stone-600',
+        colorStyle: typeof item.colorStyle === 'string' && item.colorStyle ? item.colorStyle : undefined,
+        group,
+        isCustom: true,
+      });
+    }
+
+    return validAccounts;
+  } catch {
+    return [];
+  }
+};
+
+/**
+ * Pushes custom accounts to Supabase vault_security table.
+ */
+export const pushCloudCustomAccounts = async (
+  customAccounts: Account[],
+  client?: SupabaseClient
+): Promise<boolean> => {
+  if (!client && !isSupabaseConfigured()) return false;
+  const sb = client ?? getSupabaseClient();
+  if (!sb) return false;
+
+  try {
+    const sanitized = customAccounts.map((acc) => ({
+      id: acc.id.trim().toLowerCase(),
+      name: acc.name.trim().toUpperCase().slice(0, 4),
+      fullName: acc.fullName.trim(),
+      colorClass: acc.colorClass || 'bg-stone-600',
+      colorStyle: acc.colorStyle || undefined,
+      group: acc.group,
+      isCustom: true,
+    }));
+
+    const { error } = await sb.from('vault_security').upsert({
+      id: VAULT_CUSTOM_ACCOUNTS_RECORD_ID,
+      pin_salt: VAULT_ACCOUNTS_SALT,
+      pin_hash: JSON.stringify(sanitized),
+      updated_at: new Date().toISOString(),
+    });
+
+    return !error;
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Bidirectionally synchronizes custom accounts between local storage and cloud.
+ */
+export const syncCustomAccountsWithCloud = async (
+  currentLocalAccounts?: Account[],
+  client?: SupabaseClient
+): Promise<Account[]> => {
+  const localList = currentLocalAccounts ?? readCustomAccounts();
+  if (!client && !isSupabaseConfigured()) return localList;
+
+  try {
+    const cloudList = await fetchCloudCustomAccounts(client);
+    const mergedMap = new Map<string, Account>();
+
+    // 1. Seed cloud accounts
+    for (const acc of cloudList) {
+      mergedMap.set(acc.id.toLowerCase(), acc);
+    }
+
+    let localHasNew = false;
+    // 2. Merge local accounts
+    for (const acc of localList) {
+      const key = acc.id.toLowerCase();
+      if (!mergedMap.has(key)) {
+        mergedMap.set(key, acc);
+        localHasNew = true;
+      } else {
+        const existing = mergedMap.get(key)!;
+        mergedMap.set(key, {
+          ...existing,
+          ...acc,
+          colorStyle: acc.colorStyle || existing.colorStyle,
+        });
+      }
+    }
+
+    const merged = Array.from(mergedMap.values());
+
+    // 3. Update localStorage if different
+    const localKeys = new Set(localList.map((a) => a.id.toLowerCase()));
+    const hasDiff = merged.length !== localList.length || merged.some((a) => !localKeys.has(a.id.toLowerCase()));
+
+    if (hasDiff) {
+      writeCustomAccounts(merged);
+    }
+
+    // 4. Push to cloud if local had new accounts
+    if (localHasNew || (cloudList.length === 0 && merged.length > 0)) {
+      await pushCloudCustomAccounts(merged, client);
+    }
+
+    return merged;
+  } catch {
+    return localList;
   }
 };
 
@@ -272,7 +436,11 @@ export const addCustomAccount = (
     isCustom: true,
   };
 
-  writeCustomAccounts([...customList, newAccount]);
+  const nextList = [...customList, newAccount];
+  writeCustomAccounts(nextList);
+  if (isSupabaseConfigured()) {
+    pushCloudCustomAccounts(nextList).catch(() => {});
+  }
   return { success: true, account: newAccount };
 };
 
@@ -295,5 +463,8 @@ export const deleteCustomAccount = (
   const nextList = customList.filter((acc) => acc.id !== id);
 
   writeCustomAccounts(nextList);
+  if (isSupabaseConfigured()) {
+    pushCloudCustomAccounts(nextList).catch(() => {});
+  }
   return { success: true };
 };

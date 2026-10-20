@@ -8,8 +8,8 @@
 ## 📌 Current Status (At a Glance)
 - **Active Domain:** Personal Finance OS (daily expense tracker & financial dashboard).
 - **Git Branch:** `finance-foundation` | **Production:** https://the-life-project-os.vercel.app/finance
-- **Health:** 25 test suites, **429/429 tests passing (100%)**, TypeScript strict 0 errors, ESLint clean (0 errors, 0 warnings).
-- **Latest Completed Sprint:** **Langkah 50** (Custom Accounts feature with Dual Color Picker [Solid & 2-Color Linear Gradient], Auto-derivation of Short Codes, Opening Balance Income Event creation, Dynamic Liquid/Investment Aggregation, and In-use Deletion Guardrails).
+- **Health:** 25 test suites, **436/436 tests passing (100%)**, TypeScript strict 0 errors, ESLint clean (0 errors, 0 warnings).
+- **Latest Completed Sprint:** **Langkah 51** (Multi-Device Cloud Sync for Custom Accounts & Categories via `vault_security` Envelopes, Pre-Reconciliation Sync Invariant, Defensive Deserialization preventing dropped transactions, and Bidirectional Local/Cloud Merging).
 - **Immediate Next Steps (Finance Backlog):**
   1. Multi-device sync verification & cloud sync backup envelope parity for custom accounts.
   2. Monthly category budgets & spending caps with tactile progress bars.

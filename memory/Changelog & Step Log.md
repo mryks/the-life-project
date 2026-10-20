@@ -844,3 +844,26 @@
 - Multi-account balance derivation across 17 liquid accounts.
 - Initial prototype migration to Supabase PostgreSQL cloud sync with tombstoning.
 - Master PIN security shield and rate limiting.
+
+
+### 🚀 Langkah 51: Multi-Device Cloud Sync for Custom Accounts & Categories (Fix for Disappearing Accounts on Mobile & Other Browsers)
+**Date:** 2026-10-20  
+**Context & Root Cause:**
+- When user created a custom account (`ovo`) on PC, it was persisted only in local storage (`thelife-custom-accounts`).
+- When syncing on mobile or a new browser, `dbRowToEvent` checked `isAccountId(row.account_id)`. Because mobile's local storage had no custom accounts, `isAccountId('ovo')` returned `false`, causing the incoming initial balance transaction to be dropped as invalid!
+- As a result, neither the account nor its initial balance appeared on mobile or new sessions.
+
+**Changes Implemented:**
+1. **Cloud Vault Storage Envelopes in `vault_security`:**
+   - Implemented `fetchCloudCustomAccounts`, `pushCloudCustomAccounts`, and `syncCustomAccountsWithCloud` in `lib/accounts.ts` using `id: 'vault-custom-accounts'` with bidirectional union merge.
+   - Implemented `fetchCloudCustomCategories`, `pushCloudCustomCategories`, and `syncCustomCategoriesWithCloud` in `lib/categories.ts` using `id: 'vault-custom-categories'`.
+   - Wired `pushCloudCustomAccounts` and `pushCloudCustomCategories` into add/delete handlers and force upload.
+2. **Sync Order Invariant:**
+   - In `syncWithCloud` (`lib/sync.ts`), custom accounts and categories are synchronized *before* processing transaction rows from Supabase.
+3. **Defensive Deserialization & Storage Fallback:**
+   - Added `isValidAccountIdFormat(val)` so transactions with valid account slugs are never dropped if metadata is in flight.
+   - Enhanced `readCustomAccounts` and `readCustomCategories` with `getStorage()` fallback supporting Node.js/SSR/browser environments.
+4. **Verification:**
+   - 25 test suites, 436/436 tests passing (100%).
+   - TypeScript strict 0 errors, ESLint 0 errors, 0 warnings.
+   - Production build (`npm run build`) verified cleanly.

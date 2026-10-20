@@ -10,7 +10,17 @@
 - **Project URL**: `https://peydzblrtfgdoaisljkm.supabase.co`
 - **Tables**:
   1. `financial_events`: Contains all income, expense, transfer, and refund records with soft-delete tombstones.
-  2. `vault_security`: Stores single-user Master PIN salt and SHA-256 hash.
+  2. `vault_security`: Universal single-user vault storage used for Master PIN salt/hash (`id: 'master-vault'`), Custom Accounts metadata (`id: 'vault-custom-accounts'`), and Custom Categories metadata (`id: 'vault-custom-categories'`).
+
+---
+
+## 📦 Cloud Metadata Storage Envelopes (`vault_security`)
+
+To avoid schema migrations while guaranteeing multi-device sync for user-defined configuration:
+- `vault-custom-accounts`: Stores JSON payload of user-created custom accounts (`id`, `name`, `fullName`, `group`, `colorClass`, `colorStyle`, `isCustom`).
+- `vault-custom-categories`: Stores JSON payload of custom expense and income category arrays.
+- **Sync Order Invariant**: In `syncWithCloud`, custom accounts and categories are synchronized *before* processing transaction rows. This ensures that when incoming transactions referencing custom accounts (or categories) are deserialized, their account visual definitions are already loaded in memory and localStorage, preventing valid financial events from being dropped.
+- **Defensive Deserialization**: `dbRowToEvent` uses `isAccountId(id) || isValidAccountIdFormat(id)` so transactions with valid account slugs are never discarded even if metadata sync is momentarily in flight.
 
 ---
 
