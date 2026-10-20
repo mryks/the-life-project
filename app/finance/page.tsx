@@ -1,13 +1,18 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import type { AccountId, BackupParseResult, ExpenseCategory, ExpenseEvent, FinancialEvent, IncomeCategory, RefundEvent } from "@/lib/types";
+import type { Account, AccountGroup, AccountId, BackupParseResult, ExpenseCategory, ExpenseEvent, FinancialEvent, IncomeCategory, IncomeEvent, RefundEvent } from "@/lib/types";
 import { 
   accounts, 
   getAccountById, 
-  liquidAccounts, 
-  investmentAccounts, 
+  getAllAccounts,
+  readCustomAccounts,
+  addCustomAccount,
+  deleteCustomAccount,
+  isAccountInUse,
+  CUSTOM_ACCOUNTS_CHANGE_EVENT,
 } from "@/lib/accounts";
+import AccountModal from "@/components/finance/AccountModal";
 import {
   calculateFinanceStats,
   calculateNetExpenseForDate,
@@ -133,14 +138,17 @@ function TransferAccountDropdown({
   value,
   onChange,
   excludeAccountId,
+  accountsList,
 }: {
   label: string;
   value: AccountId | null;
   onChange: (id: AccountId) => void;
   excludeAccountId?: AccountId | null;
+  accountsList?: Account[];
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  const selectedAcc = value ? getAccountById(value) : null;
+  const allAccs = accountsList ?? accounts;
+  const selectedAcc = value ? (getAccountById(value, allAccs) ?? null) : null;
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -170,7 +178,7 @@ function TransferAccountDropdown({
         <div className="flex items-center gap-2 min-w-0">
           {selectedAcc ? (
             <>
-              <span className={`w-5 h-5 rounded-full ${selectedAcc?.colorClass || 'bg-stone-500'} text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0 shadow-2xs`}>
+              <span style={selectedAcc?.colorStyle ? { background: selectedAcc.colorStyle } : undefined} className={`w-5 h-5 rounded-full ${selectedAcc?.colorClass || 'bg-stone-500'} text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0 shadow-2xs`}>
                 {selectedAcc?.name}
               </span>
               <span className="text-xs font-bold truncate text-stone-900">
@@ -188,7 +196,7 @@ function TransferAccountDropdown({
 
       {isOpen && (
         <div className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-white border-2 border-stone-200 rounded-2xl shadow-xl p-1.5 max-h-56 overflow-y-auto space-y-1">
-          {accounts.map((acc) => {
+          {allAccs.map((acc: Account) => {
             const isSelected = acc.id === value;
             const isExcluded = Boolean(excludeAccountId && acc.id === excludeAccountId);
             return (
@@ -209,7 +217,7 @@ function TransferAccountDropdown({
                 }`}
               >
                 <div className="flex items-center gap-2 min-w-0">
-                  <span className={`w-5 h-5 rounded-full ${acc.colorClass} text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0 shadow-xs`}>
+                  <span style={acc.colorStyle ? { background: acc.colorStyle } : undefined} className={`w-5 h-5 rounded-full ${acc.colorClass || 'bg-stone-500'} text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0 shadow-xs`}>
                     {acc.name}
                   </span>
                   <span className="truncate">{acc.fullName}</span>
@@ -495,6 +503,107 @@ export default function FinancePage() {
   const [showCashbackAccountWarning, setShowCashbackAccountWarning] = useState(false);
   
   // Custom Category State
+  const [customAccounts, setCustomAccounts] = useState<Account[]>(() => readCustomAccounts());
+  const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
+
+  useEffect(() => {
+    const handleAccountsChange = () => {
+      setCustomAccounts(readCustomAccounts());
+    };
+    window.addEventListener(CUSTOM_ACCOUNTS_CHANGE_EVENT, handleAccountsChange);
+    window.addEventListener('storage', handleAccountsChange);
+    return () => {
+      window.removeEventListener(CUSTOM_ACCOUNTS_CHANGE_EVENT, handleAccountsChange);
+      window.removeEventListener('storage', handleAccountsChange);
+    };
+  }, []);
+
+  const allAccounts = useMemo(
+    () => getAllAccounts(customAccounts, events),
+    [customAccounts, events]
+  );
+
+  const activeLiquidAccounts = useMemo(
+    () => allAccounts.filter((a: Account) => a.group === 'liquid'),
+    [allAccounts]
+  );
+
+  const activeInvestmentAccounts = useMemo(
+    () => allAccounts.filter((a: Account) => a.group === 'investment'),
+    [allAccounts]
+  );
+
+  const handleSaveAccount = (accountData: {
+    fullName: string;
+    name: string;
+    group: AccountGroup;
+    colorStyle: string;
+    colorClass: string;
+    openingBalance?: number;
+  }) => {
+    const res = addCustomAccount(
+      {
+        fullName: accountData.fullName,
+        name: accountData.name,
+        group: accountData.group,
+        colorStyle: accountData.colorStyle,
+        colorClass: accountData.colorClass,
+      },
+      events
+    );
+
+    if (!res.success || !res.account) {
+      alert(res.error || "Failed to create account.");
+      return;
+    }
+
+    const created = res.account;
+    setIsAccountModalOpen(false);
+
+    if (accountData.openingBalance && accountData.openingBalance > 0) {
+      const initialEvent: IncomeEvent = {
+        id: createEventId(),
+        date: todayDate(),
+        description: `Initial balance - ${created.fullName}`,
+        amount: accountData.openingBalance,
+        type: 'income',
+        accountId: created.id,
+        category: 'Others',
+      };
+      const nextEvents = [initialEvent, ...events];
+      queuePendingUpserts([initialEvent.id]);
+      writeFinancialEvents(nextEvents);
+      if (isSupabaseConfigured()) {
+        syncWithCloud(nextEvents).catch(() => {});
+      }
+    }
+
+    if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+      try {
+        navigator.vibrate([20]);
+      } catch {
+        // Safe ignore
+      }
+    }
+  };
+
+  const handleDeleteAccount = (acc: Account) => {
+    if (isAccountInUse(acc.id, events)) {
+      alert(`Cannot delete "${acc.fullName}": it is used in existing transactions.`);
+      return;
+    }
+    if (confirm(`Are you sure you want to delete account "${acc.fullName}"?`)) {
+      deleteCustomAccount(acc.id, events);
+      if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+        try {
+          navigator.vibrate([20]);
+        } catch {
+          // Safe ignore
+        }
+      }
+    }
+  };
+
   const [customCategories, setCustomCategories] = useState<CustomCategoriesState>(() => readCustomCategories());
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
@@ -726,7 +835,8 @@ export default function FinancePage() {
     showRefundModal ||
     showBackupModal ||
     pendingDeleteEventId ||
-    showCashbackAccountWarning
+    showCashbackAccountWarning ||
+    isAccountModalOpen
   );
 
   // Lock background scrolling when any modal is open
@@ -920,7 +1030,7 @@ export default function FinancePage() {
     () => calculateFinanceStats(events, `${selectedMonth}-01`, customCategories),
     [events, selectedMonth, customCategories]
   );
-  const accountBalances = useMemo(() => getAccountBalances(events), [events]);
+  const accountBalances = useMemo(() => getAccountBalances(events, allAccounts), [events, allAccounts]);
 
   // Line Chart Data
   const lineChartData = useMemo(() => {
@@ -2007,16 +2117,26 @@ export default function FinancePage() {
                   Financial Accounts
                 </h2>
                 <p className="text-xs text-stone-500 font-medium mt-0.5">
-                  10 Liquid cash accounts and 7 investment holdings
+                  {activeLiquidAccounts.length} Liquid cash accounts and {activeInvestmentAccounts.length} investment holdings
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => goToTab('dashboard')}
-                className="btn-tactile-neutral px-3.5 py-1.5 text-xs font-bold cursor-pointer"
-              >
-                ← Back to Overview
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAccountModalOpen(true)}
+                  className="btn-tactile-dark px-3.5 py-1.5 text-xs font-bold cursor-pointer inline-flex items-center gap-1.5"
+                >
+                  <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                  <span>Add Account</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => goToTab('dashboard')}
+                  className="btn-tactile-neutral px-3.5 py-1.5 text-xs font-bold cursor-pointer"
+                >
+                  ← Back to Overview
+                </button>
+              </div>
             </div>
 
             {/* SECTION 1: 10 LIQUID ACCOUNTS (CLEAN LABELS, NO NOISY BADGES) */}
@@ -2027,7 +2147,7 @@ export default function FinancePage() {
                     Ready Checking & Cash
                   </span>
                   <h3 className="font-bold text-base text-stone-900">
-                    10 Liquid Accounts
+                    {activeLiquidAccounts.length} Liquid Accounts
                   </h3>
                   <p className="text-xs text-stone-500 font-medium">
                     Physical cash, daily bank accounts, and e-wallets
@@ -2049,7 +2169,7 @@ export default function FinancePage() {
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                {liquidAccounts.map((acc) => {
+                {activeLiquidAccounts.map((acc: Account) => {
                   const bal = accountBalances[acc.id] || 0;
                   const isFilteredAcc = filterAccountId === acc.id;
                   const isImpacted = impactedAccountIds.includes(acc.id);
@@ -2071,14 +2191,32 @@ export default function FinancePage() {
                       }`}
                     >
                       <div className="flex items-center justify-between mb-3">
-                        <span className={`w-8 h-8 rounded-full ${acc.colorClass} text-white text-xs font-bold flex items-center justify-center shadow-xs`}>
+                        <span
+                          style={acc.colorStyle ? { background: acc.colorStyle } : undefined}
+                          className={`w-8 h-8 rounded-full ${acc.colorClass || 'bg-stone-500'} text-white text-xs font-bold flex items-center justify-center shadow-xs`}
+                        >
                           {acc.name}
                         </span>
-                        {isImpacted && (
-                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-200 text-amber-900 animate-pulse">
-                            Updated
-                          </span>
-                        )}
+                        <div className="flex items-center gap-1.5">
+                          {acc.isCustom && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteAccount(acc);
+                              }}
+                              className="w-6 h-6 rounded-lg text-stone-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition cursor-pointer"
+                              title={isAccountInUse(acc.id, events) ? "Cannot delete account with existing transactions" : "Delete custom account"}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          {isImpacted && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-200 text-amber-900 animate-pulse">
+                              Updated
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <div>
                         <span className={`text-xs font-semibold block truncate leading-tight ${isFilteredAcc ? 'text-stone-300' : 'text-stone-600'}`}>
@@ -2110,7 +2248,7 @@ export default function FinancePage() {
                     Portfolios & Holdings
                   </span>
                   <h3 className="font-bold text-base text-stone-900">
-                    7 Investment Accounts
+                    {activeInvestmentAccounts.length} Investment Accounts
                   </h3>
                   <p className="text-xs text-stone-500 font-medium">
                     Securities, equities, mutual funds, crypto, and portfolio assets
@@ -2133,7 +2271,7 @@ export default function FinancePage() {
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                {investmentAccounts.map((acc) => {
+                {activeInvestmentAccounts.map((acc: Account) => {
                   const bal = accountBalances[acc.id] || 0;
                   const isFilteredAcc = filterAccountId === acc.id;
                   const isImpacted = impactedAccountIds.includes(acc.id);
@@ -2155,14 +2293,32 @@ export default function FinancePage() {
                       }`}
                     >
                       <div className="flex items-center justify-between mb-3">
-                        <span className={`w-8 h-8 rounded-full ${acc.colorClass} text-white text-xs font-bold flex items-center justify-center shadow-xs`}>
+                        <span
+                          style={acc.colorStyle ? { background: acc.colorStyle } : undefined}
+                          className={`w-8 h-8 rounded-full ${acc.colorClass || 'bg-stone-500'} text-white text-xs font-bold flex items-center justify-center shadow-xs`}
+                        >
                           {acc.name}
                         </span>
-                        {isImpacted && (
-                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-200 text-amber-900 animate-pulse">
-                            Updated
-                          </span>
-                        )}
+                        <div className="flex items-center gap-1.5">
+                          {acc.isCustom && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteAccount(acc);
+                              }}
+                              className="w-6 h-6 rounded-lg text-stone-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition cursor-pointer"
+                              title={isAccountInUse(acc.id, events) ? "Cannot delete account with existing transactions" : "Delete custom account"}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          {isImpacted && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-200 text-amber-900 animate-pulse">
+                              Updated
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <div>
                         <span className={`text-xs font-semibold block truncate leading-tight ${isFilteredAcc ? 'text-stone-300' : 'text-stone-600'}`}>
@@ -2411,7 +2567,7 @@ export default function FinancePage() {
                         <div className="flex items-center gap-3 min-w-0">
                           <div
                             title={`${acc?.fullName} (${acc?.name})`}
-                            className={`w-9 h-9 rounded-full ${acc?.colorClass} flex items-center justify-center text-white font-bold text-xs flex-shrink-0 shadow-xs`}
+                            style={acc?.colorStyle ? { background: acc.colorStyle } : undefined} className={`w-9 h-9 rounded-full ${acc?.colorClass || 'bg-stone-500'} flex items-center justify-center text-white font-bold text-xs flex-shrink-0 shadow-xs`}
                           >
                             {acc?.name}
                           </div>
@@ -2572,7 +2728,7 @@ export default function FinancePage() {
                               {entry.description}
                             </td>
                             <td className="px-4 py-3">
-                              <span title={`${acc?.fullName} (${acc?.name})`} className={`px-2 py-0.5 rounded-full text-xs text-white font-bold ${acc?.colorClass}`}>
+                              <span title={`${acc?.fullName} (${acc?.name})`} style={acc?.colorStyle ? { background: acc.colorStyle } : undefined} className={`px-2 py-0.5 rounded-full text-xs text-white font-bold ${acc?.colorClass || 'bg-stone-500'}`}>
                                 {acc?.name}
                               </span>
                             </td>
@@ -2825,7 +2981,7 @@ export default function FinancePage() {
                     Account
                   </label>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-44 overflow-y-auto p-1.5 bg-stone-50 rounded-2xl border border-stone-200">
-                    {accounts.map((acc) => (
+                    {allAccounts.map((acc: Account) => (
                       <button
                         key={acc.id}
                         type="button"
@@ -2836,7 +2992,10 @@ export default function FinancePage() {
                             : 'bg-white border-stone-200 text-stone-700 hover:bg-stone-100'
                         }`}
                       >
-                        <span className={`w-5 h-5 rounded-full ${acc.colorClass} text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0 shadow-xs`}>
+                        <span
+                          style={acc.colorStyle ? { background: acc.colorStyle } : undefined}
+                          className={`w-5 h-5 rounded-full ${acc.colorClass || 'bg-stone-500'} text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0 shadow-xs`}
+                        >
                           {acc.name}
                         </span>
                         <span className="truncate">{acc.fullName}</span>
@@ -3517,6 +3676,14 @@ export default function FinancePage() {
         onSaveRefund={handleSaveRefund}
         error={refundError}
         formatRupiah={formatRupiah}
+      />
+
+      {/* ================= CUSTOM ACCOUNT MODAL ================= */}
+      <AccountModal
+        isOpen={isAccountModalOpen}
+        onClose={() => setIsAccountModalOpen(false)}
+        onSaveAccount={handleSaveAccount}
+        existingAccountNames={allAccounts.map((a: Account) => a.fullName)}
       />
 
       {/* ================= MASTER PIN PRIVACY SHIELD LOCKSCREEN ================= */}

@@ -131,34 +131,29 @@ Keep changes minimal and reviewable.
 - FinancialEvent data must remain sufficient to reconstruct all financial views and calculations.
 - **Refund Excess Profit Invariant**: Refunds may exceed the parent expense amount. The single `RefundEvent` represents the entire incoming refund (maintaining 1:1 parity with bank accounts). The accounting engine deterministically splits the refund: the portion up to the parent expense reduces net expense down to minimum Rp 0; any excess is credited to Monthly Income under category `'Others'`. Day-level net expense is clamped to $\ge 0$.
 
-## Memory Bank & Session Continuity
+## Persistent Project Memory & Knowledge Vault Protocol
 
-- The agent must maintain and reference `.agents/memory/` across all development sessions.
-- Core memory files:
-  * `projectBrief.md`: Core requirements, goals, and constraints.
-  * `activeContext.md`: Current sprint focus and immediate next steps.
-  * `systemPatterns.md`: System architecture, database schemas, and component structure.
-  * `techContext.md`: Tech stack, dependencies, and environment setup.
-  * `progress.md`: Completed features vs backlog.
-- At the start of tasks, consult the Memory Bank before performing redundant codebase rescans.
-- When finishing major milestones, update the relevant Memory Bank files.
+The primary knowledge base and durable memory vault is located in `memory/` (Obsidian-compatible). Every agent working on this repository must strictly adhere to the following protocol:
 
-## Continuous Memory, Rules & Skills Synchronization Law (Every Chat Interaction)
+1. **Lightweight Entry Point First (Orientation)**:
+   - Before starting any non-trivial task, the agent MUST read `memory/PROJECT_STATE.md`.
+   - Do NOT load the entire vault or historical changelogs into context on startup.
+   - Open additional domain notes in `memory/` ONLY when directly relevant to the task (e.g. `memory/Cloud Sync & Supabase.md` for sync tasks, `memory/UI & Design System.md` for gesture/layout tasks).
 
-- **Mandatory End-of-Turn Synchronization**: At the conclusion of EVERY chat interaction (regardless of whether the task was a feature, bugfix, UI polish, design decision, or clarification), the agent MUST proactively update and synchronize all four knowledge repositories:
-  1. **Obsidian Vault (`memory/`)**:
-     * `00 - Atlas (Index).md`: Maintain complete Map of Content (MOC) and accurate sprint step ranges.
-     * `Changelog & Step Log.md`: Chronologically record newly completed sprint steps, root cause analyses, architectural decisions, and verification metrics.
-     * `Agreements & Historical Context.md`: Record every user preference, binding rule, design agreement, or constraint established in the turn.
-     * Domain notes (`UI & Design System.md`, `Domain & Financial Model.md`, `Security & Master PIN.md`, etc.): Keep domain-specific sections evergreen.
-  2. **Agent Memory Bank (`.agents/memory/`)**:
-     * `activeContext.md`: Record current status, immediate next steps, and verified invariants.
-     * `progress.md`: Update milestones, test counts, and completed backlog items.
-  3. **Engineering Rules (`AGENTS.md` & `GEMINI.md`)**:
-     * Enshrine any newly identified laws, user invariants, anti-patterns, or architectural requirements so mistakes are never repeated.
-  4. **Domain Skills (`.agents/skills/`)**:
-     * Update relevant skills (e.g. `senior-frontend-engineer`, `animate`, `casual-modern-ui`) with newly proven recipes, edge-case solutions, and automated test protocols.
-- **Never Skip Documentation**: A task is NEVER complete until all 4 knowledge tiers have been updated, verified, and committed.
+2. **Codebase Over Memory (Source of Truth Hierarchy)**:
+   - The codebase (source code, tests, schemas) is the ultimate source of truth.
+   - If information in memory notes is stale, incomplete, or contradicts the codebase, trust the codebase, implement correctly, and update the stale memory note.
+
+3. **Public Repository Security & Zero Secrets**:
+   - This is a public repository. NEVER store secrets, credentials, tokens, `.env` values, API keys, personal Master PINs, or private user financial figures in any Markdown memory or tracked files.
+
+4. **When to Update Memory (After Meaningful Changes)**:
+   - When finishing a task that introduces meaningful changes (new features, modified accounting behavior, layout/gesture updates, or architectural shifts):
+     * Update `memory/PROJECT_STATE.md` with the latest sprint status and immediate next focus.
+     * Record durable decisions, user alignments, and resolved dilemmas in `memory/Agreements & Historical Context.md`.
+     * Record reusable gotchas, pitfalls, and domain rules in the relevant domain note (`memory/Domain & Financial Model.md`, etc.).
+     * Record chronological sprint progress, verification results, and metrics in `memory/Changelog & Step Log.md`.
+   - Keep `memory/PROJECT_STATE.md` concise ($\le 100$ lines) to prevent context bloat for subsequent agent sessions.
 
 ## Front-End & UI Engineering Standard
 

@@ -6,6 +6,37 @@
 
 ## 📜 Sprint & Evolution Log
 
+### Langkah 50: Custom Accounts Feature (Fitur Menambahkan Akun Baru)
+- **User Directives**:
+  - *"saya kepikiran untuk membuat fitur menambahkan akun baru. bagaimana menurut anda?"* — User agreed to implement.
+  - **Decisions & Agreements**:
+    1. **Opening Balance (Saldo Awal)**: Optional input on the modal. If provided (> 0), automatically logs an `IncomeEvent` under category `'Others'` with description `'Initial balance - [Account Name]'` dated today, credited directly to the new account.
+    2. **Dual Color Styling**: Supports both **Solid Hex Color** and **2-Color Linear Gradient** (`linear-gradient(135deg, color1, color2)`) with live avatar badge preview, 8 curated presets each, and native color pickers.
+    3. **Account Deletion Guardrail**: System default 17 accounts can NEVER be deleted. Custom accounts can only be deleted if they have 0 transactions (`!isAccountInUse(acc.id, events)`).
+- **Architecture & Implementation**:
+  1. **`lib/types.ts`**:
+     - `AccountId = DefaultAccountId | (string & {})` open union preserving autocompletion for 17 defaults while accepting custom account slugs.
+     - `Account` interface updated with optional `colorStyle?: string` and `isCustom?: boolean`.
+  2. **`lib/accounts.ts`**:
+     - Storage constants `CUSTOM_ACCOUNTS_STORAGE_KEY = 'thelife-custom-accounts'` and change event `thelife-custom-accounts-change`.
+     - Pure helper functions: `readCustomAccounts()`, `writeCustomAccounts()`, `getAllAccounts()`, `getLiquidAccounts()`, `getInvestmentAccounts()`, `isDefaultAccount()`, `isLiquidAccount()`, `isInvestmentAccount()`, `getAccountById()`, `isAccountId()`, `isAccountInUse()`, `slugifyAccountId()`, `validateAccountInput()`, `addCustomAccount()`, `deleteCustomAccount()`.
+     - Strict `isAccountId` validation against `getAllAccounts()`.
+  3. **`lib/finance.ts`**:
+     - Dynamic aggregation across default + custom accounts in `getAccountBalances`, `getLiquidBalance`, `getInvestmentBalance`, `getNetWorth`, and `calculateFinanceStats`.
+  4. **`components/finance/AccountModal.tsx`**:
+     - Modern tactile modal with Liquid vs Investment toggle, Full Name & Short Code auto-derivation, Dual Color Picker (Solid & Gradient with presets), Live Badge Preview, Optional Opening Balance with IDR dot formatting, sticky action buttons, and keyboard blur on scroll.
+  5. **`app/finance/page.tsx` & `RefundModal.tsx`**:
+     - Accounts tab displays dynamic counts (`{activeLiquidAccounts.length} Liquid Accounts`, `{activeInvestmentAccounts.length} Investment Accounts`) and tactile `+ Add Account` button.
+     - Custom accounts render their custom `colorStyle` and include a delete trash button (`Trash2`) when unused (`!isAccountInUse`).
+     - Transaction modal (Expense, Income, Transfer) and `RefundModal` display all accounts with their custom colors/gradients.
+- **Verification**:
+  - **Unit Tests**: Dedicated test suite `tests/finance/custom-accounts.test.ts` (17 tests) covering dynamic registry, gradient styles, opening balances, deletion guardrails, and financial calculation integration.
+  - **Full Suite**: 25 test suites, **429/429 tests passing (100%)**.
+  - **Type Checking & Linting**: `npx tsc --noEmit` 0 errors; `npm run lint` 0 errors, 0 warnings.
+  - **Production Build**: `npm run build` compiled 100% successfully.
+  - **Mobile E2E**: Verified with `scripts/test-mobile-e2e.mjs` on iPhone 14 Pro emulation (100% PASS).
+  - **Visual Inspection**: Captured and verified mobile screenshots (`1-accounts-tab-overview.png`, `2-add-account-modal-solid.png`, `3-add-account-modal-gradient.png`, `4-accounts-tab-with-custom.png`, `4b-custom-account-scrolled.png`, `5-transaction-form-custom-account.png`).
+
 ### Langkah 49: Refunds Exceeding Original Expense with Profit Credited to Category 'Others'
 - **User Directives**:
   - *"sekarang saya ingin bahwa tidak apa apa refund melebihi transaksi awalnya. kelebihan itu (keuntungan) akan dicatat dalam kategori others"*

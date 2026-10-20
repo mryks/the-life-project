@@ -1,6 +1,7 @@
 // src/lib/types.ts
 
-export type AccountId = 's' | 'b' | 'g' | 'k' | 'e' | 'c' | 'q' | 'jy' | 'h' | 'j' | 'p' | 'sb' | 'sea' | 'poe' | 'cla' | 'kb' | 'i';
+export type DefaultAccountId = 's' | 'b' | 'g' | 'k' | 'e' | 'c' | 'q' | 'jy' | 'h' | 'j' | 'p' | 'sb' | 'sea' | 'poe' | 'cla' | 'kb' | 'i';
+export type AccountId = DefaultAccountId | (string & {});
 
 export type DefaultExpenseCategory = 'Home & Family' | 'Food & Drinks' | 'Transportation' | 'Personal Care' | 'Leisure' | 'Medical' | '𝓡' | 'Other';
 export type ExpenseCategory = DefaultExpenseCategory | (string & {});
@@ -64,6 +65,8 @@ export interface Account {
   name: string;
   fullName: string;
   colorClass: string;
+  colorStyle?: string;
+  isCustom?: boolean;
   group: AccountGroup;
 }
 
@@ -71,6 +74,7 @@ export interface FinancialBackupEnvelope {
   version: 2;
   exportedAt: string;
   events: FinancialEvent[];
+  customAccounts?: Account[];
 }
 
 export interface BackupSummary {
@@ -88,6 +92,7 @@ export type BackupParseResult =
       version: number;
       exportedAt?: string;
       events: FinancialEvent[];
+      customAccounts?: Account[];
       summary: BackupSummary;
     }
   | {

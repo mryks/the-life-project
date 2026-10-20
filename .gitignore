@@ -46,3 +46,6 @@ scratch/
 # standalone subprojects
 bendera-ungu/
 
+
+# obsidian local workspace & cache
+.obsidian/

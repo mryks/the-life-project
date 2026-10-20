@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { ExpenseEvent, RefundEvent, AccountId } from "@/lib/types";
-import { accounts, getAccountById } from "@/lib/accounts";
+import { getAccountById, getAllAccounts } from "@/lib/accounts";
 import { todayDate, isDateOnly } from "@/lib/finance";
 import { X, RotateCcw, AlertCircle, Check, Calendar as CalendarIcon } from "lucide-react";
 
@@ -173,7 +173,10 @@ function RefundModalInner({
           <div className="flex justify-between items-center">
             <span className="text-stone-500 font-medium">Paid From:</span>
             <span className="font-semibold text-stone-900 flex items-center gap-1.5">
-              <span className={`w-2.5 h-2.5 rounded-full ${parentAcc?.colorClass}`} />
+              <span
+                style={parentAcc?.colorStyle ? { background: parentAcc.colorStyle } : undefined}
+                className={`w-2.5 h-2.5 rounded-full ${parentAcc?.colorClass || 'bg-stone-500'}`}
+              />
               <span>{parentAcc?.fullName} ({parentAcc?.name})</span>
             </span>
           </div>
@@ -248,7 +251,7 @@ function RefundModalInner({
               )}
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-40 overflow-y-auto p-1.5 bg-stone-50 rounded-2xl border border-stone-200">
-              {accounts.map((acc) => (
+              {getAllAccounts().map((acc) => (
                 <button
                   key={acc.id}
                   type="button"
@@ -262,7 +265,10 @@ function RefundModalInner({
                       : 'bg-white border-stone-200 text-stone-700 hover:bg-stone-100'
                   }`}
                 >
-                  <span className={`w-5 h-5 rounded-full ${acc.colorClass} text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0 shadow-xs`}>
+                  <span
+                    style={acc.colorStyle ? { background: acc.colorStyle } : undefined}
+                    className={`w-5 h-5 rounded-full ${acc.colorClass || 'bg-stone-500'} text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0 shadow-xs`}
+                  >
                     {acc.name}
                   </span>
                   <span className="truncate">{acc.fullName}</span>

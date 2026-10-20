@@ -7,6 +7,9 @@
 
 ## 🧭 Vault Navigation & Map of Content (MOC)
 
+### 📌 Quick Entry Point
+- [[PROJECT_STATE]] — **Current status, active sprint focus, knowledge map, and critical invariants.** *(Read this first!)*
+
 ### 🏛️ Core Financial Domain
 - [[Domain & Financial Model]] — Core financial events architecture, accounting rules, formulas, and validations.
 - [[Accounts & Portfolio]] — Detailed guide to the 17 accounts (10 Liquid & 7 Investment), balance derivation, and net worth.

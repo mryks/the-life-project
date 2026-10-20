@@ -1,7 +1,7 @@
 // src/lib/accounts.ts
-import { Account, AccountId } from './types';
+import type { Account, AccountGroup, AccountId, FinancialEvent } from './types';
 
-export const accounts: Account[] = [
+export const DEFAULT_ACCOUNTS: Account[] = [
   // 10 Liquid Accounts (Kas, Bank, E-Wallet, Personal)
   { id: 'c', name: 'C', fullName: 'Cash', colorClass: 'bg-amber-800', group: 'liquid' },
   { id: 'b', name: 'B', fullName: 'BNI', colorClass: 'bg-gradient-to-br from-blue-500 to-teal-400', group: 'liquid' },
@@ -24,21 +24,276 @@ export const accounts: Account[] = [
   { id: 'p', name: 'P', fullName: 'Portfolio', colorClass: 'bg-purple-600', group: 'investment' },
 ];
 
-export const liquidAccounts = accounts.filter((acc) => acc.group === 'liquid');
-export const investmentAccounts = accounts.filter((acc) => acc.group === 'investment');
+export const accounts: Account[] = DEFAULT_ACCOUNTS;
+
+export const liquidAccounts = DEFAULT_ACCOUNTS.filter((acc) => acc.group === 'liquid');
+export const investmentAccounts = DEFAULT_ACCOUNTS.filter((acc) => acc.group === 'investment');
 
 export const liquidAccountIds: AccountId[] = liquidAccounts.map((acc) => acc.id);
 export const investmentAccountIds: AccountId[] = investmentAccounts.map((acc) => acc.id);
 
-export const isLiquidAccount = (id: AccountId): boolean =>
-  accounts.find((acc) => acc.id === id)?.group === 'liquid';
+export const CUSTOM_ACCOUNTS_STORAGE_KEY = 'thelife-custom-accounts';
+export const CUSTOM_ACCOUNTS_CHANGE_EVENT = 'thelife-custom-accounts-change';
 
-export const isInvestmentAccount = (id: AccountId): boolean =>
-  accounts.find((acc) => acc.id === id)?.group === 'investment';
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
 
-// Helper untuk mencari akun berdasarkan ID
-export const getAccountById = (id: string): Account | undefined =>
-  accounts.find((acc) => acc.id === id);
+/**
+ * Reads user-created custom accounts from localStorage.
+ */
+export const readCustomAccounts = (): Account[] => {
+  if (typeof window === 'undefined') return [];
 
-export const isAccountId = (value: unknown): value is AccountId =>
-  typeof value === 'string' && accounts.some((acc) => acc.id === value);
+  try {
+    const raw = window.localStorage.getItem(CUSTOM_ACCOUNTS_STORAGE_KEY);
+    if (!raw) return [];
+
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+
+    const validAccounts: Account[] = [];
+    for (const item of parsed) {
+      if (!isRecord(item)) continue;
+      if (typeof item.id !== 'string' || !item.id.trim()) continue;
+      if (typeof item.name !== 'string' || !item.name.trim()) continue;
+      if (typeof item.fullName !== 'string' || !item.fullName.trim()) continue;
+      const group: AccountGroup = item.group === 'investment' ? 'investment' : 'liquid';
+
+      validAccounts.push({
+        id: item.id.trim().toLowerCase() as AccountId,
+        name: item.name.trim().toUpperCase().slice(0, 4),
+        fullName: item.fullName.trim(),
+        colorClass: typeof item.colorClass === 'string' && item.colorClass ? item.colorClass : 'bg-stone-600',
+        colorStyle: typeof item.colorStyle === 'string' && item.colorStyle ? item.colorStyle : undefined,
+        group,
+        isCustom: true,
+      });
+    }
+
+    return validAccounts;
+  } catch {
+    return [];
+  }
+};
+
+/**
+ * Writes custom accounts to localStorage and triggers change event.
+ */
+export const writeCustomAccounts = (customAccounts: Account[]): void => {
+  if (typeof window === 'undefined') return;
+
+  try {
+    const sanitized = customAccounts.map((acc) => ({
+      id: acc.id.trim().toLowerCase(),
+      name: acc.name.trim().toUpperCase().slice(0, 4),
+      fullName: acc.fullName.trim(),
+      colorClass: acc.colorClass || 'bg-stone-600',
+      colorStyle: acc.colorStyle || undefined,
+      group: acc.group,
+      isCustom: true,
+    }));
+
+    window.localStorage.setItem(CUSTOM_ACCOUNTS_STORAGE_KEY, JSON.stringify(sanitized));
+    window.dispatchEvent(new Event(CUSTOM_ACCOUNTS_CHANGE_EVENT));
+  } catch {
+    // Graceful fallback for storage quota or privacy mode
+  }
+};
+
+/**
+ * Returns complete accounts list: default accounts + custom accounts + any account ID referenced in events.
+ */
+export const getAllAccounts = (
+  customAccounts?: Account[],
+  events: FinancialEvent[] = []
+): Account[] => {
+  const custom = customAccounts ?? readCustomAccounts();
+  const knownMap = new Map<string, Account>();
+
+  for (const acc of DEFAULT_ACCOUNTS) {
+    knownMap.set(acc.id, acc);
+  }
+
+  for (const acc of custom) {
+    if (!knownMap.has(acc.id)) {
+      knownMap.set(acc.id, acc);
+    }
+  }
+
+  // Scan events to discover any account ID from cloud sync or restored backup
+  for (const event of events) {
+    const checkId = (id?: string) => {
+      if (id && !knownMap.has(id)) {
+        knownMap.set(id, {
+          id: id as AccountId,
+          name: id.toUpperCase().slice(0, 4),
+          fullName: id.toUpperCase(),
+          colorClass: 'bg-stone-500',
+          group: 'liquid',
+          isCustom: true,
+        });
+      }
+    };
+
+    if (event.type === 'income' || event.type === 'expense' || event.type === 'refund') {
+      checkId(event.accountId);
+    } else if (event.type === 'transfer') {
+      checkId(event.sourceAccountId);
+      checkId(event.destinationAccountId);
+    }
+  }
+
+  return Array.from(knownMap.values());
+};
+
+export const getLiquidAccounts = (allAccounts?: Account[]): Account[] =>
+  (allAccounts ?? getAllAccounts()).filter((acc) => acc.group === 'liquid');
+
+export const getInvestmentAccounts = (allAccounts?: Account[]): Account[] =>
+  (allAccounts ?? getAllAccounts()).filter((acc) => acc.group === 'investment');
+
+export const isDefaultAccount = (id: string): boolean =>
+  DEFAULT_ACCOUNTS.some((acc) => acc.id === id);
+
+export const isLiquidAccount = (id: AccountId, allAccounts?: Account[]): boolean =>
+  (allAccounts ?? getAllAccounts()).find((acc) => acc.id === id)?.group === 'liquid';
+
+export const isInvestmentAccount = (id: AccountId, allAccounts?: Account[]): boolean =>
+  (allAccounts ?? getAllAccounts()).find((acc) => acc.id === id)?.group === 'investment';
+
+export const getAccountById = (id: string, allAccounts?: Account[]): Account | undefined =>
+  (allAccounts ?? getAllAccounts()).find((acc) => acc.id === id);
+
+export const isAccountId = (value: unknown, allAccounts?: Account[]): value is AccountId => {
+  if (typeof value !== 'string') return false;
+  const trimmed = value.trim().toLowerCase();
+  if (trimmed.length === 0 || trimmed.length > 32) return false;
+  return (allAccounts ?? getAllAccounts()).some((acc) => acc.id.toLowerCase() === trimmed);
+};
+
+export const isAccountInUse = (id: string, events: FinancialEvent[] = []): boolean => {
+  return events.some((event) => {
+    if (event.type === 'income' || event.type === 'expense' || event.type === 'refund') {
+      return event.accountId === id;
+    }
+    if (event.type === 'transfer') {
+      return event.sourceAccountId === id || event.destinationAccountId === id;
+    }
+    return false;
+  });
+};
+
+/**
+ * Sanitizes an account name into a valid, unique URL-friendly ID slug.
+ */
+export const slugifyAccountId = (name: string, existingAccounts: Account[] = getAllAccounts()): string => {
+  const base = name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 32);
+
+  const fallback = base || 'acc';
+  let candidate = fallback;
+  let counter = 2;
+
+  while (existingAccounts.some((a) => a.id === candidate)) {
+    candidate = `${fallback}-${counter}`;
+    counter++;
+  }
+
+  return candidate;
+};
+
+export interface ValidateAccountInput {
+  fullName: string;
+  name: string;
+  group: AccountGroup;
+  colorClass?: string;
+  colorStyle?: string;
+}
+
+export const validateAccountInput = (
+  input: ValidateAccountInput,
+  existingAccounts: Account[]
+): { valid: boolean; error?: string; cleanFullName: string; cleanShortCode: string } => {
+  const cleanFullName = input.fullName.trim();
+  const cleanShortCode = input.name.trim().toUpperCase();
+
+  if (cleanFullName.length === 0) {
+    return { valid: false, error: 'Account name cannot be empty', cleanFullName, cleanShortCode };
+  }
+
+  if (cleanFullName.length > 30) {
+    return { valid: false, error: 'Account name cannot exceed 30 characters', cleanFullName, cleanShortCode };
+  }
+
+  if (cleanShortCode.length === 0) {
+    return { valid: false, error: 'Short code cannot be empty', cleanFullName, cleanShortCode };
+  }
+
+  if (cleanShortCode.length > 4) {
+    return { valid: false, error: 'Short code cannot exceed 4 characters', cleanFullName, cleanShortCode };
+  }
+
+  const isDuplicateName = existingAccounts.some(
+    (acc) => acc.fullName.trim().toLowerCase() === cleanFullName.toLowerCase()
+  );
+
+  if (isDuplicateName) {
+    return { valid: false, error: `Account "${cleanFullName}" already exists`, cleanFullName, cleanShortCode };
+  }
+
+  return { valid: true, cleanFullName, cleanShortCode };
+};
+
+export const addCustomAccount = (
+  input: ValidateAccountInput,
+  events: FinancialEvent[] = []
+): { success: boolean; error?: string; account?: Account } => {
+  const currentAccounts = getAllAccounts(undefined, events);
+  const validation = validateAccountInput(input, currentAccounts);
+
+  if (!validation.valid) {
+    return { success: false, error: validation.error };
+  }
+
+  const customList = readCustomAccounts();
+  const id = slugifyAccountId(validation.cleanFullName, currentAccounts) as AccountId;
+
+  const newAccount: Account = {
+    id,
+    name: validation.cleanShortCode,
+    fullName: validation.cleanFullName,
+    group: input.group,
+    colorClass: input.colorClass || 'bg-stone-600',
+    colorStyle: input.colorStyle || undefined,
+    isCustom: true,
+  };
+
+  writeCustomAccounts([...customList, newAccount]);
+  return { success: true, account: newAccount };
+};
+
+export const deleteCustomAccount = (
+  id: string,
+  events: FinancialEvent[] = []
+): { success: boolean; error?: string } => {
+  if (isDefaultAccount(id)) {
+    return { success: false, error: 'Default system accounts cannot be deleted' };
+  }
+
+  if (isAccountInUse(id, events)) {
+    return {
+      success: false,
+      error: 'Cannot delete account: it has existing transactions',
+    };
+  }
+
+  const customList = readCustomAccounts();
+  const nextList = customList.filter((acc) => acc.id !== id);
+
+  writeCustomAccounts(nextList);
+  return { success: true };
+};

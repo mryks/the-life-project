@@ -1,5 +1,6 @@
-import { accounts, liquidAccountIds, investmentAccountIds, isAccountId } from './accounts';
+import { accounts, isAccountId, getAllAccounts } from './accounts';
 import type {
+  Account,
   AccountId,
   ExpenseCategory,
   ExpenseEvent,
@@ -493,24 +494,33 @@ export const deriveLedgerEntries = (events: FinancialEvent[]): LedgerEntry[] => 
   return eventsWithIndex.flatMap(({ event }) => toEntries(event));
 };
 
-export const getAccountBalances = (events: FinancialEvent[]): Record<AccountId, number> => {
-  const balances = Object.fromEntries(accounts.map((account) => [account.id, 0])) as Record<AccountId, number>;
-  for (const entry of deriveLedgerEntries(events)) balances[entry.accountId] += entry.direction === 'in' ? entry.amount : -entry.amount;
+export const getAccountBalances = (events: FinancialEvent[], allAccounts?: Account[]): Record<AccountId, number> => {
+  const accountList = allAccounts ?? getAllAccounts(undefined, events);
+  const balances = Object.fromEntries(accountList.map((account) => [account.id, 0])) as Record<AccountId, number>;
+  for (const entry of deriveLedgerEntries(events)) {
+    if (balances[entry.accountId] === undefined) balances[entry.accountId] = 0;
+    balances[entry.accountId] += entry.direction === 'in' ? entry.amount : -entry.amount;
+  }
   return balances;
 };
 
-export const getLiquidBalance = (events: FinancialEvent[]): number => {
-  const balances = getAccountBalances(events);
-  return liquidAccountIds.reduce((sum, id) => sum + (balances[id] || 0), 0);
+export const getLiquidBalance = (events: FinancialEvent[], allAccounts?: Account[]): number => {
+  const accountList = allAccounts ?? getAllAccounts(undefined, events);
+  const balances = getAccountBalances(events, accountList);
+  const liquidIds = new Set(accountList.filter((a) => a.group === 'liquid').map((a) => a.id));
+  return Object.entries(balances).reduce((sum, [id, b]) => (liquidIds.has(id as AccountId) ? sum + b : sum), 0);
 };
 
-export const getInvestmentBalance = (events: FinancialEvent[]): number => {
-  const balances = getAccountBalances(events);
-  return investmentAccountIds.reduce((sum, id) => sum + (balances[id] || 0), 0);
+export const getInvestmentBalance = (events: FinancialEvent[], allAccounts?: Account[]): number => {
+  const accountList = allAccounts ?? getAllAccounts(undefined, events);
+  const investmentIds = new Set(accountList.filter((a) => a.group === 'investment').map((a) => a.id));
+  const balances = getAccountBalances(events, accountList);
+  return Object.entries(balances).reduce((sum, [id, b]) => (investmentIds.has(id as AccountId) ? sum + b : sum), 0);
 };
 
-export const getNetWorth = (events: FinancialEvent[]): number => {
-  const balances = getAccountBalances(events);
+export const getNetWorth = (events: FinancialEvent[], allAccounts?: Account[]): number => {
+  const accountList = allAccounts ?? getAllAccounts(undefined, events);
+  const balances = getAccountBalances(events, accountList);
   return Object.values(balances).reduce((sum, b) => sum + b, 0);
 };
 
@@ -553,9 +563,12 @@ export const calculateFinanceStats = (
     }
   }
 
-  const balances = getAccountBalances(events);
-  const liquidBalance = liquidAccountIds.reduce((sum, id) => sum + (balances[id] || 0), 0);
-  const investmentBalance = investmentAccountIds.reduce((sum, id) => sum + (balances[id] || 0), 0);
+  const accountList = getAllAccounts(undefined, events);
+  const investmentIds = new Set(accountList.filter((a) => a.group === 'investment').map((a) => a.id));
+  const balances = getAccountBalances(events, accountList);
+  const liquidIds = new Set(accountList.filter((a) => a.group === 'liquid').map((a) => a.id));
+  const liquidBalance = Object.entries(balances).reduce((sum, [id, b]) => (liquidIds.has(id as AccountId) ? sum + b : sum), 0);
+  const investmentBalance = Object.entries(balances).reduce((sum, [id, b]) => (investmentIds.has(id as AccountId) ? sum + b : sum), 0);
   const netWorth = liquidBalance + investmentBalance;
   const netCashflow = monthlyIncome - monthlyExpense;
   const savingsRate = monthlyIncome > 0 ? Math.round(((monthlyIncome - monthlyExpense) / monthlyIncome) * 100) : 0;
