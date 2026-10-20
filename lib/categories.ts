@@ -24,6 +24,45 @@ export const CUSTOM_CATEGORIES_STORAGE_KEY = 'thelife-custom-categories';
 export const CUSTOM_CATEGORIES_CHANGE_EVENT = 'thelife-custom-categories-change';
 export const VAULT_CUSTOM_CATEGORIES_RECORD_ID = 'vault-custom-categories';
 export const VAULT_CATEGORIES_SALT = 'categories_metadata_v1';
+export const PENDING_CUSTOM_CATEGORIES_KEY = 'thelife-pending-custom-categories';
+
+export const getPendingCustomCategories = (): CustomCategoriesState => {
+  const storage = getStorage();
+  if (!storage) return { expense: [], income: [] };
+  try {
+    const raw = storage.getItem(PENDING_CUSTOM_CATEGORIES_KEY);
+    return raw ? JSON.parse(raw) : { expense: [], income: [] };
+  } catch {
+    return { expense: [], income: [] };
+  }
+};
+
+export const queuePendingCustomCategory = (type: 'income' | 'expense', name: string): void => {
+  const storage = getStorage();
+  if (!storage) return;
+  try {
+    const current = getPendingCustomCategories();
+    if (!current[type].includes(name)) {
+      current[type].push(name);
+      storage.setItem(PENDING_CUSTOM_CATEGORIES_KEY, JSON.stringify(current));
+    }
+  } catch {
+    // Safe fallback
+  }
+};
+
+export const clearPendingCustomCategory = (type: 'income' | 'expense', name: string): void => {
+  const storage = getStorage();
+  if (!storage) return;
+  try {
+    const current = getPendingCustomCategories();
+    current[type] = current[type].filter((x) => x !== name);
+    storage.setItem(PENDING_CUSTOM_CATEGORIES_KEY, JSON.stringify(current));
+  } catch {
+    // Safe fallback
+  }
+};
+
 
 export interface CustomCategoriesState {
   expense: string[];
@@ -171,30 +210,36 @@ export const syncCustomCategoriesWithCloud = async (
 
   try {
     const cloudState = await fetchCloudCustomCategories(client);
-    const mergedExpense = Array.from(new Set([...cloudState.expense, ...localState.expense]));
-    const mergedIncome = Array.from(new Set([...cloudState.income, ...localState.income]));
+    const pending = getPendingCustomCategories();
 
-    const merged: CustomCategoriesState = {
-      expense: mergedExpense,
-      income: mergedIncome,
-    };
+    const cloudHasData = cloudState.expense.length > 0 || cloudState.income.length > 0;
+    if (cloudHasData) {
+      const mergedExpense = Array.from(new Set([...cloudState.expense, ...pending.expense]));
+      const mergedIncome = Array.from(new Set([...cloudState.income, ...pending.income]));
 
-    const hasDiff =
-      merged.expense.length !== localState.expense.length ||
-      merged.income.length !== localState.income.length;
+      const merged: CustomCategoriesState = {
+        expense: mergedExpense,
+        income: mergedIncome,
+      };
 
-    if (hasDiff) {
       writeCustomCategories(merged);
+
+      if (pending.expense.length > 0 || pending.income.length > 0) {
+        const ok = await pushCloudCustomCategories(merged, client);
+        if (ok) {
+          const storage = getStorage();
+          storage?.removeItem(PENDING_CUSTOM_CATEGORIES_KEY);
+        }
+      }
+
+      return merged;
+    } else if (localState.expense.length > 0 || localState.income.length > 0) {
+      await pushCloudCustomCategories(localState, client);
+      return localState;
     }
 
-    const localHasNewExpense = localState.expense.some((c) => !cloudState.expense.includes(c));
-    const localHasNewIncome = localState.income.some((c) => !cloudState.income.includes(c));
-
-    if (localHasNewExpense || localHasNewIncome || ((cloudState.expense.length === 0 && cloudState.income.length === 0) && (merged.expense.length > 0 || merged.income.length > 0))) {
-      await pushCloudCustomCategories(merged, client);
-    }
-
-    return merged;
+    writeCustomCategories({ expense: [], income: [] });
+    return { expense: [], income: [] };
   } catch {
     return localState;
   }

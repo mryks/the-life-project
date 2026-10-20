@@ -38,6 +38,7 @@ export const CUSTOM_ACCOUNTS_STORAGE_KEY = 'thelife-custom-accounts';
 export const CUSTOM_ACCOUNTS_CHANGE_EVENT = 'thelife-custom-accounts-change';
 export const VAULT_CUSTOM_ACCOUNTS_RECORD_ID = 'vault-custom-accounts';
 export const VAULT_ACCOUNTS_SALT = 'accounts_metadata_v1';
+export const PENDING_CUSTOM_ACCOUNTS_KEY = 'thelife-pending-custom-accounts';
 
 /**
  * Fast format check for account slug: 1-32 chars alphanumeric, dash, underscore.
@@ -125,15 +126,58 @@ export const writeCustomAccounts = (customAccounts: Account[]): void => {
   }
 };
 
+export const getPendingCustomAccountIds = (): string[] => {
+  const storage = getStorage();
+  if (!storage) return [];
+  try {
+    const raw = storage.getItem(PENDING_CUSTOM_ACCOUNTS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+};
+
+export const queuePendingCustomAccount = (id: string): void => {
+  const storage = getStorage();
+  if (!storage) return;
+  try {
+    const current = getPendingCustomAccountIds();
+    if (!current.includes(id)) {
+      current.push(id);
+      storage.setItem(PENDING_CUSTOM_ACCOUNTS_KEY, JSON.stringify(current));
+    }
+  } catch {
+    // Safe fallback
+  }
+};
+
+export const clearPendingCustomAccount = (id: string): void => {
+  const storage = getStorage();
+  if (!storage) return;
+  try {
+    const current = getPendingCustomAccountIds();
+    const remaining = current.filter((x) => x !== id);
+    storage.setItem(PENDING_CUSTOM_ACCOUNTS_KEY, JSON.stringify(remaining));
+  } catch {
+    // Safe fallback
+  }
+};
+
+
+interface CloudAccountsPayload {
+  accounts: Account[];
+  deletedIds: string[];
+}
+
 /**
- * Fetches user custom accounts from Supabase vault_security table.
+ * Fetches user custom accounts and deletion tombstones from Supabase vault_security table.
  */
 export const fetchCloudCustomAccounts = async (
   client?: SupabaseClient
-): Promise<Account[]> => {
-  if (!client && !isSupabaseConfigured()) return [];
+): Promise<{ accounts: Account[]; deletedIds: string[] }> => {
+  if (!client && !isSupabaseConfigured()) return { accounts: [], deletedIds: [] };
   const sb = client ?? getSupabaseClient();
-  if (!sb) return [];
+  if (!sb) return { accounts: [], deletedIds: [] };
 
   try {
     const { data, error } = await sb
@@ -142,13 +186,23 @@ export const fetchCloudCustomAccounts = async (
       .eq('id', VAULT_CUSTOM_ACCOUNTS_RECORD_ID)
       .maybeSingle();
 
-    if (error || !data || !data.pin_hash) return [];
+    if (error || !data || !data.pin_hash) return { accounts: [], deletedIds: [] };
 
     const parsed: unknown = JSON.parse(data.pin_hash);
-    if (!Array.isArray(parsed)) return [];
+    let rawAccounts: unknown[] = [];
+    let deletedIds: string[] = [];
+
+    if (Array.isArray(parsed)) {
+      rawAccounts = parsed;
+    } else if (isRecord(parsed) && Array.isArray(parsed.accounts)) {
+      rawAccounts = parsed.accounts;
+      if (Array.isArray(parsed.deletedIds)) {
+        deletedIds = parsed.deletedIds.filter((id): id is string => typeof id === 'string');
+      }
+    }
 
     const validAccounts: Account[] = [];
-    for (const item of parsed) {
+    for (const item of rawAccounts) {
       if (!isRecord(item)) continue;
       if (typeof item.id !== 'string' || !item.id.trim()) continue;
       if (typeof item.name !== 'string' || !item.name.trim()) continue;
@@ -166,18 +220,19 @@ export const fetchCloudCustomAccounts = async (
       });
     }
 
-    return validAccounts;
+    return { accounts: validAccounts, deletedIds };
   } catch {
-    return [];
+    return { accounts: [], deletedIds: [] };
   }
 };
 
 /**
- * Pushes custom accounts to Supabase vault_security table.
+ * Pushes custom accounts and deletion tombstones to Supabase vault_security table.
  */
 export const pushCloudCustomAccounts = async (
   customAccounts: Account[],
-  client?: SupabaseClient
+  client?: SupabaseClient,
+  deletedIds: string[] = []
 ): Promise<boolean> => {
   if (!client && !isSupabaseConfigured()) return false;
   const sb = client ?? getSupabaseClient();
@@ -194,10 +249,15 @@ export const pushCloudCustomAccounts = async (
       isCustom: true,
     }));
 
+    const payload: CloudAccountsPayload = {
+      accounts: sanitized,
+      deletedIds: Array.from(new Set(deletedIds.map((id) => id.trim().toLowerCase()))),
+    };
+
     const { error } = await sb.from('vault_security').upsert({
       id: VAULT_CUSTOM_ACCOUNTS_RECORD_ID,
       pin_salt: VAULT_ACCOUNTS_SALT,
-      pin_hash: JSON.stringify(sanitized),
+      pin_hash: JSON.stringify(payload),
       updated_at: new Date().toISOString(),
     });
 
@@ -209,6 +269,7 @@ export const pushCloudCustomAccounts = async (
 
 /**
  * Bidirectionally synchronizes custom accounts between local storage and cloud.
+ * Resolves by honoring cloud tombstones and giving cloud properties precedence.
  */
 export const syncCustomAccountsWithCloud = async (
   currentLocalAccounts?: Account[],
@@ -218,27 +279,28 @@ export const syncCustomAccountsWithCloud = async (
   if (!client && !isSupabaseConfigured()) return localList;
 
   try {
-    const cloudList = await fetchCloudCustomAccounts(client);
+    const { accounts: cloudList, deletedIds } = await fetchCloudCustomAccounts(client);
+    const tombstoneSet = new Set(deletedIds.map((id) => id.toLowerCase()));
+
     const mergedMap = new Map<string, Account>();
 
-    // 1. Seed cloud accounts
-    for (const acc of cloudList) {
-      mergedMap.set(acc.id.toLowerCase(), acc);
-    }
-
-    let localHasNew = false;
-    // 2. Merge local accounts
+    // 1. Include local accounts that have not been tombstoned
     for (const acc of localList) {
       const key = acc.id.toLowerCase();
-      if (!mergedMap.has(key)) {
+      if (!tombstoneSet.has(key)) {
         mergedMap.set(key, acc);
-        localHasNew = true;
-      } else {
-        const existing = mergedMap.get(key)!;
+      }
+    }
+
+    // 2. Cloud accounts take precedence and add new accounts
+    for (const acc of cloudList) {
+      const key = acc.id.toLowerCase();
+      if (!tombstoneSet.has(key)) {
+        const local = mergedMap.get(key);
         mergedMap.set(key, {
-          ...existing,
+          ...(local || {}),
           ...acc,
-          colorStyle: acc.colorStyle || existing.colorStyle,
+          colorStyle: acc.colorStyle || local?.colorStyle,
         });
       }
     }
@@ -253,9 +315,12 @@ export const syncCustomAccountsWithCloud = async (
       writeCustomAccounts(merged);
     }
 
-    // 4. Push to cloud if local had new accounts
+    // 4. If local had accounts not in cloud (and not tombstoned), push merged list to cloud
+    const cloudKeys = new Set(cloudList.map((a) => a.id.toLowerCase()));
+    const localHasNew = localList.some((a) => !cloudKeys.has(a.id.toLowerCase()) && !tombstoneSet.has(a.id.toLowerCase()));
+
     if (localHasNew || (cloudList.length === 0 && merged.length > 0)) {
-      await pushCloudCustomAccounts(merged, client);
+      await pushCloudCustomAccounts(merged, client, deletedIds);
     }
 
     return merged;

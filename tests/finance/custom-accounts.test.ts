@@ -386,7 +386,7 @@ describe('Custom Accounts Feature', () => {
       };
 
       // @ts-expect-error test mock
-      const accounts = await fetchCloudCustomAccounts(mockSupabase);
+      const { accounts } = await fetchCloudCustomAccounts(mockSupabase);
       expect(accounts.length).toBe(1);
       expect(accounts[0].id).toBe('ovo');
       expect(accounts[0].fullName).toBe('OVO');
@@ -509,9 +509,10 @@ describe('Custom Accounts Feature', () => {
       expect(merged.map((a) => a.id).sort()).toEqual(['blu-bca', 'ovo']);
 
       // Cloud was pushed the merged result
-      expect(Array.isArray(upsertPayload)).toBe(true);
       // @ts-expect-error test inspection
-      expect(upsertPayload.length).toBe(2);
+      expect(Array.isArray(upsertPayload.accounts)).toBe(true);
+      // @ts-expect-error test inspection
+      expect(upsertPayload.accounts.length).toBe(2);
     });
   });
 });
