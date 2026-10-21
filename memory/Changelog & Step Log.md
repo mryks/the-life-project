@@ -6,6 +6,25 @@
 
 ## 📜 Sprint & Evolution Log
 
+### Langkah 52: Custom Categories Ordering before Other/Others & Conditional Delete Icon
+- **User Directives**:
+  - *"Sekarang saya mau minta mengenai kategori baru di income maupun expense. Memang bisa buat kategori baru, tapi saya mau kategori baru selalu ditaro di akhir tapi sebelum other untuk expense dan sebelum others untuk income. Selain itu saya juga mau tombol ikon untuk menghapus kategori hanya tersedia bila kategori tersebut belum punya transaksi. Kalau sudah ada transaksi, tidak usah tampikan opsi untuk hapus itu. Tanyakan yang perlu ditanyakan"*
+  - **Clarification Decision via `ask_question`**: User selected: *"Urutan Kronologis (kategori baru yang baru dibuat selalu diletakkan paling akhir di daftar custom, tepat sebelum Other/Others)"*.
+- **Architecture & Implementation**:
+  1. **`lib/categories.ts`**:
+     - Updated `getAllExpenseCategories`: Standard defaults (excluding `'Other'`) $\rightarrow$ Custom categories (chronologically ordered from state and event discovery) $\rightarrow$ `'Other'` strictly at the end.
+     - Updated `getAllIncomeCategories`: Standard defaults (excluding `'Others'`) $\rightarrow$ Custom categories (chronologically ordered from state and event discovery) $\rightarrow$ `'Others'` strictly at the end.
+  2. **`app/finance/page.tsx`**:
+     - Updated category pill rendering in Transaction Modal:
+       `canDelete = !isDefault && !isCategoryInUse(cat, formType, events)`
+     - If custom category has $\ge 1$ transactions, the `<X>` delete button is completely suppressed. The pill renders cleanly with balanced padding without delete option.
+     - If custom category has 0 transactions, the `<X>` delete button is displayed and allows clean deletion.
+- **Verification**:
+  - **Unit Tests**: Added comprehensive test cases in `tests/finance/categories.test.ts` verifying ordering before `Other`/`Others`, chronological custom order, and delete icon eligibility (440/440 tests passing across 25 suites, 100%).
+  - **Type Checking & Linting**: `npx tsc --noEmit` (0 errors), ESLint (0 errors, 0 warnings).
+  - **Production Build**: `npm run build` compiled 100% cleanly.
+  - **Visual Verification**: Captured Puppeteer screenshots in mobile viewport (`1-expense-categories-ordered.png`, `2-income-categories-ordered.png`, `3-unused-category-with-delete-button.png`).
+
 ### Langkah 51: Multi-Device Cloud Sync for Custom Accounts & Orphan Poisoning Fix
 - **User Directives**:
   - *"saya coba tambahkan akun berhasil di pc, tetapi pas saya buka di browser lain, akunnya gaada. demikian pula di hp tidak muncul akun barunya. mengapa hal seperti ini kembali terjadi? perbaiki ya"*

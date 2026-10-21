@@ -3026,6 +3026,8 @@ export default function FinancePage() {
                     {activeCategories.map((cat) => {
                       const isDefault = isDefaultCategory(cat, formType);
                       const isSelected = selectedCategory === cat;
+                      const inUse = isCategoryInUse(cat, formType, events);
+                      const canDelete = !isDefault && !inUse;
                       return (
                         <div
                           key={cat}
@@ -3042,11 +3044,11 @@ export default function FinancePage() {
                               setFormError(null);
                               setCategoryNotice(null);
                             }}
-                            className="px-3 py-1 cursor-pointer truncate max-w-[160px]"
+                            className={`px-3 py-1 cursor-pointer truncate max-w-[160px] ${canDelete ? 'pr-1.5' : ''}`}
                           >
                             {cat}
                           </button>
-                          {!isDefault && (
+                          {canDelete && (
                             <button
                               type="button"
                               title={`Delete category "${cat}"`}

@@ -570,4 +570,112 @@ describe('Custom Categories: Creation, Validation, Deletion & Accounting Integri
       expect(isIncomeCategory('Freelance')).toBe(true);
     });
   });
+
+  // =========================================================================
+  // 6. Category Ordering Invariants & Delete Icon Guardrail
+  // =========================================================================
+  describe('6. Category Ordering Invariants & Delete Icon Guardrail', () => {
+    it('custom expense categories are positioned chronologically AFTER defaults and strictly BEFORE "Other"', () => {
+      // Add multiple custom expense categories
+      addCustomCategory('expense', 'Subscriptions');
+      addCustomCategory('expense', 'Gym');
+      addCustomCategory('expense', 'Books');
+
+      const customState = readCustomCategories();
+      const allExpense = getAllExpenseCategories(customState.expense, []);
+
+      // 1. "Other" must be strictly the LAST element
+      expect(allExpense[allExpense.length - 1]).toBe('Other');
+
+      // 2. Custom categories must precede "Other"
+      const otherIndex = allExpense.indexOf('Other');
+      const subIndex = allExpense.indexOf('Subscriptions');
+      const gymIndex = allExpense.indexOf('Gym');
+      const booksIndex = allExpense.indexOf('Books');
+
+      expect(subIndex).toBeLessThan(otherIndex);
+      expect(gymIndex).toBeLessThan(otherIndex);
+      expect(booksIndex).toBeLessThan(otherIndex);
+
+      // 3. Chronological addition order is preserved: Subscriptions -> Gym -> Books
+      expect(subIndex).toBeLessThan(gymIndex);
+      expect(gymIndex).toBeLessThan(booksIndex);
+
+      // 4. Standard default categories precede all custom categories
+      const foodIndex = allExpense.indexOf('Food & Drinks');
+      const medicalIndex = allExpense.indexOf('Medical');
+      expect(foodIndex).toBeLessThan(subIndex);
+      expect(medicalIndex).toBeLessThan(subIndex);
+    });
+
+    it('custom income categories are positioned chronologically AFTER defaults and strictly BEFORE "Others"', () => {
+      // Add multiple custom income categories
+      addCustomCategory('income', 'Freelance');
+      addCustomCategory('income', 'Investments Dividend');
+      addCustomCategory('income', 'Side Project');
+
+      const customState = readCustomCategories();
+      const allIncome = getAllIncomeCategories(customState.income, []);
+
+      // 1. "Others" must be strictly the LAST element
+      expect(allIncome[allIncome.length - 1]).toBe('Others');
+
+      // 2. Custom categories must precede "Others"
+      const othersIndex = allIncome.indexOf('Others');
+      const freelanceIndex = allIncome.indexOf('Freelance');
+      const divIndex = allIncome.indexOf('Investments Dividend');
+      const sideIndex = allIncome.indexOf('Side Project');
+
+      expect(freelanceIndex).toBeLessThan(othersIndex);
+      expect(divIndex).toBeLessThan(othersIndex);
+      expect(sideIndex).toBeLessThan(othersIndex);
+
+      // 3. Chronological addition order is preserved: Freelance -> Investments Dividend -> Side Project
+      expect(freelanceIndex).toBeLessThan(divIndex);
+      expect(divIndex).toBeLessThan(sideIndex);
+
+      // 4. Standard default categories precede all custom categories
+      const salaryIndex = allIncome.indexOf('Salary');
+      const cashbackIndex = allIncome.indexOf('Cashback');
+      expect(salaryIndex).toBeLessThan(freelanceIndex);
+      expect(cashbackIndex).toBeLessThan(freelanceIndex);
+    });
+
+    it('event-discovered custom categories from cloud sync also position before "Other"/"Others"', () => {
+      const customExpense = ['Streaming'];
+      const events: FinancialEvent[] = [
+        createExpense({ category: 'Course' }),
+        createIncome({ category: 'Bonus' }),
+      ];
+
+      const allExpense = getAllExpenseCategories(customExpense, events);
+      expect(allExpense[allExpense.length - 1]).toBe('Other');
+      expect(allExpense.indexOf('Course')).toBeLessThan(allExpense.indexOf('Other'));
+
+      const allIncome = getAllIncomeCategories([], events);
+      expect(allIncome[allIncome.length - 1]).toBe('Others');
+      expect(allIncome.indexOf('Bonus')).toBeLessThan(allIncome.indexOf('Others'));
+    });
+
+    it('delete icon eligibility (canDelete = !isDefault && !inUse)', () => {
+      addCustomCategory('expense', 'UnusedCategory');
+      addCustomCategory('expense', 'UsedCategory');
+
+      const events: FinancialEvent[] = [
+        createExpense({ category: 'UsedCategory' }),
+      ];
+
+      // Defaults can never be deleted
+      expect(!isDefaultCategory('Food & Drinks', 'expense') && !isCategoryInUse('Food & Drinks', 'expense', events)).toBe(false);
+      expect(!isDefaultCategory('Other', 'expense') && !isCategoryInUse('Other', 'expense', events)).toBe(false);
+
+      // Used custom category has delete button SUPPRESSED
+      const usedCanDelete = !isDefaultCategory('UsedCategory', 'expense') && !isCategoryInUse('UsedCategory', 'expense', events);
+      expect(usedCanDelete).toBe(false);
+
+      // Unused custom category HAS delete button ENABLED
+      const unusedCanDelete = !isDefaultCategory('UnusedCategory', 'expense') && !isCategoryInUse('UnusedCategory', 'expense', events);
+      expect(unusedCanDelete).toBe(true);
+    });
+  });
 });

@@ -312,30 +312,54 @@ export const getAllExpenseCategories = (
   customExpense: string[] = [],
   events: FinancialEvent[] = []
 ): string[] => {
-  const combined = [
-    ...DEFAULT_EXPENSE_CATEGORIES,
-    ...customExpense,
-    ...events
-      .filter((e): e is Extract<FinancialEvent, { type: 'expense' }> => e.type === 'expense')
-      .map((e) => e.category),
-  ];
+  const baseDefaults = DEFAULT_EXPENSE_CATEGORIES.filter((c) => c !== 'Other');
+  const defaultSet = new Set<string>(DEFAULT_EXPENSE_CATEGORIES);
+  const customList: string[] = [];
 
-  return Array.from(new Set(combined.map((c) => c.trim()).filter((c) => c.length > 0)));
+  for (const cat of customExpense) {
+    const trimmed = cat.trim();
+    if (trimmed && !defaultSet.has(trimmed) && !customList.includes(trimmed)) {
+      customList.push(trimmed);
+    }
+  }
+
+  for (const e of events) {
+    if (e.type === 'expense' && e.category) {
+      const trimmed = e.category.trim();
+      if (trimmed && !defaultSet.has(trimmed) && !customList.includes(trimmed)) {
+        customList.push(trimmed);
+      }
+    }
+  }
+
+  return [...baseDefaults, ...customList, 'Other'];
 };
 
 export const getAllIncomeCategories = (
   customIncome: string[] = [],
   events: FinancialEvent[] = []
 ): string[] => {
-  const combined = [
-    ...DEFAULT_INCOME_CATEGORIES,
-    ...customIncome,
-    ...events
-      .filter((e): e is Extract<FinancialEvent, { type: 'income' }> => e.type === 'income')
-      .map((e) => e.category),
-  ];
+  const baseDefaults = DEFAULT_INCOME_CATEGORIES.filter((c) => c !== 'Others');
+  const defaultSet = new Set<string>(DEFAULT_INCOME_CATEGORIES);
+  const customList: string[] = [];
 
-  return Array.from(new Set(combined.map((c) => c.trim()).filter((c) => c.length > 0)));
+  for (const cat of customIncome) {
+    const trimmed = cat.trim();
+    if (trimmed && !defaultSet.has(trimmed) && !customList.includes(trimmed)) {
+      customList.push(trimmed);
+    }
+  }
+
+  for (const e of events) {
+    if (e.type === 'income' && e.category) {
+      const trimmed = e.category.trim();
+      if (trimmed && !defaultSet.has(trimmed) && !customList.includes(trimmed)) {
+        customList.push(trimmed);
+      }
+    }
+  }
+
+  return [...baseDefaults, ...customList, 'Others'];
 };
 
 export const addCustomCategory = (
