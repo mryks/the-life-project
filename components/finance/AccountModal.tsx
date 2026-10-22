@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import type { AccountGroup } from "@/lib/types";
 import { X, Check, Wallet, TrendingUp, Sparkles, Pipette, AlertCircle } from "lucide-react";
 import {
@@ -109,6 +109,9 @@ function AccountModalInner({
   const [openingBalanceStr, setOpeningBalanceStr] = useState("");
   const [error, setError] = useState<string | null>(null);
 
+  const modalScrollRef = useRef<HTMLDivElement>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+
   const activeColorStyle =
     colorMode === "solid"
       ? solidColor
@@ -155,21 +158,27 @@ function AccountModalInner({
 
     if (!cleanName) {
       setError("Account name is required.");
+      modalScrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+      nameInputRef.current?.focus();
       return;
     }
 
     if (cleanName.length > 30) {
       setError("Account name cannot exceed 30 characters.");
+      modalScrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+      nameInputRef.current?.focus();
       return;
     }
 
     if (!cleanCode) {
       setError("Short code is required.");
+      modalScrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
 
     if (cleanCode.length > 4) {
       setError("Short code cannot exceed 4 characters.");
+      modalScrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
 
@@ -179,6 +188,8 @@ function AccountModalInner({
 
     if (isDuplicate) {
       setError(`An account named "${cleanName}" already exists.`);
+      modalScrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+      nameInputRef.current?.focus();
       return;
     }
 
@@ -207,6 +218,7 @@ function AccountModalInner({
       onTouchStart={dismissKeyboard}
     >
       <div
+        ref={modalScrollRef}
         className="relative w-full max-w-lg bg-[#FBF9F4] rounded-3xl p-6 shadow-2xl border-2 border-stone-200 border-b-4 border-b-stone-300 max-h-[92vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
@@ -323,6 +335,7 @@ function AccountModalInner({
                 ACCOUNT NAME
               </label>
               <input
+                ref={nameInputRef}
                 type="text"
                 autoFocus
                 autoCapitalize="words"
@@ -623,20 +636,29 @@ function AccountModalInner({
             </p>
           </div>
 
-          {/* Footer Actions */}
-          <div className="sticky bottom-0 -mx-6 px-6 pt-3 pb-2 -mb-2 bg-[#FBF9F4]/95 backdrop-blur-xs border-t border-stone-200/90 flex items-center justify-end gap-3 z-10">
+          {/* Bottom Error Alert (ensures user always sees validation error without scrolling) */}
+          {error && (
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded-2xl flex items-center gap-2.5 text-rose-700 text-xs font-semibold">
+              <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-500" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {/* Footer Actions (Natural document flow - NOT sticky/frozen) */}
+          <div className="flex gap-2.5 pt-4 mt-2 border-t border-stone-200/80">
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 rounded-xl font-bold text-xs cursor-pointer select-none transition-all duration-150 border-2 border-stone-200 border-b-4 border-b-stone-300 bg-white text-stone-700 hover:bg-stone-50 active:translate-y-0.5 active:border-b-2"
+              className="btn-tactile-neutral flex-1 py-3 text-sm cursor-pointer select-none"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-6 py-2.5 rounded-xl font-black text-xs cursor-pointer select-none transition-all duration-150 border-2 border-stone-800 border-b-4 border-b-stone-950 bg-stone-900 text-white hover:bg-stone-800 active:translate-y-0.5 active:border-b-2 shadow-sm"
+              className="btn-tactile-dark flex-[2] py-3 text-sm cursor-pointer select-none flex items-center justify-center gap-2"
             >
-              Create Account
+              <Check className="w-4 h-4 stroke-[3]" />
+              <span>Create Account</span>
             </button>
           </div>
         </form>
