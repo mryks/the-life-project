@@ -905,3 +905,43 @@
    - 25 test suites, 436/436 tests passing (100%).
    - TypeScript strict 0 errors, ESLint 0 errors, 0 warnings.
    - Production build (`npm run build`) verified cleanly.
+
+### 🚀 Langkah 52: Category Ordering (Before 'Other' / 'Others') & Conditional Delete Icon for Unused Categories
+**Date:** 2026-10-21
+**Changes Implemented:**
+1. **Category Ordering Law:**
+   - Custom categories in `getAllExpenseCategories` are positioned at the end of custom items but strictly *before* `'Other'`.
+   - Custom categories in `getAllIncomeCategories` are positioned at the end of custom items but strictly *before* `'Others'`.
+2. **Conditional Delete Icon:**
+   - Delete button (`X`) on custom category pills only renders if `!isCategoryInUse(category, type, events)`. If used in 1+ transactions, the delete option is completely hidden.
+3. **Verification:**
+   - 25 test suites, 440/440 tests passing (100%), TypeScript 0 errors, ESLint 0 errors.
+
+### 🚀 Langkah 53: Account Creation Color UX (beUI ColorSelector & ColorPicker with Solid & Dual-Stop Gradient Support)
+**Date:** 2026-10-22
+**Context & User Request:**
+- Upgrade Account Creation color selection in `components/finance/AccountModal.tsx`:
+  - Default colors: `@beui/color-selector` (`ColorSelector`, `ColorSelectorList`, `ColorSelectorItem`).
+  - Custom colors: `@beui/color-picker` (`ColorPicker`, `ColorPickerArea`, `ColorPickerHue`, `ColorPickerSwatch`, `ColorPickerHexInput`, `ColorPickerEyeDropper`).
+  - Maintain gradient support ("Tetep ada gradient ya") with dual-stop customization (`From` & `To`).
+**Changes Implemented:**
+1. **beUI Components Installed & Tailored:**
+   - Installed `components/motion/color-selector.tsx` and `components/motion/color-picker.tsx` with dependencies (`motion`, `lib/ease.ts`, `lib/hooks/use-dismiss.ts`, `lib/presence-gate.tsx`, `lib/touch.ts`).
+   - Enhanced `ColorSelectorItem` to support both solid colors and `linear-gradient(...)` strings with animated selection ring hop (`arc` physics).
+   - Fixed empty-interface and SSR lazy initialization in `color-picker.tsx` for zero ESLint warnings.
+   - Added `@theme` mapping in `app/globals.css` for clean design system tokens.
+2. **Account Modal UX Overhaul (`components/finance/AccountModal.tsx`):**
+   - **Solid Mode:**
+     * Default Colors: `ColorSelector` with 8 curated presets (Blue, Emerald, Indigo, Violet, Rose, Amber, Teal, Slate).
+     * Custom Color: `ColorPicker` with interactive 2D saturation/value canvas, pendulum-tilt loupe, hue slider, swatch, and `#HEX` input with error shake animation and eye-dropper pipette.
+   - **Gradient Mode:**
+     * Default Gradients: `ColorSelector` with 8 two-color gradient presets (Ocean, Emerald, Royal, Sunset, Berry, Teal Cyan, Peach Rose, Midnight).
+     * Custom Gradient Stops: Dual tactile switcher `From` and `To` allowing independent customization of both stops using `ColorSelector` quick swatches + `ColorPicker` 2D spectrum & hex input.
+   - **Live Badge Preview:**
+     * Real-time 48px tactile circle preview updating instantly with shortcode, account name, classification, and active color/gradient.
+3. **Verification:**
+   - 25 test suites, **440/440 tests passing (100%)**.
+   - TypeScript `npx tsc --noEmit`: 0 errors.
+   - ESLint `npm run lint`: 0 errors, 0 warnings.
+   - Production build `npm run build`: 100% green.
+   - Mobile E2E visual inspection: captured screenshots across Gradient and Solid modes, verified arc hop animations, bi-directional color synchronization, and responsive layout.

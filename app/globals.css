@@ -1,5 +1,16 @@
 @import "tailwindcss";
 
+@theme {
+  --color-background: #FBF9F4;
+  --color-foreground: #1C1917;
+  --color-card: #FFFFFF;
+  --color-card-foreground: #1C1917;
+  --color-border: #E7E4DC;
+  --color-muted: #F5F3EF;
+  --color-muted-foreground: #78716C;
+  --color-ring: #1C1917;
+}
+
 :root {
   --background: #FBF9F4;
   --foreground: #1C1917;

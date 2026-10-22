@@ -2,7 +2,20 @@
 
 import { useState } from "react";
 import type { AccountGroup } from "@/lib/types";
-import { X, Check, Wallet, TrendingUp, Sparkles, AlertCircle } from "lucide-react";
+import { X, Check, Wallet, TrendingUp, Sparkles, Pipette, AlertCircle } from "lucide-react";
+import {
+  ColorSelector,
+  ColorSelectorList,
+  ColorSelectorItem,
+} from "@/components/motion/color-selector";
+import {
+  ColorPicker,
+  ColorPickerArea,
+  ColorPickerHue,
+  ColorPickerSwatch,
+  ColorPickerHexInput,
+  ColorPickerEyeDropper,
+} from "@/components/motion/color-picker";
 
 interface AccountModalProps {
   isOpen: boolean;
@@ -86,10 +99,11 @@ function AccountModalInner({
   const [hasManuallyEditedShortCode, setHasManuallyEditedShortCode] = useState(false);
 
   // Color Mode: 'solid' | 'gradient'
-  const [colorMode, setColorMode] = useState<"solid" | "gradient">("gradient");
+  const [colorMode, setColorMode] = useState<"solid" | "gradient">("solid");
   const [solidColor, setSolidColor] = useState("#2563eb");
   const [gradColor1, setGradColor1] = useState("#0ea5e9");
   const [gradColor2, setGradColor2] = useState("#2563eb");
+  const [activeGradStop, setActiveGradStop] = useState<1 | 2>(1);
 
   // Opening Balance
   const [openingBalanceStr, setOpeningBalanceStr] = useState("");
@@ -99,6 +113,13 @@ function AccountModalInner({
     colorMode === "solid"
       ? solidColor
       : `linear-gradient(135deg, ${gradColor1}, ${gradColor2})`;
+
+  const activeGradientPresetStyle =
+    GRADIENT_PRESETS.find(
+      (p) =>
+        p.color1.toLowerCase() === gradColor1.toLowerCase() &&
+        p.color2.toLowerCase() === gradColor2.toLowerCase()
+    )?.style ?? "";
 
   const handleFullNameChange = (val: string) => {
     setFullName(val);
@@ -386,46 +407,57 @@ function AccountModalInner({
 
             {/* Solid Mode Controls */}
             {colorMode === "solid" && (
-              <div className="space-y-3 bg-stone-50/80 p-3 rounded-2xl border border-stone-200/80">
-                <div className="flex items-center gap-3">
-                  <div className="relative w-9 h-9 rounded-xl border border-stone-300 overflow-hidden shadow-2xs flex-shrink-0 cursor-pointer">
-                    <input
-                      type="color"
-                      value={solidColor}
-                      onChange={(e) => setSolidColor(e.target.value)}
-                      className="absolute -inset-2 w-14 h-14 cursor-pointer"
-                    />
+              <div className="space-y-4 bg-stone-50/80 p-3.5 rounded-2xl border border-stone-200/80">
+                {/* Default Colors via @beui/color-selector */}
+                <div>
+                  <div className="text-[10px] font-bold text-stone-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                    <span>Default Colors</span>
                   </div>
-                  <input
-                    type="text"
-                    value={solidColor}
-                    onChange={(e) => setSolidColor(e.target.value)}
-                    placeholder="#2563EB"
-                    className="flex-1 px-3 py-1.5 bg-white border border-stone-300 rounded-xl text-stone-800 font-mono-numbers font-bold text-xs uppercase focus:outline-none focus:ring-1 focus:ring-stone-900"
-                  />
+                  <ColorSelector
+                    value={solidColor.toLowerCase()}
+                    onValueChange={(val) => setSolidColor(val)}
+                  >
+                    <ColorSelectorList className="gap-2.5 p-0.5 justify-start">
+                      {SOLID_PRESETS.map((p) => (
+                        <ColorSelectorItem
+                          key={p.color}
+                          value={p.color.toLowerCase()}
+                          color={p.color}
+                          label={p.name}
+                        />
+                      ))}
+                    </ColorSelectorList>
+                  </ColorSelector>
                 </div>
 
-                {/* Presets */}
-                <div>
-                  <div className="text-[10px] font-bold text-stone-500 uppercase tracking-wider mb-1.5 flex items-center gap-1">
-                    <Sparkles className="w-3 h-3 text-amber-500" />
-                    <span>Quick Color Presets</span>
+                {/* Custom Color via @beui/color-picker */}
+                <div className="pt-3 border-t border-stone-200/60">
+                  <div className="text-[10px] font-bold text-stone-500 uppercase tracking-wider mb-2 flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <Pipette className="w-3.5 h-3.5 text-stone-600" />
+                      <span>Custom Color Picker</span>
+                    </div>
+                    <span className="font-mono-numbers text-[11px] font-bold text-stone-600 uppercase">
+                      {solidColor}
+                    </span>
                   </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {SOLID_PRESETS.map((p) => (
-                      <button
-                        key={p.name}
-                        type="button"
-                        onClick={() => setSolidColor(p.color)}
-                        className={`w-7 h-7 rounded-lg border-2 transition-transform cursor-pointer ${
-                          solidColor.toLowerCase() === p.color.toLowerCase()
-                            ? "border-stone-900 scale-110 shadow-xs"
-                            : "border-transparent hover:scale-105"
-                        }`}
-                        style={{ backgroundColor: p.color }}
-                        title={p.name}
-                      />
-                    ))}
+
+                  <div className="bg-white p-3 rounded-2xl border border-stone-200 shadow-2xs">
+                    <ColorPicker
+                      value={solidColor}
+                      onValueChange={(val) => setSolidColor(val)}
+                      alpha={false}
+                      className="w-full max-w-none gap-3"
+                    >
+                      <ColorPickerArea className="h-32 rounded-xl" />
+                      <ColorPickerHue />
+                      <div className="flex items-center gap-2 pt-1">
+                        <ColorPickerSwatch className="size-9 rounded-xl" />
+                        <ColorPickerHexInput className="flex-1" />
+                        <ColorPickerEyeDropper />
+                      </div>
+                    </ColorPicker>
                   </div>
                 </div>
               </div>
@@ -433,75 +465,135 @@ function AccountModalInner({
 
             {/* Gradient Mode Controls */}
             {colorMode === "gradient" && (
-              <div className="space-y-3 bg-stone-50/80 p-3 rounded-2xl border border-stone-200/80">
-                <div className="grid grid-cols-2 gap-3">
-                  {/* From Color */}
-                  <div>
-                    <label className="block text-[10px] font-bold text-stone-500 uppercase tracking-wider mb-1">
-                      COLOR 1 (FROM)
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <div className="relative w-8 h-8 rounded-lg border border-stone-300 overflow-hidden shadow-2xs flex-shrink-0 cursor-pointer">
-                        <input
-                          type="color"
-                          value={gradColor1}
-                          onChange={(e) => setGradColor1(e.target.value)}
-                          className="absolute -inset-2 w-12 h-12 cursor-pointer"
-                        />
-                      </div>
-                      <input
-                        type="text"
-                        value={gradColor1}
-                        onChange={(e) => setGradColor1(e.target.value)}
-                        className="w-full px-2 py-1.5 bg-white border border-stone-300 rounded-lg text-stone-800 font-mono-numbers font-bold text-[11px] uppercase focus:outline-none focus:ring-1 focus:ring-stone-900"
-                      />
-                    </div>
+              <div className="space-y-4 bg-stone-50/80 p-3.5 rounded-2xl border border-stone-200/80">
+                {/* Default Gradient Presets via @beui/color-selector */}
+                <div>
+                  <div className="text-[10px] font-bold text-stone-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                    <span>Default Gradient Presets</span>
                   </div>
-
-                  {/* To Color */}
-                  <div>
-                    <label className="block text-[10px] font-bold text-stone-500 uppercase tracking-wider mb-1">
-                      COLOR 2 (TO)
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <div className="relative w-8 h-8 rounded-lg border border-stone-300 overflow-hidden shadow-2xs flex-shrink-0 cursor-pointer">
-                        <input
-                          type="color"
-                          value={gradColor2}
-                          onChange={(e) => setGradColor2(e.target.value)}
-                          className="absolute -inset-2 w-12 h-12 cursor-pointer"
+                  <ColorSelector
+                    value={activeGradientPresetStyle}
+                    onValueChange={(styleVal) => {
+                      const preset = GRADIENT_PRESETS.find((p) => p.style === styleVal);
+                      if (preset) {
+                        setGradColor1(preset.color1);
+                        setGradColor2(preset.color2);
+                      }
+                    }}
+                  >
+                    <ColorSelectorList className="gap-2.5 p-0.5 justify-start">
+                      {GRADIENT_PRESETS.map((p) => (
+                        <ColorSelectorItem
+                          key={p.name}
+                          value={p.style}
+                          color={p.style}
+                          label={p.name}
                         />
-                      </div>
-                      <input
-                        type="text"
-                        value={gradColor2}
-                        onChange={(e) => setGradColor2(e.target.value)}
-                        className="w-full px-2 py-1.5 bg-white border border-stone-300 rounded-lg text-stone-800 font-mono-numbers font-bold text-[11px] uppercase focus:outline-none focus:ring-1 focus:ring-stone-900"
-                      />
-                    </div>
-                  </div>
+                      ))}
+                    </ColorSelectorList>
+                  </ColorSelector>
                 </div>
 
-                {/* Presets */}
-                <div>
-                  <div className="text-[10px] font-bold text-stone-500 uppercase tracking-wider mb-1.5 flex items-center gap-1">
-                    <Sparkles className="w-3 h-3 text-amber-500" />
-                    <span>Quick Gradient Presets</span>
+                {/* Custom Gradient Dual-Stop Controls */}
+                <div className="pt-3 border-t border-stone-200/60">
+                  <div className="text-[10px] font-bold text-stone-500 uppercase tracking-wider mb-2 flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <Pipette className="w-3.5 h-3.5 text-stone-600" />
+                      <span>Customize Gradient Stops</span>
+                    </div>
                   </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {GRADIENT_PRESETS.map((p) => (
-                      <button
-                        key={p.name}
-                        type="button"
-                        onClick={() => {
-                          setGradColor1(p.color1);
-                          setGradColor2(p.color2);
-                        }}
-                        className="w-7 h-7 rounded-lg border border-stone-300/80 transition-transform cursor-pointer hover:scale-105 shadow-2xs"
-                        style={{ background: p.style }}
-                        title={p.name}
-                      />
-                    ))}
+
+                  {/* Stop Switcher */}
+                  <div className="grid grid-cols-2 gap-2 mb-3">
+                    <button
+                      type="button"
+                      onClick={() => setActiveGradStop(1)}
+                      className={`p-2.5 rounded-xl border-2 text-left transition-all cursor-pointer flex items-center justify-between ${
+                        activeGradStop === 1
+                          ? "bg-white border-stone-900 shadow-xs"
+                          : "bg-stone-100/80 border-stone-200 hover:bg-white text-stone-600"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span
+                          className="w-4 h-4 rounded-full border border-black/15 shadow-2xs flex-shrink-0"
+                          style={{ backgroundColor: gradColor1 }}
+                        />
+                        <span className="text-xs font-bold text-stone-900">From</span>
+                      </div>
+                      <span className="font-mono-numbers text-[11px] font-bold text-stone-600 uppercase flex-shrink-0">
+                        {gradColor1}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setActiveGradStop(2)}
+                      className={`p-2.5 rounded-xl border-2 text-left transition-all cursor-pointer flex items-center justify-between ${
+                        activeGradStop === 2
+                          ? "bg-white border-stone-900 shadow-xs"
+                          : "bg-stone-100/80 border-stone-200 hover:bg-white text-stone-600"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span
+                          className="w-4 h-4 rounded-full border border-black/15 shadow-2xs flex-shrink-0"
+                          style={{ backgroundColor: gradColor2 }}
+                        />
+                        <span className="text-xs font-bold text-stone-900">To</span>
+                      </div>
+                      <span className="font-mono-numbers text-[11px] font-bold text-stone-600 uppercase flex-shrink-0">
+                        {gradColor2}
+                      </span>
+                    </button>
+                  </div>
+
+                  {/* Default color presets for the active stop */}
+                  <div className="mb-3">
+                    <div className="text-[10px] font-bold text-stone-500 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                      <span>Quick Colors for {activeGradStop === 1 ? "Color 1 (From)" : "Color 2 (To)"}</span>
+                    </div>
+                    <ColorSelector
+                      value={(activeGradStop === 1 ? gradColor1 : gradColor2).toLowerCase()}
+                      onValueChange={(val) => {
+                        if (activeGradStop === 1) setGradColor1(val);
+                        else setGradColor2(val);
+                      }}
+                    >
+                      <ColorSelectorList className="gap-2.5 p-0.5 justify-start">
+                        {SOLID_PRESETS.map((p) => (
+                          <ColorSelectorItem
+                            key={p.color}
+                            value={p.color.toLowerCase()}
+                            color={p.color}
+                            label={p.name}
+                          />
+                        ))}
+                      </ColorSelectorList>
+                    </ColorSelector>
+                  </div>
+
+                  {/* Custom ColorPicker for the active stop */}
+                  <div className="bg-white p-3 rounded-2xl border border-stone-200 shadow-2xs">
+                    <ColorPicker
+                      key={`grad-picker-${activeGradStop}`}
+                      value={activeGradStop === 1 ? gradColor1 : gradColor2}
+                      onValueChange={(val) => {
+                        if (activeGradStop === 1) setGradColor1(val);
+                        else setGradColor2(val);
+                      }}
+                      alpha={false}
+                      className="w-full max-w-none gap-3"
+                    >
+                      <ColorPickerArea className="h-32 rounded-xl" />
+                      <ColorPickerHue />
+                      <div className="flex items-center gap-2 pt-1">
+                        <ColorPickerSwatch className="size-9 rounded-xl" />
+                        <ColorPickerHexInput className="flex-1" />
+                        <ColorPickerEyeDropper />
+                      </div>
+                    </ColorPicker>
                   </div>
                 </div>
               </div>
@@ -532,7 +624,7 @@ function AccountModalInner({
           </div>
 
           {/* Footer Actions */}
-          <div className="sticky bottom-0 bg-[#FBF9F4]/95 backdrop-blur-xs pt-3 pb-1 border-t border-stone-200 flex items-center justify-end gap-3 z-10">
+          <div className="sticky bottom-0 -mx-6 px-6 pt-3 pb-2 -mb-2 bg-[#FBF9F4]/95 backdrop-blur-xs border-t border-stone-200/90 flex items-center justify-end gap-3 z-10">
             <button
               type="button"
               onClick={onClose}
