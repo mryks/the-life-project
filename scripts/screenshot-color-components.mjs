@@ -100,6 +100,19 @@ async function main() {
     await page.screenshot({ path: shot4 });
     console.log(`Saved screenshot 4: ${shot4}`);
 
+    // Scroll modal all the way to the bottom to verify the natural flow buttons
+    console.log('Scrolling to bottom of modal...');
+    await page.evaluate(() => {
+      const modal = document.querySelector('.overflow-y-auto');
+      if (modal) modal.scrollTop = modal.scrollHeight;
+    });
+    await new Promise((r) => setTimeout(r, 600));
+
+    // Screenshot 5: Natural Flow Footer Buttons (Cancel & Create Account)
+    const shot5 = path.join(ARTIFACT_DIR, '5-account-modal-natural-footer.png');
+    await page.screenshot({ path: shot5 });
+    console.log(`Saved screenshot 5: ${shot5}`);
+
     console.log('All screenshots captured successfully!');
   } finally {
     await browser.close();
