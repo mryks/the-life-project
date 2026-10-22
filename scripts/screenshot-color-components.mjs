@@ -21,8 +21,9 @@ async function main() {
       hasTouch: true,
     });
 
-    console.log('Navigating to http://localhost:3000/finance ...');
-    await page.goto('http://localhost:3000/finance', { waitUntil: 'networkidle2', timeout: 30000 });
+    const targetUrl = process.argv[2] || 'https://the-life-project-os.vercel.app/finance';
+    console.log(`Navigating to ${targetUrl} ...`);
+    await page.goto(targetUrl, { waitUntil: 'networkidle2', timeout: 30000 });
 
     // Unlock session if lockscreen is shown
     await page.evaluate(() => {
