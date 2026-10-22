@@ -8,8 +8,8 @@
 ## 📌 Current Status (At a Glance)
 - **Active Domain:** Personal Finance OS (daily expense tracker & financial dashboard).
 - **Git Branch:** `finance-foundation` | **Production:** https://the-life-project-os.vercel.app/finance
-- **Health:** 25 test suites, **440/440 tests passing (100%)**, TypeScript strict 0 errors, ESLint clean (0 errors, 0 warnings).
-- **Latest Completed Sprint:** **Langkah 53** (Account Creation Color UX: beUI ColorSelector for Presets & ColorPicker for Custom with Solid & Dual-Stop Gradient support).
+- **Health:** 25 test suites, **444/444 tests passing (100%)**, TypeScript strict 0 errors, ESLint clean (0 errors, 0 warnings).
+- **Latest Completed Sprint:** **Langkah 54** (Account & Category Delete Button Suppression Invariant: Delete button is strictly hidden for any account or category that has existing transactions; case-insensitive isAccountInUse and isCategoryInUse).
 
 - **Immediate Next Steps (Finance Backlog):**
   1. Multi-device sync verification & cloud sync backup envelope parity for custom accounts.

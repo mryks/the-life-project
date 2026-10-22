@@ -268,6 +268,118 @@ describe('Custom Accounts Feature', () => {
       expect(delRes.success).toBe(false);
       expect(delRes.error).toMatch(/existing transactions/i);
     });
+
+    it('blocks deleting a custom account used in an opening balance (income) event', () => {
+      addCustomAccount({
+        fullName: 'OVO Digital Wallet',
+        name: 'OVO',
+        group: 'liquid',
+      });
+
+      const events: FinancialEvent[] = [
+        {
+          id: createEventId(),
+          date: todayDate(),
+          description: 'Initial balance - OVO Digital Wallet',
+          amount: 6693,
+          type: 'income',
+          accountId: 'ovo-digital-wallet',
+          category: 'Others',
+        },
+      ];
+
+      expect(isAccountInUse('ovo-digital-wallet', events)).toBe(true);
+
+      const delRes = deleteCustomAccount('ovo-digital-wallet', events);
+      expect(delRes.success).toBe(false);
+      expect(delRes.error).toMatch(/existing transactions/i);
+    });
+
+    it('blocks deleting a custom account used in a refund event', () => {
+      addCustomAccount({
+        fullName: 'Gopay Wallet',
+        name: 'GOPAY',
+        group: 'liquid',
+      });
+
+      const events: FinancialEvent[] = [
+        {
+          id: createEventId(),
+          date: todayDate(),
+          description: 'Refund from merchant',
+          amount: 50000,
+          type: 'refund',
+          accountId: 'gopay-wallet',
+          relatedEventId: 'expense-123',
+        },
+      ];
+
+      expect(isAccountInUse('gopay-wallet', events)).toBe(true);
+
+      const delRes = deleteCustomAccount('gopay-wallet', events);
+      expect(delRes.success).toBe(false);
+      expect(delRes.error).toMatch(/existing transactions/i);
+    });
+
+    it('isAccountInUse is case-insensitive and trims whitespace', () => {
+      const events: FinancialEvent[] = [
+        {
+          id: createEventId(),
+          date: todayDate(),
+          description: 'Test',
+          amount: 1000,
+          type: 'income',
+          accountId: 'ovo',
+          category: 'Others',
+        },
+      ];
+
+      expect(isAccountInUse('OVO', events)).toBe(true);
+      expect(isAccountInUse(' ovo ', events)).toBe(true);
+      expect(isAccountInUse('OvO', events)).toBe(true);
+      expect(isAccountInUse('gopay', events)).toBe(false);
+    });
+
+    it('delete button visibility invariant: suppressed when account has transactions, visible when unused', () => {
+      const resUsed = addCustomAccount({
+        fullName: 'OVO Active',
+        name: 'OVO',
+        group: 'liquid',
+      });
+      const resUnused = addCustomAccount({
+        fullName: 'ShopeePay Empty',
+        name: 'SPAY',
+        group: 'liquid',
+      });
+
+      const usedAcc = resUsed.account!;
+      const unusedAcc = resUnused.account!;
+
+      const events: FinancialEvent[] = [
+        {
+          id: createEventId(),
+          date: todayDate(),
+          description: 'Initial balance - OVO Active',
+          amount: 6693,
+          type: 'income',
+          accountId: usedAcc.id,
+          category: 'Others',
+        },
+      ];
+
+      // Used custom account: delete button must be SUPPRESSED (false)
+      const canDeleteUsed = Boolean(usedAcc.isCustom && !isAccountInUse(usedAcc.id, events));
+      expect(canDeleteUsed).toBe(false);
+
+      // Unused custom account: delete button must be VISIBLE (true)
+      const canDeleteUnused = Boolean(unusedAcc.isCustom && !isAccountInUse(unusedAcc.id, events));
+      expect(canDeleteUnused).toBe(true);
+
+      // Default accounts (e.g. BCA): delete button must NEVER be visible
+      const bcaAcc = accounts.find((a) => a.id === 'b')!;
+      const canDeleteDefault = Boolean(bcaAcc.isCustom && !isAccountInUse(bcaAcc.id, events));
+      expect(canDeleteDefault).toBe(false);
+    });
   });
 
   describe('Financial Calculations with Custom Accounts', () => {

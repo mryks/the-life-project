@@ -2198,7 +2198,7 @@ export default function FinancePage() {
                           {acc.name}
                         </span>
                         <div className="flex items-center gap-1.5">
-                          {acc.isCustom && (
+                          {acc.isCustom && !isAccountInUse(acc.id, events) && (
                             <button
                               type="button"
                               onClick={(e) => {
@@ -2206,7 +2206,8 @@ export default function FinancePage() {
                                 handleDeleteAccount(acc);
                               }}
                               className="w-6 h-6 rounded-lg text-stone-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition cursor-pointer"
-                              title={isAccountInUse(acc.id, events) ? "Cannot delete account with existing transactions" : "Delete custom account"}
+                              title="Delete custom account"
+                              aria-label={`Delete custom account ${acc.fullName}`}
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -2300,7 +2301,7 @@ export default function FinancePage() {
                           {acc.name}
                         </span>
                         <div className="flex items-center gap-1.5">
-                          {acc.isCustom && (
+                          {acc.isCustom && !isAccountInUse(acc.id, events) && (
                             <button
                               type="button"
                               onClick={(e) => {
@@ -2308,7 +2309,8 @@ export default function FinancePage() {
                                 handleDeleteAccount(acc);
                               }}
                               className="w-6 h-6 rounded-lg text-stone-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition cursor-pointer"
-                              title={isAccountInUse(acc.id, events) ? "Cannot delete account with existing transactions" : "Delete custom account"}
+                              title="Delete custom account"
+                              aria-label={`Delete custom account ${acc.fullName}`}
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>

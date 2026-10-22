@@ -945,3 +945,31 @@
    - ESLint `npm run lint`: 0 errors, 0 warnings.
    - Production build `npm run build`: 100% green.
    - Mobile E2E visual inspection: captured screenshots across Gradient and Solid modes, verified arc hop animations, bi-directional color synchronization, and responsive layout.
+
+
+### 🚀 Langkah 54: Account & Category Delete Button Suppression Invariant (Transactions In-Use Guard)
+**Date:** 2026-10-22
+**Context & User Request:**
+- User requested strict parity between categories and accounts: if an account already has transactions (including opening balance or any expense/income/transfer), the delete button must NOT be displayed at all (`gausa ada tombol delete`). Previously, custom accounts like OVO showed a delete button even when transactions existed.
+- Direct live push to production for immediate verification.
+
+**Changes Implemented:**
+1. **Account Delete Button Conditional Rendering (`app/finance/page.tsx`):**
+   - In both Liquid Accounts (`activeLiquidAccounts`) and Investment Accounts (`activeInvestmentAccounts`), wrapped the delete button in:
+     `{acc.isCustom && !isAccountInUse(acc.id, events) && (...)}`
+   - If an account has 1+ transactions, the delete trash icon is completely hidden from the UI.
+   - If an account is custom and has 0 transactions, the delete trash icon remains available.
+2. **Case-Insensitive & Whitespace-Resilient In-Use Detection:**
+   - Updated `isAccountInUse` in `lib/accounts.ts` to perform case-insensitive, trimmed comparison on `accountId`, `sourceAccountId`, and `destinationAccountId`.
+   - Updated `isCategoryInUse` in `lib/categories.ts` to perform case-insensitive, trimmed comparison on category names.
+3. **Automated Unit Testing (`tests/finance/custom-accounts.test.ts`):**
+   - Added test for income / opening balance transactions blocking account deletion.
+   - Added test for refund events blocking account deletion.
+   - Added test verifying case-insensitivity and whitespace trimming for `isAccountInUse` (`'OVO'` vs `'ovo'`).
+   - Added test verifying the delete button visibility invariant: suppressed when an account has transactions, visible when unused, and never visible for default accounts.
+4. **Verification & Production Deployment:**
+   - 25 test suites, **444/444 tests passing (100%)**.
+   - TypeScript `npx tsc --noEmit`: 0 errors.
+   - ESLint `npm run lint`: 0 errors, 0 warnings.
+   - Next.js production build: 100% green.
+   - Pushed live to `finance-foundation` and `main` for production deployment.

@@ -257,10 +257,16 @@ export const isCategoryInUse = (
   type: 'income' | 'expense',
   events: FinancialEvent[] = []
 ): boolean => {
+  const target = name.trim().toLowerCase();
+  if (!target) return false;
   if (type === 'expense') {
-    return events.some((event) => event.type === 'expense' && event.category === name);
+    return events.some(
+      (event) => event.type === 'expense' && typeof event.category === 'string' && event.category.trim().toLowerCase() === target
+    );
   }
-  return events.some((event) => event.type === 'income' && event.category === name);
+  return events.some(
+    (event) => event.type === 'income' && typeof event.category === 'string' && event.category.trim().toLowerCase() === target
+  );
 };
 
 export const validateCategoryName = (

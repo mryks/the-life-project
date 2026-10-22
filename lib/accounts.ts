@@ -401,12 +401,17 @@ export const isAccountId = (value: unknown, allAccounts?: Account[]): value is A
 };
 
 export const isAccountInUse = (id: string, events: FinancialEvent[] = []): boolean => {
+  const targetId = id.trim().toLowerCase();
+  if (!targetId) return false;
   return events.some((event) => {
     if (event.type === 'income' || event.type === 'expense' || event.type === 'refund') {
-      return event.accountId === id;
+      return typeof event.accountId === 'string' && event.accountId.trim().toLowerCase() === targetId;
     }
     if (event.type === 'transfer') {
-      return event.sourceAccountId === id || event.destinationAccountId === id;
+      return (
+        (typeof event.sourceAccountId === 'string' && event.sourceAccountId.trim().toLowerCase() === targetId) ||
+        (typeof event.destinationAccountId === 'string' && event.destinationAccountId.trim().toLowerCase() === targetId)
+      );
     }
     return false;
   });
