@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { validateFinancialEvents, validateNormalTransactionDate } from '@/lib/finance';
+import { validateFinancialEvents, validateNormalTransactionDate, parseLocalDate, formatLocalDate } from '@/lib/finance';
 import type { FinancialEvent } from '@/lib/types';
 import { createExpense, createInitialBalance } from './helpers/fixtures';
 
@@ -40,5 +40,32 @@ describe('Date Flexibility Rules', () => {
     expect(validateNormalTransactionDate('2026/10/01')).toBe(false);
     expect(validateNormalTransactionDate('2026-02-30')).toBe(false);
     expect(validateNormalTransactionDate('2025-13-01')).toBe(false);
+  });
+  describe('Local Date Parsing & Formatting (DatePicker Integration)', () => {
+    it('parses YYYY-MM-DD without UTC timezone skew', () => {
+      const d = parseLocalDate('2026-10-23');
+      expect(d).not.toBeNull();
+      expect(d!.getFullYear()).toBe(2026);
+      expect(d!.getMonth()).toBe(9); // 0-indexed October
+      expect(d!.getDate()).toBe(23);
+    });
+
+    it('formats local Date to YYYY-MM-DD string', () => {
+      const d = new Date(2026, 9, 23);
+      expect(formatLocalDate(d)).toBe('2026-10-23');
+    });
+
+    it('maintains round-trip string-date-string fidelity', () => {
+      const testDates = ['2024-01-01', '2025-06-15', '2026-02-28', '2026-10-23', '2026-12-31'];
+      for (const str of testDates) {
+        expect(formatLocalDate(parseLocalDate(str))).toBe(str);
+      }
+    });
+
+    it('handles null and invalid inputs safely', () => {
+      expect(parseLocalDate('')).toBeNull();
+      expect(parseLocalDate('invalid')).toBeNull();
+      expect(formatLocalDate(null)).toBe('');
+    });
   });
 });

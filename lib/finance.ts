@@ -709,6 +709,21 @@ export const todayDate = (): string => {
   return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 };
 
+export const parseLocalDate = (dateStr: string): Date | null => {
+  if (!dateStr || !isDateOnly(dateStr)) return null;
+  const [year, month, day] = dateStr.split('-').map(Number);
+  if (!year || !month || !day) return null;
+  return new Date(year, month - 1, day);
+};
+
+export const formatLocalDate = (d: Date | null): string => {
+  if (!d) return '';
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+
 export const isPositiveInteger = (value: number): boolean => Number.isSafeInteger(value) && value > 0;
 
 export const createBackupEnvelope = (events: FinancialEvent[]): FinancialBackupEnvelope => ({

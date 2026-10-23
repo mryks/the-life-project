@@ -973,3 +973,29 @@
    - ESLint `npm run lint`: 0 errors, 0 warnings.
    - Next.js production build: 100% green.
    - Pushed live to `finance-foundation` and `main` for production deployment.
+
+
+### 🚀 Langkah 55: EasyUI DatePicker Integration (`Surajmaurya1/easyui/date-picker`)
+**Date:** 2026-10-23
+**Context & User Request:**
+- User requested upgrading date selection to use the animated Date Picker component from `npx shadcn@latest add Surajmaurya1/easyui/date-picker`.
+- Integrate into TransactionModal (Expense, Income, Transfer) and RefundModal.
+
+**Changes Implemented:**
+1. **EasyUI Components Installed & Tailored:**
+   - Added `components/ui/calendar.tsx` and `components/ui/date-picker.tsx` from `Surajmaurya1/easyui`.
+   - Popover physics: spring-animated popover (`stiffness: 520, damping: 38`), directional month sliding, accessible keyboard navigation, and gliding selection pill (`layoutId`).
+   - Enhanced `DatePicker` with `triggerClassName` and `renderTrigger` props to seamlessly blend with The Life Project's warm biscuit card aesthetic while keeping 100% of EasyUI's motion fidelity.
+   - Refactored orientation listener and timer cleanup to guarantee 0 ESLint warnings (`react-hooks/set-state-in-effect` and `react-hooks/refs`).
+2. **Deterministic Date Helpers (`lib/finance.ts`):**
+   - Added `parseLocalDate` and `formatLocalDate` to parse and format `YYYY-MM-DD` strings to/from local `Date` objects with zero UTC timezone shift.
+3. **TransactionModal & RefundModal Overhaul:**
+   - Replaced native `<input type="date">` in `app/finance/page.tsx` and `components/finance/RefundModal.tsx` with `<DatePicker />`.
+   - Maintained native-feeling trigger button displaying formatted date (e.g. `23 October 2026`) with `CalendarIcon` and `"Change"` badge.
+4. **Verification & Testing:**
+   - Added unit tests in `tests/finance/date-rules.test.ts` for parsing, formatting, and round-trip string-date-string fidelity.
+   - All 25 test suites passed: **448/448 tests passing (100%)**.
+   - TypeScript `npx tsc --noEmit`: 0 errors.
+   - ESLint `npm run lint`: 0 errors, 0 warnings.
+   - Next.js production build: 100% green.
+   - Puppeteer E2E visual verification: captured screenshots `1-datepicker-modal-trigger.png`, `2-datepicker-calendar-open.png`, and `3-datepicker-date-selected.png`.

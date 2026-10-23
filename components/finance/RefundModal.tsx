@@ -3,7 +3,8 @@
 import { useState } from "react";
 import type { ExpenseEvent, RefundEvent, AccountId } from "@/lib/types";
 import { getAccountById, getAllAccounts } from "@/lib/accounts";
-import { todayDate, isDateOnly } from "@/lib/finance";
+import { todayDate, isDateOnly, parseLocalDate, formatLocalDate } from "@/lib/finance";
+import { DatePicker } from "@/components/ui/date-picker";
 import { X, RotateCcw, AlertCircle, Check, Calendar as CalendarIcon } from "lucide-react";
 
 interface RefundModalProps {
@@ -285,21 +286,26 @@ function RefundModalInner({
             <label className="text-xs font-bold text-stone-700 uppercase tracking-wider mb-1 block">
               Refund Date
             </label>
-            <div className="relative">
-              <div className="w-full bg-stone-50 border-2 border-stone-200 hover:border-stone-300 rounded-2xl px-3.5 py-2.5 text-sm text-stone-900 font-bold flex items-center justify-between transition cursor-pointer">
-                <div className="flex items-center gap-2 text-stone-800">
-                  <CalendarIcon className="w-4 h-4 text-stone-500" />
-                  <span>{formatDateDisplay(date)}</span>
-                </div>
-                <span className="text-[11px] font-semibold text-stone-400">Change</span>
-              </div>
-              <input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-              />
-            </div>
+            <DatePicker
+              value={parseLocalDate(date)}
+              onChange={(newDate) => {
+                if (newDate) {
+                  setDate(formatLocalDate(newDate));
+                }
+              }}
+              formatDate={(d) => formatDateDisplay(formatLocalDate(d))}
+              className="w-full"
+              triggerClassName="w-full bg-stone-50 border-2 border-stone-200 hover:border-stone-300 rounded-2xl px-3.5 py-2.5 text-sm text-stone-900 font-bold flex items-center justify-between transition cursor-pointer outline-none focus:border-stone-400"
+              renderTrigger={({ text }) => (
+                <>
+                  <div className="flex items-center gap-2 text-stone-800">
+                    <CalendarIcon className="w-4 h-4 text-stone-500" />
+                    <span>{text}</span>
+                  </div>
+                  <span className="text-[11px] font-semibold text-stone-400">Change</span>
+                </>
+              )}
+            />
           </div>
 
           <div>
