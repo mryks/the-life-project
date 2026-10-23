@@ -27,7 +27,7 @@ export type FinancialEvent =
 
 ### 1. IncomeEvent (`type: 'income'`)
 - Fields: `id`, `date`, `description`, `amount`, `accountId`, `category` (IncomeCategory), optional `relatedEventId`.
-- **Cashback**: Represented as an income event with `category: 'Cashback'` and a required `relatedEventId` pointing to an existing `ExpenseEvent`.
+- **Cashback**: Represented as an income event with `category: 'Cashback'` and a required `relatedEventId` pointing to an existing `ExpenseEvent` or `TransferEvent`.
 - Impact: Increases balance of `accountId`.
 
 ### 2. ExpenseEvent (`type: 'expense'`)
@@ -43,6 +43,8 @@ export type FinancialEvent =
 - Impact:
   - Source account decreases by `amount + (adminFee ?? 0)`.
   - Destination account increases by `amount`.
+- Can have linked child event:
+  - At most one Cashback event (`IncomeEvent` category `'Cashback'`) credited to `sourceAccountId`.
   - Admin fee is treated as an expense fee on the source account.
 
 ### 4. RefundEvent (`type: 'refund'`)
@@ -82,6 +84,6 @@ All calculations are pure functions located in `lib/finance.ts`:
 1. Every event must have a valid positive integer amount (`amount > 0`).
 2. Event date must match strict `YYYY-MM-DD` calendar format.
 3. Every ID must be unique across the entire dataset.
-4. Child events (`refund` or `cashback`) must have a valid parent expense event.
-5. Child cashback event `accountId` matches parent `accountId`. Refund event `accountId` can be any valid account selected by the user.
+4. Child events (`refund` or `cashback`) must have a valid parent expense or transfer event.
+5. Child cashback event `accountId` matches parent expense `accountId` or parent transfer `sourceAccountId`. Refund event `accountId` can be any valid account selected by the user.
 6. Sum of refunds on an expense CAN exceed parent expense amount; any excess beyond the parent expense is recognized deterministically as profit in category 'Others'.

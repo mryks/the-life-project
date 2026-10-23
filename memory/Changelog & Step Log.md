@@ -999,3 +999,38 @@
    - ESLint `npm run lint`: 0 errors, 0 warnings.
    - Next.js production build: 100% green.
    - Puppeteer E2E visual verification: captured screenshots `1-datepicker-modal-trigger.png`, `2-datepicker-calendar-open.png`, and `3-datepicker-date-selected.png`.
+
+
+### 🚀 Langkah 56: Transfer with Cashback Support & Atomic Reorder Unit
+**Date:** 2026-10-24
+**Context & User Request:**
+- User requested enabling promotional cashback on money transfers ("transfer mendapatkan cashback").
+- In the Transfer modal, directly underneath the Admin Fee field, provide a button that, when clicked, reveals the nominal input for Cashback (`+ Add Cashback`).
+- Cashback must be strictly credited to the sending account (`sourceAccountId` / "akun yang mengirim").
+- Clarification: Reordering transfers with cashback must keep all legs (Transfer Out, Transfer In, Admin Fee, and Cashback In) bound together atomically.
+
+**Changes Implemented:**
+1. **Domain Model & Types (`lib/types.ts`):**
+   - Added `'transfer-with-cashback'` to the `ReorderUnit.type` discriminated union.
+2. **Accounting & Relational Validation (`lib/finance.ts`):**
+   - Updated `validateFinancialEvents`: allows `IncomeEvent` with `category: 'Cashback'` to have a `TransferEvent` parent, strictly requiring `event.accountId === parent.sourceAccountId`.
+   - Updated `replaceFinancialEvent`: when a transfer is edited (date or accounts), automatically cascades updates to the linked cashback event (updating `date`, `accountId` to new `sourceAccountId`, and description).
+   - Updated `deleteFinancialEvent`: cascading deletion of linked children for both `expense` and `transfer`.
+   - Updated `getAtomicReorderUnits`: binds transfer + linked cashback into an atomic unit (`type: 'transfer-with-cashback'`, `events: [transfer, cashback]`).
+3. **Transaction Modal & Form UI (`app/finance/page.tsx`):**
+   - In Transfer form, rendered a tactile `+ Add Cashback` button directly underneath the Admin Fee field.
+   - When clicked, expands a clean Cashback section featuring:
+     - `Cashback` label with a red tactile `Remove` button to collapse and clear.
+     - Live dot-delimited IDR numeric input with `Rp` prefix.
+     - Dynamic helper note: `Cashback will be credited to sending account ([Account Name]).`
+   - In `handleSave`: validates positive integer cashback for transfers and saves linked `IncomeEvent` on `sourceAccountId`.
+   - In `handleActionOpen`: editing a cashback transaction linked to a transfer opens the parent transfer modal with cashback and admin fee pre-filled.
+   - In Warning Modal: warns if user edits the source account of a transfer with linked cashback, and automatically updates the cashback account upon confirmation.
+4. **Verification & Testing (`tests/finance/transfer-cashback.test.ts` & `tests/finance/relationships.test.ts`):**
+   - Added 11 unit tests in `tests/finance/transfer-cashback.test.ts` verifying relationship rules, ledger entry derivation, 4-way balance calculation, atomic reordering, replace/edit cascade, and deletion cascade.
+   - Updated `tests/finance/relationships.test.ts` to reflect transfer cashback support.
+   - All 26 test suites passed: **460/460 tests passing (100%)**.
+   - TypeScript `npx tsc --noEmit`: 0 errors.
+   - ESLint `npm run lint`: 0 errors, 0 warnings.
+   - Next.js production build: 100% green.
+   - Puppeteer E2E visual verification: captured screenshots `1-transfer-modal-add-cashback-btn.png`, `2-transfer-modal-cashback-expanded.png`, `3-transfer-modal-filled.png`, `4-card-view-transfer-cashback.png`, and `5-table-ledger-transfer-cashback.png`.

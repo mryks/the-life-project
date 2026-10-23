@@ -212,7 +212,15 @@ export const validateFinancialEvents = (events: FinancialEvent[]): boolean => {
       if (isCashback !== Boolean(event.relatedEventId)) return false;
       if (event.relatedEventId) {
         const parent = eventById.get(event.relatedEventId);
-        if (!parent || parent.type !== 'expense' || parent.accountId !== event.accountId || cashbackParents.has(parent.id)) return false;
+        if (!parent) return false;
+        if (parent.type === 'expense') {
+          if (parent.accountId !== event.accountId) return false;
+        } else if (parent.type === 'transfer') {
+          if (parent.sourceAccountId !== event.accountId) return false;
+        } else {
+          return false;
+        }
+        if (cashbackParents.has(parent.id)) return false;
         cashbackParents.add(parent.id);
       }
     }
@@ -611,7 +619,7 @@ export const calculateNetExpenseForDate = (events: FinancialEvent[], date: strin
 export const deleteFinancialEvent = (events: FinancialEvent[], eventId: string): FinancialEvent[] => {
   const event = events.find((candidate) => candidate.id === eventId);
   if (!event) return events;
-  return event.type === 'expense'
+  return event.type === 'expense' || event.type === 'transfer'
     ? events.filter((candidate) => candidate.id !== eventId && (!('relatedEventId' in candidate) || candidate.relatedEventId !== eventId))
     : events.filter((candidate) => candidate.id !== eventId);
 };
@@ -628,7 +636,7 @@ export const replaceFinancialEvent = (events: FinancialEvent[], replacement: Fin
   if (previous.type === 'refund' || replacement.type === 'refund') {
     if (previous.type !== 'refund' || replacement.type !== 'refund') return null;
   }
-  if (previous.type === 'expense' && replacement.type !== 'expense' && hasRelatedEvents(events, previous.id)) return null;
+  if ((previous.type === 'expense' || previous.type === 'transfer') && replacement.type !== previous.type && hasRelatedEvents(events, previous.id)) return null;
   if (previous.type === 'income' && previous.relatedEventId) return null;
 
   if (previous.type === 'expense' && replacement.type === 'expense') {
@@ -684,6 +692,37 @@ export const replaceFinancialEvent = (events: FinancialEvent[], replacement: Fin
           ...(updatedCashback ? [updatedCashback] : []),
           ...linkedRefunds.map((r) => updatedRefundsMap.get(r.id)!),
         ];
+        return validateFinancialEvents(next) ? next : null;
+      }
+    }
+  }
+
+  if (previous.type === 'transfer' && replacement.type === 'transfer') {
+    const linkedCashback = events.find(
+      (candidate): candidate is IncomeEvent =>
+        candidate.type === 'income' && candidate.category === 'Cashback' && candidate.relatedEventId === replacement.id
+    );
+
+    if (linkedCashback) {
+      const updatedCashback: IncomeEvent = {
+        ...linkedCashback,
+        date: replacement.date,
+        accountId: replacement.sourceAccountId,
+        description: linkedCashback.description.startsWith('Cashback ')
+          ? `Cashback ${replacement.sourceAccountId.toUpperCase()}`
+          : linkedCashback.description,
+      };
+
+      if (previous.date === replacement.date) {
+        const next = events.map((event) => {
+          if (event.id === replacement.id) return replacement;
+          if (event.id === updatedCashback.id) return updatedCashback;
+          return event;
+        });
+        return validateFinancialEvents(next) ? next : null;
+      } else {
+        const filtered = events.filter((e) => e.id !== replacement.id && e.id !== updatedCashback.id);
+        const next = [...filtered, replacement, updatedCashback];
         return validateFinancialEvents(next) ? next : null;
       }
     }
@@ -936,12 +975,23 @@ export const getAtomicReorderUnits = (events: FinancialEvent[]): ReorderUnit[] =
         primaryEvent: event,
       });
     } else if (event.type === 'transfer') {
-      units.push({
-        id: event.id,
-        type: 'transfer',
-        events: [event],
-        primaryEvent: event,
-      });
+      const cashback = cashbackByExpenseId.get(event.id);
+      if (cashback) {
+        consumedCashbackIds.add(cashback.id);
+        units.push({
+          id: event.id,
+          type: 'transfer-with-cashback',
+          events: [event, cashback],
+          primaryEvent: event,
+        });
+      } else {
+        units.push({
+          id: event.id,
+          type: 'transfer',
+          events: [event],
+          primaryEvent: event,
+        });
+      }
     } else if (event.type === 'refund') {
       units.push({
         id: event.id,

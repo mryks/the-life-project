@@ -8,8 +8,8 @@
 ## 📌 Current Status (At a Glance)
 - **Active Domain:** Personal Finance OS (daily expense tracker & financial dashboard).
 - **Git Branch:** `finance-foundation` | **Production:** https://the-life-project-os.vercel.app/finance
-- **Health:** 25 test suites, **448/448 tests passing (100%)**, TypeScript strict 0 errors, ESLint clean (0 errors, 0 warnings).
-- **Latest Completed Sprint:** **Langkah 55** (EasyUI DatePicker Integration: Spring-physics animated date picker & calendar from Surajmaurya1/easyui/date-picker in TransactionModal & RefundModal).
+- **Health:** 26 test suites, **460/460 tests passing (100%)**, TypeScript strict 0 errors, ESLint clean (0 errors, 0 warnings).
+- **Latest Completed Sprint:** **Langkah 56** (Transfer with Cashback: Collapsible Cashback input under Admin Fee crediting sending account, atomic reorder unit, and cascading lifecycle).
 
 - **Immediate Next Steps (Finance Backlog):**
   1. Multi-device sync verification & cloud sync backup envelope parity for custom accounts.
@@ -28,15 +28,16 @@ Open **ONLY** the note relevant to your immediate task. Do not read the entire v
 - 🔒 **Master PIN & Rate Limiting:** [[Security & Master PIN]] (`memory/Security & Master PIN.md`)
 - 🎨 **UI, Gestures & Tactile Design:** [[UI & Design System]] (`memory/UI & Design System.md`)
 - 📜 **Durable User Agreements & Decisions:** [[Agreements & Historical Context]] (`memory/Agreements & Historical Context.md`)
-- 📋 **Full Sprint Changelog (Langkah 1–50):** [[Changelog & Step Log]] (`memory/Changelog & Step Log.md`)
+- 📋 **Full Sprint Changelog (Langkah 1–56):** [[Changelog & Step Log]] (`memory/Changelog & Step Log.md`)
 
 ---
 
 ## ⚡ Non-Negotiable Invariants & Critical Gotchas
 1. **Single Source of Truth:** `FinancialEvent` union (`income`, `expense`, `transfer`, `refund`) is the only persisted financial state. Balances, ledgers, charts, and KPI totals are pure deterministic derived data. Opening balance on new accounts is logged as a first-class `IncomeEvent` under category `'Others'`.
-2. **Account Classification:** 17 system default accounts + user custom accounts partitioned dynamically into `liquid` (Total Balance) vs `investment` (Holdings / Net Worth). Default accounts can NEVER be deleted. Custom accounts can only be deleted if they have 0 transactions (`!isAccountInUse`).
-3. **Single-Step Swipe Invariant:** Horizontal tab swipe (Overview $\leftrightarrow$ Accounts $\leftrightarrow$ Activity) must advance by at most $\pm 1$ tab per gesture. Fast flicks or large drags must never skip adjacent tabs.
-4. **Nominal Privacy by Default:** All amounts across all views default to masked (`Rp ••••••`). Revealed state persists per session via `sessionStorage`.
-5. **Aesthetic Law:** 100% English copy, zero default keyboard emojis (strictly Lucide/Phosphor vector icons), and tabular numerals (`Sora`).
-6. **Codebase Over Memory:** If memory notes contradict the actual codebase or test suites, trust the code and update the memory note.
-7. **Public Repo Privacy:** NEVER write secrets, API keys, tokens, `.env` values, or private user financial figures to any Markdown or tracked code.
+2. **Transfer with Cashback Invariant:** Transfers can receive promotional cashback. Cashback is represented as an `IncomeEvent` with category `'Cashback'` linked via `relatedEventId: transfer.id`. Cashback destination account is strictly the sending account (`sourceAccountId`). Transfers, admin fees, and linked cashback form an atomic reorder unit (`type: 'transfer-with-cashback'`).
+3. **Account Classification:** 17 system default accounts + user custom accounts partitioned dynamically into `liquid` (Total Balance) vs `investment` (Holdings / Net Worth). Default accounts can NEVER be deleted. Custom accounts can only be deleted if they have 0 transactions (`!isAccountInUse`).
+4. **Single-Step Swipe Invariant:** Horizontal tab swipe (Overview $\leftrightarrow$ Accounts $\leftrightarrow$ Activity) must advance by at most $\pm 1$ tab per gesture. Fast flicks or large drags must never skip adjacent tabs.
+5. **Nominal Privacy by Default:** All amounts across all views default to masked (`Rp ••••••`). Revealed state persists per session via `sessionStorage`.
+6. **Aesthetic Law:** 100% English copy, zero default keyboard emojis (strictly Lucide/Phosphor vector icons), and tabular numerals (`Sora`).
+7. **Codebase Over Memory:** If memory notes contradict the actual codebase or test suites, trust the code and update the memory note.
+8. **Public Repo Privacy:** NEVER write secrets, API keys, tokens, `.env` values, or private user financial figures to any Markdown or tracked code.

@@ -102,7 +102,7 @@ export type BackupParseResult =
 
 export interface ReorderUnit {
   id: string;
-  type: 'income' | 'expense' | 'expense-with-cashback' | 'transfer' | 'refund';
+  type: 'income' | 'expense' | 'expense-with-cashback' | 'transfer' | 'transfer-with-cashback' | 'refund';
   events: FinancialEvent[];
   primaryEvent: FinancialEvent;
 }

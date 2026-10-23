@@ -289,3 +289,24 @@ This document provides a permanent, faithful record of every user request, resol
      - In Card View: Expense card displays `Refunded: Rp X • Profit: +Rp Z` and `Net: Rp 0 (Profit: +Rp Z)`. Refund card displays `Refund` badge and `Profit: +Rp Z (Others)`.
      - In Table Ledger: Row displays full incoming amount with category `[ExpenseCategory] / Others` or `Others`.
      - Category filter for `Others` matches refunds that contain profit.
+
+
+---
+
+### 21. Transfer with Promotional Cashback Credited to Sending Account
+- **User Directives**:
+  - *"Sekarang saya minta agar dimungkinkan transfer mendapatkan cashback. Kalau admin fee adalah tinggal masukin nominal, saya mau di bawahnya ada tombol yang kalau dipencet jadi masukin nominal, yaitu untuk cashback. Cashback akan masuk ke akun yang mengirim. Silakan tanya yang bingung atau kurang yakin"*
+- **Binding Accounting Rules**:
+  1. **Relational Model**:
+     - Promotional transfer cashback is represented as a first-class `IncomeEvent` (`category: 'Cashback'`, `relatedEventId: transfer.id`).
+     - Account destination: strictly the transfer's sending account (`sourceAccountId`).
+     - Exactly at most 1 cashback event per transfer.
+  2. **Balance Derivation**:
+     - Sending account net change: $-\text{amount} - \text{adminFee} + \text{cashback}$.
+     - Receiving account net change: $+\text{amount}$.
+  3. **Atomic Reorder Invariant**:
+     - In `getAtomicReorderUnits`, transfers with cashback form a single atomic unit (`type: 'transfer-with-cashback'`).
+     - In both Card View and Table Ledger reordering, Transfer Out, Transfer In, Admin Fee, and Cashback In always move together in lockstep and never drift or separate.
+  4. **Cascading Lifecycle**:
+     - Deleting a transfer automatically cascades to delete the linked cashback (locally and in Supabase tombstones).
+     - Editing a transfer (date or source account) automatically updates the linked cashback's date and account.

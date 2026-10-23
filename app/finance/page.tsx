@@ -1412,6 +1412,26 @@ export default function FinancePage() {
           return setFormError('Admin fee must be a positive whole number.');
         }
       }
+      if (hasCashback) {
+        const rawCashbackDigits = cashbackAmount.replace(/\D/g, '');
+        const parsedCashback = rawCashbackDigits ? Number(rawCashbackDigits) : 0;
+        if (!isPositiveInteger(parsedCashback)) return setFormError('Cashback must be a positive whole number.');
+      }
+      if (editingEventId) {
+        const originalTransfer = events.find((e) => e.id === editingEventId);
+        const existingCashback = events.find(
+          (candidate) => candidate.type === 'income' && candidate.category === 'Cashback' && candidate.relatedEventId === editingEventId
+        );
+        if (
+          originalTransfer &&
+          originalTransfer.type === 'transfer' &&
+          originalTransfer.sourceAccountId !== selectedAccount &&
+          (hasCashback || Boolean(existingCashback))
+        ) {
+          setShowCashbackAccountWarning(true);
+          return;
+        }
+      }
     } else {
       const trimmedDescription = desc.trim();
       if (!trimmedDescription) return setFormError('Description is required.');
@@ -1480,7 +1500,7 @@ export default function FinancePage() {
       : [...events, event];
     if (!nextEvents) return setFormError('This action would violate financial relation rules.');
 
-    if (formType === 'expense') {
+    if (formType === 'expense' || formType === 'transfer') {
       const existingCashback = events.find((candidate) => candidate.type === 'income' && candidate.category === 'Cashback' && candidate.relatedEventId === eventId);
       if (hasCashback) {
         const rawCashbackDigits = cashbackAmount.replace(/\D/g, '');
@@ -1499,12 +1519,12 @@ export default function FinancePage() {
         if (existingCashback) {
           nextEvents = nextEvents.map((candidate) => candidate.id === existingCashback.id ? cashback : candidate);
         } else {
-          const expenseIndex = nextEvents.findIndex((candidate) => candidate.id === eventId);
-          if (expenseIndex !== -1) {
+          const parentIndex = nextEvents.findIndex((candidate) => candidate.id === eventId);
+          if (parentIndex !== -1) {
             nextEvents = [
-              ...nextEvents.slice(0, expenseIndex + 1),
+              ...nextEvents.slice(0, parentIndex + 1),
               cashback,
-              ...nextEvents.slice(expenseIndex + 1),
+              ...nextEvents.slice(parentIndex + 1),
             ];
           } else {
             nextEvents = [...nextEvents, cashback];
@@ -1546,7 +1566,7 @@ export default function FinancePage() {
 
     try {
       const idsToUpsert = [eventId];
-      if (formType === 'expense' && hasCashback) {
+      if ((formType === 'expense' || formType === 'transfer') && hasCashback) {
         const cb = nextEvents.find((e) => e.type === 'income' && e.category === 'Cashback' && e.relatedEventId === eventId);
         if (cb) idsToUpsert.push(cb.id);
       }
@@ -1650,9 +1670,9 @@ export default function FinancePage() {
     let event = rawEvent;
     if (event.type === 'income' && event.category === 'Cashback' && event.relatedEventId) {
       const parentId = event.relatedEventId;
-      const parentExpense = events.find((candidate) => candidate.id === parentId);
-      if (parentExpense && parentExpense.type === 'expense') {
-        event = parentExpense;
+      const parentEvent = events.find((candidate) => candidate.id === parentId);
+      if (parentEvent && (parentEvent.type === 'expense' || parentEvent.type === 'transfer')) {
+        event = parentEvent;
       }
     }
     setFormType(event.type);
@@ -1669,7 +1689,7 @@ export default function FinancePage() {
     }
     if (event.type !== 'transfer') setSelectedCategory(event.category);
     else setSelectedCategory(null);
-    if (event.type === 'expense') {
+    if (event.type === 'expense' || event.type === 'transfer') {
       const cashback = events.find((candidate) => candidate.type === 'income' && candidate.category === 'Cashback' && candidate.relatedEventId === event.id);
       setHasCashback(Boolean(cashback));
       setCashbackAmount(cashback?.amount ? cashback.amount.toLocaleString('id-ID') : '');
@@ -3185,6 +3205,55 @@ export default function FinancePage() {
                       Admin fee will be deducted from source account and recorded under Expenses (Other).
                     </p>
                   </div>
+
+                  {/* Transfer Cashback Section */}
+                  {!hasCashback ? (
+                    <div className="pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setHasCashback(true)}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-dashed border-stone-300 hover:border-emerald-500 hover:bg-emerald-50/50 text-stone-600 hover:text-emerald-700 text-xs font-bold transition-all cursor-pointer shadow-2xs"
+                      >
+                        <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                        <span>Add Cashback</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="pt-2 border-t border-stone-200/80">
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-xs font-bold text-stone-700 uppercase tracking-wider block">
+                          Cashback
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setHasCashback(false);
+                            setCashbackAmount('');
+                          }}
+                          className="text-[11px] font-bold text-rose-600 hover:text-rose-700 transition-colors cursor-pointer"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                      <div className="relative">
+                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400 font-bold text-xs">
+                          Rp
+                        </span>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          value={cashbackAmount}
+                          onChange={handleCashbackChange}
+                          placeholder="0 (e.g. 5.000 or 10.000)"
+                          className="w-full bg-white border-2 border-stone-200 rounded-xl pl-10 pr-3 py-2 text-xs font-bold font-mono-numbers outline-none focus:border-stone-400"
+                          autoFocus
+                        />
+                      </div>
+                      <p className="text-[11px] text-stone-400 mt-1">
+                        Cashback will be credited to sending account ({selectedAccount ? (getAccountById(selectedAccount, allAccounts)?.fullName || getAccountById(selectedAccount, allAccounts)?.name || selectedAccount.toUpperCase()) : 'Source Account'}).
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -3373,8 +3442,14 @@ export default function FinancePage() {
             </div>
             <h4 className="text-xl font-black text-stone-900">Update Cashback Account?</h4>
             <p className="text-xs text-stone-600 leading-relaxed">
-              This expense has a linked cashback transaction. Changing the expense account from{' '}
-              <strong className="text-stone-900">{getAccountById((events.find((e): e is ExpenseEvent => e.id === editingEventId && e.type === 'expense'))?.accountId as AccountId)?.fullName || 'Original Account'}</strong> to{' '}
+              This transaction has a linked cashback transaction. Changing the account from{' '}
+              <strong className="text-stone-900">
+                {(() => {
+                  const ev = events.find((e) => e.id === editingEventId);
+                  const origAccId = ev?.type === 'transfer' ? ev.sourceAccountId : ev && 'accountId' in ev ? ev.accountId : null;
+                  return origAccId ? (getAccountById(origAccId)?.fullName || origAccId) : 'Original Account';
+                })()}
+              </strong> to{' '}
               <strong className="text-stone-900">{selectedAccount ? (getAccountById(selectedAccount)?.fullName || selectedAccount) : ''}</strong> will also automatically update the cashback account to{' '}
               <strong className="text-stone-900">{selectedAccount ? (getAccountById(selectedAccount)?.fullName || selectedAccount) : ''}</strong>.
             </p>

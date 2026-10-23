@@ -23,9 +23,15 @@ describe('Relationship Integrity (Rule B)', () => {
       expect(validateFinancialEvents([income, cashback])).toBe(false);
     });
 
-    it('rejects cashback pointing to a transfer event', () => {
+    it('accepts cashback pointing to a transfer event on source account', () => {
       const transfer = createTransfer({ id: 'trf-1', sourceAccountId: 'g', destinationAccountId: 's' });
       const cashback = createCashback({ id: 'cb-1', relatedEventId: 'trf-1', accountId: 'g' });
+      expect(validateFinancialEvents([transfer, cashback])).toBe(true);
+    });
+
+    it('rejects cashback pointing to a transfer event when account is not source account', () => {
+      const transfer = createTransfer({ id: 'trf-1', sourceAccountId: 'g', destinationAccountId: 's' });
+      const cashback = createCashback({ id: 'cb-1', relatedEventId: 'trf-1', accountId: 's' });
       expect(validateFinancialEvents([transfer, cashback])).toBe(false);
     });
 
