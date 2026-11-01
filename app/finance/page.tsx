@@ -48,6 +48,8 @@ import {
   type CustomCategoriesState,
   groupCardEventsByDate,
   getRefundBreakdown,
+  evaluateNominalString,
+  stepDateString,
 } from "@/lib/finance";
 import { useTransactionReorder } from "@/hooks/useTransactionReorder";
 import { useSwipeableTabs } from "@/hooks/useSwipeableTabs";
@@ -176,7 +178,24 @@ function TransferAccountDropdown({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full bg-white border-2 border-stone-200 hover:border-stone-300 text-stone-800 rounded-xl px-3 py-2 flex items-center justify-between transition cursor-pointer shadow-2xs"
+        onKeyDown={(e) => {
+          const eligible = allAccs.filter((a: Account) => !excludeAccountId || a.id !== excludeAccountId);
+          if (eligible.length === 0) return;
+          const curIdx = eligible.findIndex((a: Account) => a.id === value);
+          if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+            e.preventDefault();
+            const nextIdx = (curIdx + 1) % eligible.length;
+            onChange(eligible[nextIdx].id);
+          } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+            e.preventDefault();
+            const prevIdx = (curIdx - 1 + eligible.length) % eligible.length;
+            onChange(eligible[prevIdx].id);
+          } else if (e.key === ' ') {
+            e.preventDefault();
+            setIsOpen((prev) => !prev);
+          }
+        }}
+        className="w-full bg-white border-2 border-stone-200 hover:border-stone-300 text-stone-800 rounded-xl px-3 py-2 flex items-center justify-between transition cursor-pointer shadow-2xs focus:ring-2 focus:ring-stone-900 focus:outline-none"
       >
         <div className="flex items-center gap-2 min-w-0">
           {selectedAcc ? (
@@ -419,6 +438,7 @@ export default function FinancePage() {
     });
   }, []);
 
+
   // Auto-scroll Table Ledger to bottom by default when opened without shifting page window
   const prevViewRef = useRef(view);
   const prevAccountViewModeRef = useRef(accountViewMode);
@@ -504,6 +524,21 @@ export default function FinancePage() {
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [showCashbackAccountWarning, setShowCashbackAccountWarning] = useState(false);
+
+  // Keyboard navigation & accessibility refs for Transaction Modal
+  const expenseTypeBtnRef = useRef<HTMLButtonElement>(null);
+  const incomeTypeBtnRef = useRef<HTMLButtonElement>(null);
+  const transferTypeBtnRef = useRef<HTMLButtonElement>(null);
+  const amountInputRef = useRef<HTMLInputElement>(null);
+  const dateTriggerRef = useRef<HTMLButtonElement>(null);
+  const descInputRef = useRef<HTMLInputElement>(null);
+  const accountButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const categoryButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const adminFeeInputRef = useRef<HTMLInputElement>(null);
+  const cashbackCheckboxRef = useRef<HTMLInputElement>(null);
+  const addCashbackBtnRef = useRef<HTMLButtonElement>(null);
+  const cashbackInputRef = useRef<HTMLInputElement>(null);
+  const saveBtnRef = useRef<HTMLButtonElement>(null);
   
   // Custom Category State
   const [customAccounts, setCustomAccounts] = useState<Account[]>(() => readCustomAccounts());
@@ -1326,46 +1361,82 @@ export default function FinancePage() {
     : 0;
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value.replace(/\D/g, '');
-    if (!raw) {
-      setAmount('');
-      return;
+    const val = e.target.value;
+    if (/[eEkmKM]/.test(val)) {
+      const sanitized = val.replace(/[^0-9.,eEkmKM]/g, '');
+      setAmount(sanitized);
+    } else {
+      const raw = val.replace(/\D/g, '');
+      if (!raw) {
+        setAmount('');
+        return;
+      }
+      setAmount(Number(raw).toLocaleString('id-ID'));
     }
-    setAmount(Number(raw).toLocaleString('id-ID'));
+  };
+
+  const handleAmountBlur = () => {
+    if (!amount.trim()) return;
+    const evalNum = evaluateNominalString(amount);
+    if (evalNum !== null) {
+      setAmount(evalNum.toLocaleString('id-ID'));
+    }
   };
 
   const handleAdminFeeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value.replace(/\D/g, '');
-    if (!raw) {
-      setAdminFee('');
-      return;
+    const val = e.target.value;
+    if (/[eEkmKM]/.test(val)) {
+      const sanitized = val.replace(/[^0-9.,eEkmKM]/g, '');
+      setAdminFee(sanitized);
+    } else {
+      const raw = val.replace(/\D/g, '');
+      if (!raw) {
+        setAdminFee('');
+        return;
+      }
+      setAdminFee(Number(raw).toLocaleString('id-ID'));
     }
-    setAdminFee(Number(raw).toLocaleString('id-ID'));
+  };
+
+  const handleAdminFeeBlur = () => {
+    if (!adminFee.trim()) return;
+    const evalNum = evaluateNominalString(adminFee);
+    if (evalNum !== null) {
+      setAdminFee(evalNum.toLocaleString('id-ID'));
+    }
   };
 
   const handleCashbackChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value.replace(/\D/g, '');
-    if (!raw) {
-      setCashbackAmount('');
-      return;
+    const val = e.target.value;
+    if (/[eEkmKM]/.test(val)) {
+      const sanitized = val.replace(/[^0-9.,eEkmKM]/g, '');
+      setCashbackAmount(sanitized);
+    } else {
+      const raw = val.replace(/\D/g, '');
+      if (!raw) {
+        setCashbackAmount('');
+        return;
+      }
+      setCashbackAmount(Number(raw).toLocaleString('id-ID'));
     }
-    setCashbackAmount(Number(raw).toLocaleString('id-ID'));
+  };
+
+  const handleCashbackBlur = () => {
+    if (!cashbackAmount.trim()) return;
+    const evalNum = evaluateNominalString(cashbackAmount);
+    if (evalNum !== null) {
+      setCashbackAmount(evalNum.toLocaleString('id-ID'));
+    }
   };
 
   const dismissKeyboard = () => {
     if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
-      if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
-        document.activeElement.blur();
+      const el = document.activeElement;
+      if (el.tagName === 'TEXTAREA' || (el.tagName === 'INPUT' && (el as HTMLInputElement).type !== 'checkbox' && (el as HTMLInputElement).type !== 'radio')) {
+        el.blur();
       }
     }
   };
-
-  useEffect(() => {
-    if (!showForm) return;
-    const handleScroll = () => dismissKeyboard();
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [showForm]);
 
   const formatDateDisplay = (dateStr: string) => {
     if (!dateStr || !isDateOnly(dateStr)) return dateStr;
@@ -1390,10 +1461,128 @@ export default function FinancePage() {
     setShowCashbackAccountWarning(false);
   };
 
+  // Keyboard Shortcut: Ctrl+N or Cmd+N to open new transaction modal
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'n' || e.key === 'N')) {
+        e.preventDefault();
+        if (!isSessionUnlocked()) return;
+        if (showRefundModal || isAccountModalOpen || actionMenuOpen) return;
+        if (!showForm) {
+          resetForm();
+          setShowForm(true);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [showForm, showRefundModal, isAccountModalOpen, actionMenuOpen]);
+
+  // Auto-focus active type button only when modal transitions from closed to open
+  const prevShowFormRef = useRef(showForm);
+  useEffect(() => {
+    if (showForm && !prevShowFormRef.current) {
+      const timer = setTimeout(() => {
+        if (formType === 'expense') expenseTypeBtnRef.current?.focus();
+        else if (formType === 'income') incomeTypeBtnRef.current?.focus();
+        else transferTypeBtnRef.current?.focus();
+      }, 50);
+      prevShowFormRef.current = showForm;
+      return () => clearTimeout(timer);
+    }
+    prevShowFormRef.current = showForm;
+  }, [showForm, formType]);
+
+  const handleTypeKeyDown = (e: React.KeyboardEvent, currentType: 'expense' | 'income' | 'transfer') => {
+    const types: Array<'expense' | 'income' | 'transfer'> = ['expense', 'income', 'transfer'];
+    const curIdx = types.indexOf(currentType);
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      const nextType = types[(curIdx + 1) % 3];
+      setFormType(nextType);
+      if (!editingEventId) setSelectedCategory(null);
+      setIsAddingCategory(false);
+      setNewCategoryName('');
+      setCategoryNotice(null);
+      setTimeout(() => {
+        if (nextType === 'expense') expenseTypeBtnRef.current?.focus();
+        else if (nextType === 'income') incomeTypeBtnRef.current?.focus();
+        else transferTypeBtnRef.current?.focus();
+      }, 10);
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      const prevType = types[(curIdx + 2) % 3];
+      setFormType(prevType);
+      if (!editingEventId) setSelectedCategory(null);
+      setIsAddingCategory(false);
+      setNewCategoryName('');
+      setCategoryNotice(null);
+      setTimeout(() => {
+        if (prevType === 'expense') expenseTypeBtnRef.current?.focus();
+        else if (prevType === 'income') incomeTypeBtnRef.current?.focus();
+        else transferTypeBtnRef.current?.focus();
+      }, 10);
+    }
+  };
+
+  const handleDateTriggerKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      setDate((prev) => stepDateString(prev, -1));
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      setDate((prev) => stepDateString(prev, 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setDate((prev) => stepDateString(prev, -7));
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setDate((prev) => stepDateString(prev, 7));
+    }
+  };
+
+  const handleAccountKeyDown = (e: React.KeyboardEvent, curAccId: AccountId) => {
+    const curIdx = allAccounts.findIndex((a: Account) => a.id === curAccId);
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      const nextIdx = (curIdx + 1) % allAccounts.length;
+      const nextAcc = allAccounts[nextIdx];
+      setSelectedAccount(nextAcc.id);
+      accountButtonRefs.current[nextAcc.id]?.focus();
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      const prevIdx = (curIdx - 1 + allAccounts.length) % allAccounts.length;
+      const prevAcc = allAccounts[prevIdx];
+      setSelectedAccount(prevAcc.id);
+      accountButtonRefs.current[prevAcc.id]?.focus();
+    }
+  };
+
+  const handleCategoryKeyDown = (e: React.KeyboardEvent, curCat: string) => {
+    const curIdx = activeCategories.indexOf(curCat);
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      const nextIdx = (curIdx + 1) % activeCategories.length;
+      const nextCat = activeCategories[nextIdx];
+      setSelectedCategory(nextCat);
+      setFormError(null);
+      setCategoryNotice(null);
+      categoryButtonRefs.current[nextCat]?.focus();
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      const prevIdx = (curIdx - 1 + activeCategories.length) % activeCategories.length;
+      const prevCat = activeCategories[prevIdx];
+      setSelectedCategory(prevCat);
+      setFormError(null);
+      setCategoryNotice(null);
+      categoryButtonRefs.current[prevCat]?.focus();
+    }
+  };
+
   const handleSave = () => {
-    const rawDigits = amount.replace(/\D/g, '');
-    const parsedAmount = rawDigits ? Number(rawDigits) : 0;
-    if (!isPositiveInteger(parsedAmount)) return setFormError('Amount must be a positive whole number.');
+    const evaluatedAmountNum = evaluateNominalString(amount) ?? 0;
+    if (!isPositiveInteger(evaluatedAmountNum)) return setFormError('Amount must be a positive whole number.');
+    setAmount(evaluatedAmountNum.toLocaleString('id-ID'));
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return setFormError('Transaction date is required.');
     if (!validateNormalTransactionDate(date)) {
       return setFormError('Transaction date is invalid.');
@@ -1406,16 +1595,16 @@ export default function FinancePage() {
         return setFormError('Source and destination accounts must be different.');
       }
       if (adminFee.trim()) {
-        const rawAdminDigits = adminFee.replace(/\D/g, '');
-        const parsedAdminFee = rawAdminDigits ? Number(rawAdminDigits) : undefined;
-        if (parsedAdminFee !== undefined && !isPositiveInteger(parsedAdminFee)) {
+        const evalAdmin = evaluateNominalString(adminFee);
+        if (!evalAdmin || !isPositiveInteger(evalAdmin)) {
           return setFormError('Admin fee must be a positive whole number.');
         }
+        setAdminFee(evalAdmin.toLocaleString('id-ID'));
       }
       if (hasCashback) {
-        const rawCashbackDigits = cashbackAmount.replace(/\D/g, '');
-        const parsedCashback = rawCashbackDigits ? Number(rawCashbackDigits) : 0;
-        if (!isPositiveInteger(parsedCashback)) return setFormError('Cashback must be a positive whole number.');
+        const evalCb = evaluateNominalString(cashbackAmount) ?? 0;
+        if (!isPositiveInteger(evalCb)) return setFormError('Cashback must be a positive whole number.');
+        setCashbackAmount(evalCb.toLocaleString('id-ID'));
       }
       if (editingEventId) {
         const originalTransfer = events.find((e) => e.id === editingEventId);
@@ -1439,9 +1628,9 @@ export default function FinancePage() {
       if (!selectedCategory) return setFormError('Please select a category.');
 
       if (formType === 'expense' && hasCashback) {
-        const rawCashbackDigits = cashbackAmount.replace(/\D/g, '');
-        const parsedCashback = rawCashbackDigits ? Number(rawCashbackDigits) : 0;
-        if (!isPositiveInteger(parsedCashback)) return setFormError('Cashback must be a positive whole number.');
+        const evalCb = evaluateNominalString(cashbackAmount) ?? 0;
+        if (!isPositiveInteger(evalCb)) return setFormError('Cashback must be a positive whole number.');
+        setCashbackAmount(evalCb.toLocaleString('id-ID'));
       }
 
       // Check if editing an expense with cashback and the account was changed
@@ -1467,16 +1656,14 @@ export default function FinancePage() {
 
   const executeSave = () => {
     setFormError(null);
-    const rawDigits = amount.replace(/\D/g, '');
-    const parsedAmount = rawDigits ? Number(rawDigits) : 0;
+    const parsedAmount = evaluateNominalString(amount) ?? 0;
     const trimmedDescription = formType === 'transfer'
       ? `Transfer to ${destinationAccount!.toUpperCase()}`
       : desc.trim();
 
     let parsedAdminFee: number | undefined = undefined;
     if (formType === 'transfer' && adminFee.trim()) {
-      const rawAdminDigits = adminFee.replace(/\D/g, '');
-      parsedAdminFee = rawAdminDigits ? Number(rawAdminDigits) : undefined;
+      parsedAdminFee = evaluateNominalString(adminFee) ?? undefined;
     }
 
     const eventId = editingEventId ?? createEventId();
@@ -1503,8 +1690,7 @@ export default function FinancePage() {
     if (formType === 'expense' || formType === 'transfer') {
       const existingCashback = events.find((candidate) => candidate.type === 'income' && candidate.category === 'Cashback' && candidate.relatedEventId === eventId);
       if (hasCashback) {
-        const rawCashbackDigits = cashbackAmount.replace(/\D/g, '');
-        const parsedCashback = rawCashbackDigits ? Number(rawCashbackDigits) : 0;
+        const parsedCashback = evaluateNominalString(cashbackAmount) ?? 0;
         if (!isPositiveInteger(parsedCashback)) return setFormError('Cashback must be a positive whole number.');
         const cashback: FinancialEvent = {
           id: existingCashback?.id ?? createEventId(),
@@ -2831,14 +3017,32 @@ export default function FinancePage() {
           onTouchStart={dismissKeyboard}
         >
           <div 
-            className="bg-white border-2 border-stone-200 border-b-4 border-b-stone-300 w-full max-w-lg rounded-3xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto"
+            className="bg-white border-2 border-stone-200 border-b-4 border-b-stone-300 w-full max-w-lg rounded-3xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto focus:outline-none"
             onClick={(e) => e.stopPropagation()}
-            onScroll={dismissKeyboard}
             onTouchMove={dismissKeyboard}
             onPointerDown={(e) => {
               const target = e.target as HTMLElement | null;
               if (target && !['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) {
                 dismissKeyboard();
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                if (isAddingCategory) {
+                  setIsAddingCategory(false);
+                  setNewCategoryName('');
+                  setCategoryNotice(null);
+                } else {
+                  setShowForm(false);
+                }
+              } else if (e.key === 'Enter') {
+                const target = e.target as HTMLElement | null;
+                const action = target?.getAttribute('data-action');
+                if (action === 'add-category-input' || action === 'cancel' || action === 'delete-category' || action === 'remove-cashback' || action === 'add-category-btn') {
+                  return;
+                }
+                e.preventDefault();
+                handleSave();
               }
             }}
           >
@@ -2883,6 +3087,9 @@ export default function FinancePage() {
               />
 
               <button
+                ref={expenseTypeBtnRef}
+                tabIndex={formType === 'expense' ? 0 : -1}
+                onKeyDown={(e) => handleTypeKeyDown(e, 'expense')}
                 type="button"
                 onClick={() => {
                   setFormType('expense');
@@ -2891,7 +3098,7 @@ export default function FinancePage() {
                   setNewCategoryName('');
                   setCategoryNotice(null);
                 }}
-                className={`flex-1 py-2 rounded-xl text-xs font-bold relative z-10 transition-colors duration-200 cursor-pointer flex items-center justify-center gap-1.5 ${
+                className={`flex-1 py-2 rounded-xl text-xs font-bold relative z-10 transition-colors duration-200 cursor-pointer flex items-center justify-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-stone-900/50 ${
                   formType === 'expense'
                     ? 'text-white'
                     : 'text-stone-600 hover:text-stone-900'
@@ -2901,6 +3108,9 @@ export default function FinancePage() {
                 <span>Expense</span>
               </button>
               <button
+                ref={incomeTypeBtnRef}
+                tabIndex={formType === 'income' ? 0 : -1}
+                onKeyDown={(e) => handleTypeKeyDown(e, 'income')}
                 type="button"
                 onClick={() => {
                   setFormType('income');
@@ -2909,7 +3119,7 @@ export default function FinancePage() {
                   setNewCategoryName('');
                   setCategoryNotice(null);
                 }}
-                className={`flex-1 py-2 rounded-xl text-xs font-bold relative z-10 transition-colors duration-200 cursor-pointer flex items-center justify-center gap-1.5 ${
+                className={`flex-1 py-2 rounded-xl text-xs font-bold relative z-10 transition-colors duration-200 cursor-pointer flex items-center justify-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-stone-900/50 ${
                   formType === 'income'
                     ? 'text-white'
                     : 'text-stone-600 hover:text-stone-900'
@@ -2919,6 +3129,9 @@ export default function FinancePage() {
                 <span>Income</span>
               </button>
               <button
+                ref={transferTypeBtnRef}
+                tabIndex={formType === 'transfer' ? 0 : -1}
+                onKeyDown={(e) => handleTypeKeyDown(e, 'transfer')}
                 type="button"
                 onClick={() => {
                   setFormType('transfer');
@@ -2927,7 +3140,7 @@ export default function FinancePage() {
                   setNewCategoryName('');
                   setCategoryNotice(null);
                 }}
-                className={`flex-1 py-2 rounded-xl text-xs font-bold relative z-10 transition-colors duration-200 cursor-pointer flex items-center justify-center gap-1.5 ${
+                className={`flex-1 py-2 rounded-xl text-xs font-bold relative z-10 transition-colors duration-200 cursor-pointer flex items-center justify-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-stone-900/50 ${
                   formType === 'transfer'
                     ? 'text-white'
                     : 'text-stone-600 hover:text-stone-900'
@@ -2949,10 +3162,13 @@ export default function FinancePage() {
                     Rp
                   </span>
                   <input
+                    ref={amountInputRef}
                     type="text"
                     inputMode="numeric"
                     value={amount}
                     onChange={handleAmountChange}
+                    onBlur={handleAmountBlur}
+                    onFocus={(e) => e.target.select()}
                     placeholder="0"
                     className="w-full bg-stone-50 border-2 border-stone-200 rounded-2xl pl-11 pr-4 py-2.5 outline-none focus:border-stone-400 focus:bg-white focus:ring-2 focus:ring-stone-900/5 text-xl font-black text-stone-900 font-mono-numbers transition"
                   />
@@ -2965,6 +3181,8 @@ export default function FinancePage() {
                   Transaction Date
                 </label>
                 <DatePicker
+                  triggerRef={dateTriggerRef}
+                  onTriggerKeyDown={handleDateTriggerKeyDown}
                   value={parseLocalDate(date)}
                   onChange={(newDate) => {
                     if (newDate) {
@@ -2973,7 +3191,7 @@ export default function FinancePage() {
                   }}
                   formatDate={(d) => formatDateDisplay(formatLocalDate(d))}
                   className="w-full"
-                  triggerClassName="w-full bg-stone-50 border-2 border-stone-200 hover:border-stone-300 rounded-2xl px-3.5 py-2.5 text-sm text-stone-900 font-bold flex items-center justify-between transition cursor-pointer outline-none focus:border-stone-400"
+                  triggerClassName="w-full bg-stone-50 border-2 border-stone-200 hover:border-stone-300 rounded-2xl px-3.5 py-2.5 text-sm text-stone-900 font-bold flex items-center justify-between transition cursor-pointer outline-none focus:border-stone-400 focus:ring-2 focus:ring-stone-900/5"
                   renderTrigger={({ text }) => (
                     <>
                       <div className="flex items-center gap-2 text-stone-800">
@@ -2993,6 +3211,7 @@ export default function FinancePage() {
                     Description
                   </label>
                   <input
+                    ref={descInputRef}
                     type="text"
                     autoCapitalize="none"
                     autoCorrect="off"
@@ -3011,17 +3230,23 @@ export default function FinancePage() {
                     Account
                   </label>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-44 overflow-y-auto p-1.5 bg-stone-50 rounded-2xl border border-stone-200">
-                    {allAccounts.map((acc: Account) => (
-                      <button
-                        key={acc.id}
-                        type="button"
-                        onClick={() => setSelectedAccount(acc.id)}
-                        className={`p-2.5 rounded-xl border text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
-                          selectedAccount === acc.id
-                            ? 'bg-stone-900 text-white border-stone-950 shadow-xs'
-                            : 'bg-white border-stone-200 text-stone-700 hover:bg-stone-100'
-                        }`}
-                      >
+                    {allAccounts.map((acc: Account, idx: number) => {
+                      const isSelected = selectedAccount === acc.id;
+                      const isFocusable = selectedAccount ? isSelected : idx === 0;
+                      return (
+                        <button
+                          key={acc.id}
+                          ref={(el) => { accountButtonRefs.current[acc.id] = el; }}
+                          tabIndex={isFocusable ? 0 : -1}
+                          type="button"
+                          onClick={() => setSelectedAccount(acc.id)}
+                          onKeyDown={(e) => handleAccountKeyDown(e, acc.id)}
+                          className={`p-2.5 rounded-xl border text-xs font-bold transition flex items-center gap-2 cursor-pointer focus:outline-none focus:ring-2 focus:ring-stone-900 ${
+                            isSelected
+                              ? 'bg-stone-900 text-white border-stone-950 shadow-xs'
+                              : 'bg-white border-stone-200 text-stone-700 hover:bg-stone-100'
+                          }`}
+                        >
                         <span
                           style={acc.colorStyle ? { background: acc.colorStyle } : undefined}
                           className={`w-5 h-5 rounded-full ${acc.colorClass || 'bg-stone-500'} text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0 shadow-xs`}
@@ -3030,7 +3255,8 @@ export default function FinancePage() {
                         </span>
                         <span className="truncate">{acc.fullName}</span>
                       </button>
-                    ))}
+                    );
+                  })}
                   </div>
                 </div>
               )}
@@ -3053,11 +3279,12 @@ export default function FinancePage() {
                     )}
                   </div>
                   <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto p-1.5 bg-stone-50 rounded-2xl border border-stone-200">
-                    {activeCategories.map((cat) => {
+                    {activeCategories.map((cat, idx) => {
                       const isDefault = isDefaultCategory(cat, formType);
                       const isSelected = selectedCategory === cat;
                       const inUse = isCategoryInUse(cat, formType, events);
                       const canDelete = !isDefault && !inUse;
+                      const isFocusable = selectedCategory ? isSelected : idx === 0;
                       return (
                         <div
                           key={cat}
@@ -3068,18 +3295,23 @@ export default function FinancePage() {
                           }`}
                         >
                           <button
+                            ref={(el) => { categoryButtonRefs.current[cat] = el; }}
+                            tabIndex={isFocusable ? 0 : -1}
                             type="button"
                             onClick={() => {
                               setSelectedCategory(cat);
                               setFormError(null);
                               setCategoryNotice(null);
                             }}
-                            className={`px-3 py-1 cursor-pointer truncate max-w-[160px] ${canDelete ? 'pr-1.5' : ''}`}
+                            onKeyDown={(e) => handleCategoryKeyDown(e, cat)}
+                            className={`px-3 py-1 cursor-pointer truncate max-w-[160px] focus:outline-none focus:ring-2 focus:ring-stone-900 rounded-full ${canDelete ? 'pr-1.5' : ''}`}
                           >
                             {cat}
                           </button>
                           {canDelete && (
                             <button
+                              tabIndex={-1}
+                              data-action="delete-category"
                               type="button"
                               title={`Delete category "${cat}"`}
                               aria-label={`Delete category ${cat}`}
@@ -3105,6 +3337,7 @@ export default function FinancePage() {
                       <div className="inline-flex items-center gap-1 bg-white border border-stone-300 rounded-full px-2 py-0.5 shadow-xs">
                         <input
                           autoFocus
+                          data-action="add-category-input"
                           type="text"
                           maxLength={30}
                           value={newCategoryName}
@@ -3148,6 +3381,8 @@ export default function FinancePage() {
                       </div>
                     ) : (
                       <button
+                        tabIndex={-1}
+                        data-action="add-category-btn"
                         type="button"
                         onClick={() => {
                           setIsAddingCategory(true);
@@ -3193,12 +3428,14 @@ export default function FinancePage() {
                         Rp
                       </span>
                       <input
+                        ref={adminFeeInputRef}
                         type="text"
                         inputMode="numeric"
                         value={adminFee}
                         onChange={handleAdminFeeChange}
+                        onBlur={handleAdminFeeBlur}
                         placeholder="0 (e.g. 2.500 or 6.500)"
-                        className="w-full bg-white border-2 border-stone-200 rounded-xl pl-10 pr-3 py-2 text-xs font-bold font-mono-numbers outline-none focus:border-stone-400"
+                        className="w-full bg-white border-2 border-stone-200 rounded-xl pl-10 pr-3 py-2 text-xs font-bold font-mono-numbers outline-none focus:border-stone-400 focus:ring-2 focus:ring-stone-900/5"
                       />
                     </div>
                     <p className="text-[11px] text-stone-400 mt-1">
@@ -3210,9 +3447,13 @@ export default function FinancePage() {
                   {!hasCashback ? (
                     <div className="pt-1">
                       <button
+                        ref={addCashbackBtnRef}
                         type="button"
-                        onClick={() => setHasCashback(true)}
-                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-dashed border-stone-300 hover:border-emerald-500 hover:bg-emerald-50/50 text-stone-600 hover:text-emerald-700 text-xs font-bold transition-all cursor-pointer shadow-2xs"
+                        onClick={() => {
+                          setHasCashback(true);
+                          setTimeout(() => cashbackInputRef.current?.focus(), 50);
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-dashed border-stone-300 hover:border-emerald-500 hover:bg-emerald-50/50 text-stone-600 hover:text-emerald-700 text-xs font-bold transition-all cursor-pointer shadow-2xs focus:outline-none focus:ring-2 focus:ring-emerald-600"
                       >
                         <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
                         <span>Add Cashback</span>
@@ -3225,6 +3466,8 @@ export default function FinancePage() {
                           Cashback
                         </label>
                         <button
+                          tabIndex={-1}
+                          data-action="remove-cashback"
                           type="button"
                           onClick={() => {
                             setHasCashback(false);
@@ -3240,12 +3483,14 @@ export default function FinancePage() {
                           Rp
                         </span>
                         <input
+                          ref={cashbackInputRef}
                           type="text"
                           inputMode="numeric"
                           value={cashbackAmount}
                           onChange={handleCashbackChange}
+                          onBlur={handleCashbackBlur}
                           placeholder="0 (e.g. 5.000 or 10.000)"
-                          className="w-full bg-white border-2 border-stone-200 rounded-xl pl-10 pr-3 py-2 text-xs font-bold font-mono-numbers outline-none focus:border-stone-400"
+                          className="w-full bg-white border-2 border-stone-200 rounded-xl pl-10 pr-3 py-2 text-xs font-bold font-mono-numbers outline-none focus:border-stone-400 focus:ring-2 focus:ring-stone-900/5"
                           autoFocus
                         />
                       </div>
@@ -3262,10 +3507,16 @@ export default function FinancePage() {
                 <div className="bg-stone-50 p-3 rounded-2xl border border-stone-200">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
+                      ref={cashbackCheckboxRef}
                       type="checkbox"
                       checked={hasCashback}
-                      onChange={(e) => setHasCashback(e.target.checked)}
-                      className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500"
+                      onChange={(e) => {
+                        setHasCashback(e.target.checked);
+                        if (e.target.checked) {
+                          setTimeout(() => cashbackInputRef.current?.focus(), 50);
+                        }
+                      }}
+                      className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 focus:outline-none"
                     />
                     <span className="text-xs font-bold text-stone-800">
                       Received cashback or promotional credit?
@@ -3274,12 +3525,14 @@ export default function FinancePage() {
                   {hasCashback && (
                     <div className="mt-2.5 pl-6">
                       <input
+                        ref={cashbackInputRef}
                         type="text"
                         inputMode="numeric"
                         value={cashbackAmount}
                         onChange={handleCashbackChange}
+                        onBlur={handleCashbackBlur}
                         placeholder="Cashback amount (e.g. 5.000)"
-                        className="w-full bg-white border-2 border-stone-200 rounded-xl px-3 py-1.5 text-xs text-stone-900 font-bold font-mono-numbers outline-none focus:border-stone-400"
+                        className="w-full bg-white border-2 border-stone-200 rounded-xl px-3 py-1.5 text-xs text-stone-900 font-bold font-mono-numbers outline-none focus:border-stone-400 focus:ring-2 focus:ring-stone-900/5"
                       />
                     </div>
                   )}
@@ -3297,15 +3550,17 @@ export default function FinancePage() {
               <div className="flex gap-2.5 pt-2">
                 <button
                   type="button"
+                  data-action="cancel"
                   onClick={() => setShowForm(false)}
                   className="btn-tactile-neutral flex-1 py-2.5 text-sm cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
+                  ref={saveBtnRef}
                   type="button"
                   onClick={handleSave}
-                  className="btn-tactile-primary flex-[2] py-2.5 text-sm cursor-pointer flex items-center justify-center gap-1.5"
+                  className="btn-tactile-primary flex-[2] py-2.5 text-sm cursor-pointer flex items-center justify-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-700"
                 >
                   <Check className="w-4 h-4 stroke-[3]" />
                   <span>Save Transaction</span>

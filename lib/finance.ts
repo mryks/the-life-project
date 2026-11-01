@@ -765,6 +765,47 @@ export const formatLocalDate = (d: Date | null): string => {
 
 export const isPositiveInteger = (value: number): boolean => Number.isSafeInteger(value) && value > 0;
 
+export const stepDateString = (dateStr: string, deltaDays: number): string => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const dt = new Date(y, m - 1, d);
+  dt.setDate(dt.getDate() + deltaDays);
+  return formatLocalDate(dt);
+};
+
+export const evaluateNominalString = (value: string): number | null => {
+  const trimmed = value.trim().toLowerCase();
+  if (!trimmed) return null;
+
+  // Check scientific notation: e.g. 10e3, 10E3, 1.5e5, 1,5e5, 1e6
+  const sciMatch = trimmed.match(/^(\d+(?:[.,]\d+)?)[e](\d+)$/i);
+  if (sciMatch) {
+    const base = parseFloat(sciMatch[1].replace(',', '.'));
+    const exp = parseInt(sciMatch[2], 10);
+    if (!isNaN(base) && !isNaN(exp) && exp >= 0 && exp <= 12) {
+      const result = Math.round(base * Math.pow(10, exp));
+      return result > 0 ? result : null;
+    }
+  }
+
+  // Shorthand 'k' (thousand) and 'm' (million)
+  const shorthandMatch = trimmed.match(/^(\d+(?:[.,]\d+)?)\s*([km])$/i);
+  if (shorthandMatch) {
+    const base = parseFloat(shorthandMatch[1].replace(',', '.'));
+    const unit = shorthandMatch[2].toLowerCase();
+    const multiplier = unit === 'k' ? 1_000 : 1_000_000;
+    if (!isNaN(base)) {
+      const result = Math.round(base * multiplier);
+      return result > 0 ? result : null;
+    }
+  }
+
+  const rawDigits = trimmed.replace(/\D/g, '');
+  if (!rawDigits) return null;
+  const num = Number(rawDigits);
+  return num > 0 ? num : null;
+};
+
 export const createBackupEnvelope = (events: FinancialEvent[]): FinancialBackupEnvelope => ({
   version: FINANCE_STORAGE_VERSION,
   exportedAt: new Date().toISOString(),

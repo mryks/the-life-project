@@ -115,6 +115,8 @@ function PickerShell({
   className,
   triggerClassName,
   renderTrigger,
+  onTriggerKeyDown,
+  triggerRef: externalTriggerRef,
   children,
 }: {
   text: string | null;
@@ -125,11 +127,14 @@ function PickerShell({
   className?: string;
   triggerClassName?: string;
   renderTrigger?: (api: { open: boolean; text: string | null; placeholder: string }) => React.ReactNode;
+  onTriggerKeyDown?: (e: React.KeyboardEvent<HTMLButtonElement>) => void;
+  triggerRef?: React.Ref<HTMLButtonElement>;
   children: (api: { close: () => void }) => React.ReactNode;
 }) {
   const [open, setOpen] = React.useState(false);
   const rootRef = React.useRef<HTMLDivElement>(null);
-  const triggerRef = React.useRef<HTMLButtonElement>(null);
+  const internalTriggerRef = React.useRef<HTMLButtonElement>(null);
+  const triggerRef = (externalTriggerRef as React.RefObject<HTMLButtonElement | null>) || internalTriggerRef;
 
   const side = usePopover({
     open,
@@ -158,6 +163,11 @@ function PickerShell({
         aria-haspopup="dialog"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
+        onKeyDown={(e) => {
+          if (!open && onTriggerKeyDown) {
+            onTriggerKeyDown(e);
+          }
+        }}
         className={
           triggerClassName
             ? triggerClassName
@@ -218,6 +228,8 @@ export interface DatePickerProps extends CalendarOptions {
   className?: string;
   triggerClassName?: string;
   renderTrigger?: (api: { open: boolean; text: string | null; placeholder: string }) => React.ReactNode;
+  onTriggerKeyDown?: (e: React.KeyboardEvent<HTMLButtonElement>) => void;
+  triggerRef?: React.Ref<HTMLButtonElement>;
 }
 
 export function DatePicker({
@@ -232,6 +244,8 @@ export function DatePicker({
   className,
   triggerClassName,
   renderTrigger,
+  onTriggerKeyDown,
+  triggerRef,
   ...calendar
 }: DatePickerProps) {
   const [date, setDate] = useControllableState<Date | null>(value, defaultValue, onChange);
@@ -247,6 +261,8 @@ export function DatePicker({
       className={className}
       triggerClassName={triggerClassName}
       renderTrigger={renderTrigger}
+      onTriggerKeyDown={onTriggerKeyDown}
+      triggerRef={triggerRef}
     >
       {({ close }) => (
         <Calendar
