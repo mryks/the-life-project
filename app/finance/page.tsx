@@ -50,6 +50,7 @@ import {
   getRefundBreakdown,
   evaluateNominalString,
   stepDateString,
+  matchTypeaheadCandidate,
 } from "@/lib/finance";
 import { useTransactionReorder } from "@/hooks/useTransactionReorder";
 import { useSwipeableTabs } from "@/hooks/useSwipeableTabs";
@@ -144,17 +145,21 @@ function TransferAccountDropdown({
   onChange,
   excludeAccountId,
   accountsList,
+  triggerRef,
 }: {
   label: string;
   value: AccountId | null;
   onChange: (id: AccountId) => void;
   excludeAccountId?: AccountId | null;
   accountsList?: Account[];
+  triggerRef?: React.Ref<HTMLButtonElement>;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const allAccs = accountsList ?? accounts;
   const selectedAcc = value ? (getAccountById(value, allAccs) ?? null) : null;
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const typeaheadBufferRef = useRef('');
+  const typeaheadTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -176,6 +181,7 @@ function TransferAccountDropdown({
         {label}
       </label>
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         onKeyDown={(e) => {
@@ -193,6 +199,24 @@ function TransferAccountDropdown({
           } else if (e.key === ' ') {
             e.preventDefault();
             setIsOpen((prev) => !prev);
+          } else if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey && e.key !== ' ') {
+            e.preventDefault();
+            if (typeaheadTimerRef.current) clearTimeout(typeaheadTimerRef.current);
+            typeaheadBufferRef.current += e.key.toLowerCase();
+            typeaheadTimerRef.current = setTimeout(() => {
+              typeaheadBufferRef.current = '';
+            }, 700);
+
+            const candidates = eligible.map((a: Account) => ({
+              id: a.id,
+              label: a.fullName,
+              aliases: [a.name, a.id],
+            }));
+
+            const match = matchTypeaheadCandidate(candidates, typeaheadBufferRef.current, value);
+            if (match) {
+              onChange(match.id as AccountId);
+            }
           }
         }}
         className="w-full bg-white border-2 border-stone-200 hover:border-stone-300 text-stone-800 rounded-xl px-3 py-2 flex items-center justify-between transition cursor-pointer shadow-2xs focus:ring-2 focus:ring-stone-900 focus:outline-none"
@@ -539,6 +563,11 @@ export default function FinancePage() {
   const addCashbackBtnRef = useRef<HTMLButtonElement>(null);
   const cashbackInputRef = useRef<HTMLInputElement>(null);
   const saveBtnRef = useRef<HTMLButtonElement>(null);
+  const sourceAccountBtnRef = useRef<HTMLButtonElement>(null);
+  const accountTypeaheadBufferRef = useRef('');
+  const accountTypeaheadTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const categoryTypeaheadBufferRef = useRef('');
+  const categoryTypeaheadTimerRef = useRef<NodeJS.Timeout | null>(null);
   
   // Custom Category State
   const [customAccounts, setCustomAccounts] = useState<Account[]>(() => readCustomAccounts());
@@ -1560,12 +1589,38 @@ export default function FinancePage() {
       const nextAcc = allAccounts[nextIdx];
       setSelectedAccount(nextAcc.id);
       accountButtonRefs.current[nextAcc.id]?.focus();
+      return;
     } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
       e.preventDefault();
       const prevIdx = (curIdx - 1 + allAccounts.length) % allAccounts.length;
       const prevAcc = allAccounts[prevIdx];
       setSelectedAccount(prevAcc.id);
       accountButtonRefs.current[prevAcc.id]?.focus();
+      return;
+    }
+
+    // Type-ahead quick search without visible text box
+    if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey && e.key !== ' ') {
+      e.preventDefault();
+      if (accountTypeaheadTimerRef.current) clearTimeout(accountTypeaheadTimerRef.current);
+      accountTypeaheadBufferRef.current += e.key.toLowerCase();
+      accountTypeaheadTimerRef.current = setTimeout(() => {
+        accountTypeaheadBufferRef.current = '';
+      }, 700);
+
+      const candidates = allAccounts.map((a: Account) => ({
+        id: a.id,
+        label: a.fullName,
+        aliases: [a.name, a.id],
+      }));
+
+      const match = matchTypeaheadCandidate(candidates, accountTypeaheadBufferRef.current, selectedAccount);
+      if (match) {
+        setSelectedAccount(match.id);
+        const btn = accountButtonRefs.current[match.id];
+        btn?.focus();
+        btn?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
     }
   };
 
@@ -1579,6 +1634,7 @@ export default function FinancePage() {
       setFormError(null);
       setCategoryNotice(null);
       categoryButtonRefs.current[nextCat]?.focus();
+      return;
     } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
       e.preventDefault();
       const prevIdx = (curIdx - 1 + activeCategories.length) % activeCategories.length;
@@ -1587,6 +1643,32 @@ export default function FinancePage() {
       setFormError(null);
       setCategoryNotice(null);
       categoryButtonRefs.current[prevCat]?.focus();
+      return;
+    }
+
+    // Type-ahead quick search without visible text box
+    if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey && e.key !== ' ') {
+      e.preventDefault();
+      if (categoryTypeaheadTimerRef.current) clearTimeout(categoryTypeaheadTimerRef.current);
+      categoryTypeaheadBufferRef.current += e.key.toLowerCase();
+      categoryTypeaheadTimerRef.current = setTimeout(() => {
+        categoryTypeaheadBufferRef.current = '';
+      }, 700);
+
+      const candidates = activeCategories.map((cat) => ({
+        id: cat,
+        label: cat,
+      }));
+
+      const match = matchTypeaheadCandidate(candidates, categoryTypeaheadBufferRef.current, selectedCategory);
+      if (match) {
+        setSelectedCategory(match.id);
+        setFormError(null);
+        setCategoryNotice(null);
+        const btn = categoryButtonRefs.current[match.id];
+        btn?.focus();
+        btn?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
     }
   };
 
@@ -3026,6 +3108,8 @@ export default function FinancePage() {
       {/* ================= FORM MODAL (TACTILE 3D BUTTONS) ================= */}
       {showForm && (
         <div 
+          role="dialog"
+          aria-modal="true"
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 backdrop-blur-xs p-4"
           onClick={() => setShowForm(false)}
           onTouchStart={dismissKeyboard}
@@ -3196,6 +3280,18 @@ export default function FinancePage() {
                 </label>
                 <DatePicker
                   triggerRef={dateTriggerRef}
+                  openOnFocus={true}
+                  onConfirmTab={(direction) => {
+                    if (direction === 'backward') {
+                      amountInputRef.current?.focus();
+                    } else {
+                      if (formType === 'transfer') {
+                        sourceAccountBtnRef.current?.focus();
+                      } else {
+                        descInputRef.current?.focus();
+                      }
+                    }
+                  }}
                   onTriggerKeyDown={handleDateTriggerKeyDown}
                   value={parseLocalDate(date)}
                   onChange={(newDate) => {
@@ -3422,6 +3518,7 @@ export default function FinancePage() {
                       value={selectedAccount}
                       onChange={setSelectedAccount}
                       excludeAccountId={destinationAccount}
+                      triggerRef={sourceAccountBtnRef}
                     />
 
                     <TransferAccountDropdown

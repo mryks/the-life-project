@@ -117,6 +117,8 @@ function PickerShell({
   renderTrigger,
   onTriggerKeyDown,
   triggerRef: externalTriggerRef,
+  openOnFocus,
+  onConfirmTab,
   children,
 }: {
   text: string | null;
@@ -129,12 +131,15 @@ function PickerShell({
   renderTrigger?: (api: { open: boolean; text: string | null; placeholder: string }) => React.ReactNode;
   onTriggerKeyDown?: (e: React.KeyboardEvent<HTMLButtonElement>) => void;
   triggerRef?: React.Ref<HTMLButtonElement>;
+  openOnFocus?: boolean;
+  onConfirmTab?: (direction: 'forward' | 'backward') => void;
   children: (api: { close: () => void }) => React.ReactNode;
 }) {
   const [open, setOpen] = React.useState(false);
   const rootRef = React.useRef<HTMLDivElement>(null);
   const internalTriggerRef = React.useRef<HTMLButtonElement>(null);
   const triggerRef = (externalTriggerRef as React.RefObject<HTMLButtonElement | null>) || internalTriggerRef;
+  const isPointerInteractionRef = React.useRef(false);
 
   const side = usePopover({
     open,
@@ -163,8 +168,32 @@ function PickerShell({
         aria-haspopup="dialog"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
+        onPointerDown={() => {
+          isPointerInteractionRef.current = true;
+          setTimeout(() => {
+            isPointerInteractionRef.current = false;
+          }, 200);
+        }}
+        onFocus={() => {
+          if (openOnFocus && !open && !isPointerInteractionRef.current) {
+            setOpen(true);
+          }
+        }}
         onKeyDown={(e) => {
-          if (!open && onTriggerKeyDown) {
+          if (e.key === 'Tab') {
+            if (open) {
+              setOpen(false);
+              if (onConfirmTab) {
+                e.preventDefault();
+                onConfirmTab(e.shiftKey ? 'backward' : 'forward');
+                return;
+              }
+            }
+          } else if (open && e.key === 'Escape') {
+            e.preventDefault();
+            e.stopPropagation();
+            setOpen(false);
+          } else if (onTriggerKeyDown) {
             onTriggerKeyDown(e);
           }
         }}
@@ -199,6 +228,22 @@ function PickerShell({
           <motion.div
             role="dialog"
             aria-label="Choose date"
+            onKeyDown={(e) => {
+              if (e.key === 'Tab') {
+                e.preventDefault();
+                setOpen(false);
+                if (onConfirmTab) {
+                  onConfirmTab(e.shiftKey ? 'backward' : 'forward');
+                } else if (e.shiftKey) {
+                  triggerRef.current?.focus();
+                }
+              } else if (e.key === 'Escape') {
+                e.preventDefault();
+                e.stopPropagation();
+                setOpen(false);
+                triggerRef.current?.focus();
+              }
+            }}
             {...popoverMotion(side, align)}
             className={cn(
               "absolute z-[60] w-max max-w-[calc(100vw-2rem)] rounded-xl border border-neutral-200 bg-white shadow-xl shadow-stone-900/10 dark:border-neutral-800 dark:bg-neutral-950 dark:shadow-black/40",
@@ -230,6 +275,8 @@ export interface DatePickerProps extends CalendarOptions {
   renderTrigger?: (api: { open: boolean; text: string | null; placeholder: string }) => React.ReactNode;
   onTriggerKeyDown?: (e: React.KeyboardEvent<HTMLButtonElement>) => void;
   triggerRef?: React.Ref<HTMLButtonElement>;
+  openOnFocus?: boolean;
+  onConfirmTab?: (direction: 'forward' | 'backward') => void;
 }
 
 export function DatePicker({
@@ -246,6 +293,8 @@ export function DatePicker({
   renderTrigger,
   onTriggerKeyDown,
   triggerRef,
+  openOnFocus,
+  onConfirmTab,
   ...calendar
 }: DatePickerProps) {
   const [date, setDate] = useControllableState<Date | null>(value, defaultValue, onChange);
@@ -263,6 +312,8 @@ export function DatePicker({
       renderTrigger={renderTrigger}
       onTriggerKeyDown={onTriggerKeyDown}
       triggerRef={triggerRef}
+      openOnFocus={openOnFocus}
+      onConfirmTab={onConfirmTab}
     >
       {({ close }) => (
         <Calendar

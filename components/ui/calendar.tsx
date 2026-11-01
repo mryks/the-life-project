@@ -112,6 +112,14 @@ export function Calendar(props: CalendarProps) {
   const max = maxDate ? startOfDay(maxDate) : null;
   const disabled = (d: Date) => (!!min && d < min) || (!!max && d > max) || !!isDateDisabled?.(d);
 
+  const [prevFrom, setPrevFrom] = React.useState(from);
+  if (from !== prevFrom) {
+    setPrevFrom(from);
+    if (from && !isSameMonth(from, view)) {
+      setView(new Date(from.getFullYear(), from.getMonth(), 1));
+    }
+  }
+
   const y = view.getFullYear();
   const m = view.getMonth();
   const canPrev = !min || new Date(y, m, 0) >= min;

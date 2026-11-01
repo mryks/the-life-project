@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { evaluateNominalString, stepDateString } from '@/lib/finance';
+import { evaluateNominalString, stepDateString, matchTypeaheadCandidate } from '@/lib/finance';
 
 describe('Keyboard Navigation & Scientific Shorthand Logic', () => {
   describe('evaluateNominalString', () => {
@@ -85,6 +85,83 @@ describe('Keyboard Navigation & Scientific Shorthand Logic', () => {
     it('gracefully returns unchanged string for invalid formats', () => {
       expect(stepDateString('invalid-date', 1)).toBe('invalid-date');
       expect(stepDateString('', 1)).toBe('');
+    });
+  });
+
+  describe('matchTypeaheadCandidate', () => {
+    const accountCandidates = [
+      { id: 'c', label: 'Cash', aliases: ['C'] },
+      { id: 'b', label: 'BNI', aliases: ['B'] },
+      { id: 'q', label: 'Bank Saqu', aliases: ['Q'] },
+      { id: 'g', label: 'GoPay', aliases: ['G'] },
+      { id: 's', label: 'ShopeePay', aliases: ['S'] },
+      { id: 'j', label: 'Jago', aliases: ['J'] },
+      { id: 'jy', label: 'Jago Yoel', aliases: ['JY'] },
+      { id: 'sea', label: 'SeaBank', aliases: ['SEA'] },
+      { id: 'o', label: 'OVO', aliases: ['O'] },
+    ];
+
+    const categoryCandidates = [
+      { id: 'Home & Family', label: 'Home & Family' },
+      { id: 'Food & Drinks', label: 'Food & Drinks' },
+      { id: 'Transportation', label: 'Transportation' },
+      { id: 'Personal Care', label: 'Personal Care' },
+      { id: 'Leisure', label: 'Leisure' },
+      { id: 'Medical', label: 'Medical' },
+      { id: 'Other', label: 'Other' },
+      { id: '𝓡AI', label: '𝓡AI' },
+    ];
+
+    it('matches single letter prefixes and cycles on repeated keypresses', () => {
+      // First 'b' matches BNI
+      const firstB = matchTypeaheadCandidate(accountCandidates, 'b');
+      expect(firstB?.label).toBe('BNI');
+
+      // Repeated 'b' cycles to Bank Saqu
+      const secondB = matchTypeaheadCandidate(accountCandidates, 'b', 'b');
+      expect(secondB?.label).toBe('Bank Saqu');
+
+      // Next 'b' cycles back to BNI
+      const thirdB = matchTypeaheadCandidate(accountCandidates, 'b', 'q');
+      expect(thirdB?.label).toBe('BNI');
+    });
+
+    it('matches multi-character prefixes accurately', () => {
+      expect(matchTypeaheadCandidate(accountCandidates, 'ban')?.label).toBe('Bank Saqu');
+      expect(matchTypeaheadCandidate(accountCandidates, 'gop')?.label).toBe('GoPay');
+      expect(matchTypeaheadCandidate(accountCandidates, 'sea')?.label).toBe('SeaBank');
+      expect(matchTypeaheadCandidate(accountCandidates, 'jago y')?.label).toBe('Jago Yoel');
+      expect(matchTypeaheadCandidate(accountCandidates, 'ov')?.label).toBe('OVO');
+    });
+
+    it('matches word boundaries and partial words', () => {
+      // 'saqu' matches Bank Saqu
+      expect(matchTypeaheadCandidate(accountCandidates, 'saqu')?.label).toBe('Bank Saqu');
+
+      // 'drinks' matches Food & Drinks
+      expect(matchTypeaheadCandidate(categoryCandidates, 'drinks')?.label).toBe('Food & Drinks');
+
+      // 'family' matches Home & Family
+      expect(matchTypeaheadCandidate(categoryCandidates, 'family')?.label).toBe('Home & Family');
+
+      // 'care' matches Personal Care
+      expect(matchTypeaheadCandidate(categoryCandidates, 'care')?.label).toBe('Personal Care');
+    });
+
+    it('matches category single letter shortcuts', () => {
+      expect(matchTypeaheadCandidate(categoryCandidates, 'f')?.id).toBe('Food & Drinks');
+      expect(matchTypeaheadCandidate(categoryCandidates, 't')?.id).toBe('Transportation');
+      expect(matchTypeaheadCandidate(categoryCandidates, 'h')?.id).toBe('Home & Family');
+      expect(matchTypeaheadCandidate(categoryCandidates, 'p')?.id).toBe('Personal Care');
+      expect(matchTypeaheadCandidate(categoryCandidates, 'l')?.id).toBe('Leisure');
+      expect(matchTypeaheadCandidate(categoryCandidates, 'm')?.id).toBe('Medical');
+      expect(matchTypeaheadCandidate(categoryCandidates, 'o')?.id).toBe('Other');
+    });
+
+    it('returns null when no candidate matches', () => {
+      expect(matchTypeaheadCandidate(accountCandidates, 'xyz')).toBeNull();
+      expect(matchTypeaheadCandidate([], 'a')).toBeNull();
+      expect(matchTypeaheadCandidate(accountCandidates, '')).toBeNull();
     });
   });
 });

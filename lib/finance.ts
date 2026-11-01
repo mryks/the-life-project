@@ -806,6 +806,74 @@ export const evaluateNominalString = (value: string): number | null => {
   return num > 0 ? num : null;
 };
 
+export interface TypeaheadCandidate {
+  id: string;
+  label: string;
+  aliases?: string[];
+}
+
+/**
+ * Pure function to match candidate item based on a search buffer string.
+ * - Single character or repeated characters (e.g. 'b', 'bb') cycle through candidates starting with that character.
+ * - Multi-character queries match prefix on label or aliases, then word boundary prefix, then substring contains.
+ */
+export function matchTypeaheadCandidate<T extends TypeaheadCandidate>(
+  candidates: T[],
+  query: string,
+  currentId?: string | null
+): T | null {
+  const q = query.trim().toLowerCase();
+  if (!q || candidates.length === 0) return null;
+
+  // 1. Single character cycle: if query is a single character or repeated identical characters ('b', 'bb')
+  const isSingleChar = q.length === 1;
+  const isRepeatedChar = q.length > 1 && q.split('').every((ch) => ch === q[0]);
+  const cycleChar = isSingleChar ? q : isRepeatedChar ? q[0] : null;
+
+  if (cycleChar) {
+    const matching = candidates.filter((c) => {
+      const lbl = c.label.toLowerCase();
+      const aliasMatch = c.aliases?.some((a) => a.toLowerCase().startsWith(cycleChar));
+      return lbl.startsWith(cycleChar) || aliasMatch;
+    });
+
+    if (matching.length > 0) {
+      if (currentId) {
+        const curIdx = matching.findIndex((c) => c.id === currentId);
+        if (curIdx !== -1) {
+          return matching[(curIdx + 1) % matching.length];
+        }
+      }
+      return matching[0];
+    }
+  }
+
+  // 2. Prefix match on label or aliases
+  const prefixMatch = candidates.find((c) => {
+    if (c.label.toLowerCase().startsWith(q)) return true;
+    return c.aliases?.some((a) => a.toLowerCase().startsWith(q));
+  });
+  if (prefixMatch) return prefixMatch;
+
+  // 3. Word boundary prefix match (e.g. 'drinks' in 'Food & Drinks', 'saqu' in 'Bank Saqu')
+  const wordBoundaryMatch = candidates.find((c) => {
+    const words = c.label.toLowerCase().split(/[\s&/_-]+/);
+    if (words.some((w) => w.startsWith(q))) return true;
+    return c.aliases?.some((a) => {
+      const aWords = a.toLowerCase().split(/[\s&/_-]+/);
+      return aWords.some((w) => w.startsWith(q));
+    });
+  });
+  if (wordBoundaryMatch) return wordBoundaryMatch;
+
+  // 4. Substring contains
+  const containsMatch = candidates.find((c) => {
+    if (c.label.toLowerCase().includes(q)) return true;
+    return c.aliases?.some((a) => a.toLowerCase().includes(q));
+  });
+  return containsMatch ?? null;
+}
+
 export const createBackupEnvelope = (events: FinancialEvent[]): FinancialBackupEnvelope => ({
   version: FINANCE_STORAGE_VERSION,
   exportedAt: new Date().toISOString(),
