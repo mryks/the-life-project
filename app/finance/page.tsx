@@ -1461,10 +1461,21 @@ export default function FinancePage() {
     setShowCashbackAccountWarning(false);
   };
 
-  // Keyboard Shortcut: Ctrl+N or Cmd+N to open new transaction modal
+  // Keyboard Shortcut: Press 'N' directly, Alt+N, '+', or Ctrl+N to open new transaction modal
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && (e.key === 'n' || e.key === 'N')) {
+      const activeEl = typeof document !== 'undefined' ? document.activeElement : null;
+      const activeTag = activeEl?.tagName;
+      const isTyping = activeTag === 'INPUT' || activeTag === 'TEXTAREA' || (activeEl as HTMLElement)?.isContentEditable;
+
+      const isN = e.key === 'n' || e.key === 'N';
+      const isPlus = (e.key === '+' || e.key === '=') && !isTyping && !e.ctrlKey && !e.metaKey && !e.altKey;
+
+      const isAltN = e.altKey && isN;
+      const isCtrlOrCmdN = (e.ctrlKey || e.metaKey) && isN;
+      const isPlainN = isN && !isTyping && !e.ctrlKey && !e.metaKey && !e.altKey;
+
+      if (isAltN || isPlainN || isCtrlOrCmdN || isPlus) {
         e.preventDefault();
         if (!isSessionUnlocked()) return;
         if (showRefundModal || isAccountModalOpen || actionMenuOpen) return;
@@ -1934,6 +1945,9 @@ export default function FinancePage() {
               <Plus className="w-4 h-4 stroke-[3]" />
               <span className="hidden sm:inline">New Transaction</span>
               <span className="sm:hidden font-bold">Add</span>
+              <kbd className="hidden lg:inline-flex items-center justify-center text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-600/90 text-emerald-100 font-bold ml-0.5 border border-emerald-400/40 select-none shadow-2xs">
+                N
+              </kbd>
             </button>
 
             <button
