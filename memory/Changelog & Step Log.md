@@ -1034,3 +1034,47 @@
    - ESLint `npm run lint`: 0 errors, 0 warnings.
    - Next.js production build: 100% green.
    - Puppeteer E2E visual verification: captured screenshots `1-transfer-modal-add-cashback-btn.png`, `2-transfer-modal-cashback-expanded.png`, `3-transfer-modal-filled.png`, `4-card-view-transfer-cashback.png`, and `5-table-ledger-transfer-cashback.png`.
+
+
+### 🚀 Langkah 57: Desktop Keyboard Navigation, Shorthand Scientific Notation, & Enter Instant Save
+**Date:** 2026-11-01
+**Context & User Request:**
+- User requested desktop keyboard navigation enhancements so users on PCs/laptops do not need to use the mouse/touchpad:
+  1. `Ctrl + N` (and `Cmd + N`) triggers the new/add transaction modal from anywhere on the finance page.
+  2. When opened, `ArrowLeft` / `ArrowRight` cycles between transaction types: `Expense` $\leftrightarrow$ `Income` $\leftrightarrow$ `Transfer`.
+  3. Pressing `Tab` moves focus to `Amount`, where the user can immediately type the nominal.
+  4. Support scientific/shorthand `e` notation in Amount (and nominal inputs), e.g. `10e3` immediately converts to `10.000` when tabbing out, saving the user from repeatedly typing zeros. Also supports `k` and `m` (e.g. `100k` $\rightarrow$ `100.000`, `2.5m` $\rightarrow$ `2.500.000`).
+  5. Pressing `Tab` moves to `Transaction Date`, navigable directly via `ArrowLeft` (-1d), `ArrowRight` (+1d), `ArrowUp` (-7d), `ArrowDown` (+7d), or `Space` to open the EasyUI Calendar popover.
+  6. Pressing `Tab` moves to `Description` (for Expense/Income) where the user can immediately type text. (For Transfer, auto-generated so `Tab` skips directly to Source Account).
+  7. Pressing `Tab` moves to `Account Selection`, where `ArrowLeft`/`ArrowRight`/`ArrowUp`/`ArrowDown` navigates and selects the account using a WAI-ARIA Roving TabIndex (1 single Tab stop into the group). In Transfer mode, `Tab` navigates Source Account $\rightarrow$ Destination Account.
+  8. Pressing `Tab` moves to `Category Selection` (for Expense/Income), navigable via `ArrowLeft`/`ArrowRight`/`ArrowUp`/`ArrowDown` using a Roving TabIndex (1 single Tab stop). In Transfer mode, `Tab` navigates to Admin Fee (optional).
+  9. Pressing `Tab` moves to Cashback:
+     - Expense: Checkbox; pressing `Space` checks it and auto-focuses the cashback amount input immediately.
+     - Transfer: `+ Add Cashback` button; pressing `Space` or `Enter` expands and auto-focuses the cashback amount input immediately.
+  10. Pressing `Tab` moves to `Save Transaction` button; pressing `Space` or `Enter` saves the transaction.
+  11. Instant Quick Save: Pressing single `Enter` anywhere in the form (unless in custom action inputs like category name creation) immediately evaluates shorthand amounts and saves the transaction.
+  12. `Escape` key closes the modal without saving (or cancels adding a category if in inline add mode).
+
+**Changes Implemented:**
+1. **Domain & Parsing Pure Functions (`lib/finance.ts`):**
+   - Added `evaluateNominalString(value: string): number | null`: parses scientific notation (`10e3`, `10E3`, `1.5e5`, `1,5e5`, `1e6`) and shorthand (`100k`, `2.5m`) or standard numbers, returning rounded integers $> 0$.
+   - Added `stepDateString(dateStr: string, deltaDays: number): string`: shifts local `YYYY-MM-DD` string by $\pm N$ days without timezone drift.
+2. **Date Picker Keyboard Hooks (`components/ui/date-picker.tsx`):**
+   - Extended `DatePickerProps` and `PickerShell` to accept `onTriggerKeyDown` and `triggerRef`.
+   - Passes keyboard arrow events directly to `handleDateTriggerKeyDown` when closed.
+3. **Transaction Modal & Focus Architecture (`app/finance/page.tsx`):**
+   - Added keyboard refs: `expenseTypeBtnRef`, `incomeTypeBtnRef`, `transferTypeBtnRef`, `amountInputRef`, `dateTriggerRef`, `descInputRef`, `accountButtonRefs`, `categoryButtonRefs`, `adminFeeInputRef`, `cashbackCheckboxRef`, `addCashbackBtnRef`, `cashbackInputRef`, `saveBtnRef`.
+   - Global `Ctrl+N` / `Cmd+N` keydown listener on `window` (guarded by session unlock and modal exclusion).
+   - Modal initial open auto-focus on active Type Switcher button (guarded by `prevShowFormRef` so re-renders do not steal focus).
+   - `handleTypeKeyDown` for `ArrowLeft` / `ArrowRight` type cycling.
+   - `handleAmountChange`, `handleAmountBlur`, `handleAdminFeeChange`, `handleAdminFeeBlur`, `handleCashbackChange`, `handleCashbackBlur` supporting shorthand evaluation.
+   - WAI-ARIA roving `tabIndex={isFocusable ? 0 : -1}` for Account Grid and Category Grid with arrow key selection.
+   - Checkbox auto-focuses cashback amount input on check; transfer `+ Add Cashback` button expands and auto-focuses cashback input.
+   - Fixed `dismissKeyboard` to avoid blurring checkboxes and removed `onScroll={dismissKeyboard}` to enable focus-scrolling on desktop.
+   - Modal level `onKeyDown` supporting `Escape` and `Enter` (Instant Quick Save).
+4. **Verification & Testing:**
+   - Unit tests: Added 9 unit tests in `tests/finance/keyboard-navigation.test.ts`. All 27 test suites passed: **469/469 tests passing (100%)**.
+   - TypeScript `npx tsc --noEmit`: 0 errors.
+   - ESLint `npm run lint`: 0 errors, 0 warnings.
+   - Next.js production build: 100% green.
+   - Puppeteer E2E tests: verified full Expense and Transfer keyboard flows locally and on live production (`https://the-life-project-os.vercel.app/finance`), saving artifacts `1-keyboard-modal-opened.png`, `2-keyboard-type-cycling.png`, `3-keyboard-amount-date.png`, `4-keyboard-full-form-filled.png`, `5-keyboard-saved-feed.png`, `6-keyboard-transfer-modal-filled.png`, `7-keyboard-transfer-saved-feed.png`, and `live-production-keyboard-verified.png`.
