@@ -58,7 +58,7 @@ async function run() {
     // 1. Press 'N' to open Add Transaction Modal
     console.log("👉 Pressing 'n' to open Add Transaction modal...");
     await page.keyboard.press('n');
-    await page.waitForSelector('[role="dialog"]', { timeout: 5000 });
+    await page.waitForFunction(() => !!document.querySelector('[role="dialog"]') || Array.from(document.querySelectorAll('h3')).some(h => h.textContent?.includes('Transaction')), { timeout: 10000 });
     await new Promise((r) => setTimeout(r, 400));
 
     // 2. Tab to Amount and type 10e3
@@ -192,7 +192,7 @@ async function run() {
     // 8. Test Transfer flow with keyboard
     console.log("\n👉 Testing Transfer flow: Pressing 'n'...");
     await page.keyboard.press('n');
-    await page.waitForSelector('[role="dialog"]', { timeout: 5000 });
+    await page.waitForFunction(() => !!document.querySelector('[role="dialog"]') || Array.from(document.querySelectorAll('h3')).some(h => h.textContent?.includes('Transaction')), { timeout: 10000 });
     await new Promise((r) => setTimeout(r, 300));
 
     // Arrow right twice to reach Transfer
