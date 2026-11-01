@@ -1078,3 +1078,48 @@
    - ESLint `npm run lint`: 0 errors, 0 warnings.
    - Next.js production build: 100% green.
    - Puppeteer E2E tests: verified full Expense and Transfer keyboard flows locally and on live production (`https://the-life-project-os.vercel.app/finance`), saving artifacts `1-keyboard-modal-opened.png`, `2-keyboard-type-cycling.png`, `3-keyboard-amount-date.png`, `4-keyboard-full-form-filled.png`, `5-keyboard-saved-feed.png`, `6-keyboard-transfer-modal-filled.png`, `7-keyboard-transfer-saved-feed.png`, and `live-production-keyboard-verified.png`.
+
+
+### 🚀 Langkah 58: Date Picker Auto-Open on Focus, Tab Direct Confirmation, and Invisible Buffer Typeahead for Account & Category Grids
+**Date:** 2026-11-01
+**Context & User Request:**
+- User requested two major productivity enhancements for the desktop keyboard workflow:
+  1. **Date Picker Auto-Open & Tab Confirmation:**
+     - When tabbing into `Transaction Date` from `Amount`, the calendar popover must automatically open without requiring the user to press `Space`.
+     - When the user presses `Tab` while on the date, it confirms the selected date, closes the calendar popover, and focus immediately transitions to `Description` (or in Transfer mode, to `Source Account`).
+  2. **Typeahead / Search-as-you-type in Account & Category Selection without a visible search box:**
+     - In the Account section and Category section, besides using arrow keys, the user can type characters directly (e.g. typing `"b"` selects BNI, typing `"b"` again cycles to Bank Saqu, typing `"f"` selects Food & Drinks) without rendering any cluttering search input box.
+
+**Changes Implemented:**
+1. **Typeahead Matching Algorithm (`lib/finance.ts`):**
+   - Added `TypeaheadCandidate` interface (`id`, `label`, optional `aliases`).
+   - Implemented pure function `matchTypeaheadCandidate(candidates, query, currentId)`.
+   - Feature support:
+     * Repeated single character cycling: typing `"b"` repeatedly cycles through all items starting with `"b"`.
+     * Multi-character prefix matching: typing `"g"` then `"o"` within 700ms selects GoPay (`"go"`).
+     * Word boundary matching: typing `"saqu"` or `"pay"` matches `"Bank Saqu"` or `"ShopeePay"`.
+     * Case-insensitive substring fallback.
+2. **Date Picker Keyboard Extensions (`components/ui/date-picker.tsx` & `components/ui/calendar.tsx`):**
+   - Extended `DatePickerProps` and `PickerShell` with `openOnFocus?: boolean` and `onConfirmTab?: (direction: 'forward' | 'backward') => void`.
+   - Added `isPointerInteractionRef` to differentiate mouse clicks from programmatic focus, preventing double-toggles.
+   - Handled `Tab` on date trigger and calendar grid to close the popover and trigger `onConfirmTab`.
+   - Refactored `components/ui/calendar.tsx` state synchronization during render to satisfy React 19 rules without triggering `react-hooks/set-state-in-effect`.
+3. **Modal Focus Management & Typeahead Wireup (`app/finance/page.tsx`):**
+   - Wired `openOnFocus={true}` and `onConfirmTab` into the modal's `DatePicker`.
+   - In Expense/Income, Tab moves from Date to Description; in Transfer, Tab moves from Date to Source Account.
+   - Added `accountTypeaheadBufferRef` and `categoryTypeaheadBufferRef` with 700ms debounce clearing.
+   - Integrated typeahead into `handleAccountKeyDown`, `handleCategoryKeyDown`, and `TransferAccountDropdown`.
+   - Added `role="dialog"` and `aria-modal="true"` to form modal for accessibility compliance.
+4. **Verification & Testing:**
+   - Added 5 new unit tests in `tests/finance/keyboard-navigation.test.ts`. All 27 test suites passed: **474/474 tests passing (100%)**.
+   - TypeScript `npx tsc --noEmit`: 0 errors.
+   - ESLint `npm run lint`: 0 errors, 0 warnings.
+   - Next.js production build: 100% green.
+   - Created E2E Puppeteer test `scripts/verify-typeahead-and-datepicker.mjs` verifying:
+     * DatePicker auto-opens on Tab focus.
+     * Tab confirms date and shifts focus directly to Description input.
+     * Typing `"go"` in Account selector selects GoPay.
+     * Typing `"t"` in Category selector selects Transportation.
+     * Instant save via Enter commits to storage.
+     * Transfer workflow: Date Tab confirmed -> Source Account -> Destination Account typed `"sea"` selects SeaBank -> instant save.
+   - Verified on live Vercel production: `https://the-life-project-os.vercel.app/finance`.
