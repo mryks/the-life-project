@@ -8,8 +8,8 @@
 ## 📌 Current Status (At a Glance)
 - **Active Domain:** Personal Finance OS (daily expense tracker & financial dashboard).
 - **Git Branch:** `finance-foundation` | **Production:** https://the-life-project-os.vercel.app/finance
-- **Health:** 27 test suites, **474/474 tests passing (100%)**, TypeScript strict 0 errors, ESLint clean (0 errors, 0 warnings).
-- **Latest Completed Sprint:** **Langkah 57** (Desktop Keyboard Navigation, Shorthand Scientific Notation `10e3` $\rightarrow$ `10.000`, Date Stepping, WAI-ARIA Roving Tabindex, and Enter Instant Save).
+- **Health:** 27 test suites, **480/480 tests passing (100%)**, TypeScript strict 0 errors, ESLint clean (0 errors, 0 warnings).
+- **Latest Completed Sprint:** **Langkah 59** (Keyboard Shortcut `Alt + E` for Show/Hide Nominal Amounts Privacy Toggle).
 
 - **Immediate Next Steps (Finance Backlog):**
   1. Multi-device sync verification & cloud sync backup envelope parity for custom accounts.
@@ -38,7 +38,7 @@ Open **ONLY** the note relevant to your immediate task. Do not read the entire v
 3. **Keyboard Navigation & Scientific Shorthand Invariant:** Pressing single key `N` directly, `Alt+N`, or `+` triggers transaction modal. `ArrowLeft`/`ArrowRight` toggles transaction types. Tab traverses Amount $\rightarrow$ Date $\rightarrow$ Description $\rightarrow$ Account $\rightarrow$ Category $\rightarrow$ Cashback $\rightarrow$ Save. Amount fields support scientific shorthand (`10e3` $\rightarrow$ `10.000`, `100k`, `2.5m`). Account and Category grids use WAI-ARIA Roving TabIndex (1 Tab stop per group, arrow keys navigate). Single `Enter` anywhere in the modal triggers instant save.
 4. **Account Classification:** 17 system default accounts + user custom accounts partitioned dynamically into `liquid` (Total Balance) vs `investment` (Holdings / Net Worth). Default accounts can NEVER be deleted. Custom accounts can only be deleted if they have 0 transactions (`!isAccountInUse`).
 5. **Single-Step Swipe Invariant:** Horizontal tab swipe (Overview $\leftrightarrow$ Accounts $\leftrightarrow$ Activity) must advance by at most $\pm 1$ tab per gesture. Fast flicks or large drags must never skip adjacent tabs.
-6. **Nominal Privacy by Default:** All amounts across all views default to masked (`Rp ••••••`). Revealed state persists per session via `sessionStorage`.
+6. **Nominal Privacy by Default:** All amounts across all views default to masked (`Rp ••••••`). Revealed state persists per session via `sessionStorage`. Can be toggled instantaneously from anywhere via keyboard shortcut `Alt + E` (Option+E on macOS).
 7. **Aesthetic Law:** 100% English copy, zero default keyboard emojis (strictly Lucide/Phosphor vector icons), and tabular numerals (`Sora`).
 8. **Codebase Over Memory:** If memory notes contradict the actual codebase or test suites, trust the code and update the memory note.
 9. **Public Repo Privacy:** NEVER write secrets, API keys, tokens, `.env` values, or private user financial figures to any Markdown or tracked code.

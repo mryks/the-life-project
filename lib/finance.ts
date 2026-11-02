@@ -806,6 +806,22 @@ export const evaluateNominalString = (value: string): number | null => {
   return num > 0 ? num : null;
 };
 
+/**
+ * Detects if a keyboard event matches the Alt+E (Option+E on macOS) shortcut
+ * to toggle show/hide nominal amounts.
+ */
+export function isAltEShortcut(e: {
+  altKey: boolean;
+  key?: string;
+  code?: string;
+  ctrlKey?: boolean;
+  metaKey?: boolean;
+}): boolean {
+  if (!e.altKey || e.ctrlKey || e.metaKey) return false;
+  const isE = e.key === 'e' || e.key === 'E' || e.code === 'KeyE';
+  return Boolean(isE);
+}
+
 export interface TypeaheadCandidate {
   id: string;
   label: string;

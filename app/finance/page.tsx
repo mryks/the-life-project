@@ -51,6 +51,7 @@ import {
   evaluateNominalString,
   stepDateString,
   matchTypeaheadCandidate,
+  isAltEShortcut,
 } from "@/lib/finance";
 import { useTransactionReorder } from "@/hooks/useTransactionReorder";
 import { useSwipeableTabs } from "@/hooks/useSwipeableTabs";
@@ -1490,9 +1491,19 @@ export default function FinancePage() {
     setShowCashbackAccountWarning(false);
   };
 
-  // Keyboard Shortcut: Press 'N' directly, Alt+N, '+', or Ctrl+N to open new transaction modal
+  // Keyboard Shortcut: Press 'N' directly, Alt+N, '+', or Ctrl+N to open new transaction modal;
+  // Press Alt+E (Option+E on macOS) to toggle show/hide nominal amounts
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // 1. Alt+E: Toggle show/hide nominal privacy
+      if (isAltEShortcut(e)) {
+        e.preventDefault();
+        if (!isSessionUnlocked()) return;
+        handleToggleHideNominals();
+        return;
+      }
+
+      // 2. Open Add Transaction Modal
       const activeEl = typeof document !== 'undefined' ? document.activeElement : null;
       const activeTag = activeEl?.tagName;
       const isTyping = activeTag === 'INPUT' || activeTag === 'TEXTAREA' || (activeEl as HTMLElement)?.isContentEditable;
@@ -1516,7 +1527,7 @@ export default function FinancePage() {
     };
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [showForm, showRefundModal, isAccountModalOpen, actionMenuOpen]);
+  }, [showForm, showRefundModal, isAccountModalOpen, actionMenuOpen, handleToggleHideNominals]);
 
   // Auto-focus active type button only when modal transitions from closed to open
   const prevShowFormRef = useRef(showForm);
@@ -2092,8 +2103,8 @@ export default function FinancePage() {
               type="button"
               onClick={handleToggleHideNominals}
               className="btn-tactile-neutral px-2.5 sm:px-3 py-1.5 text-xs flex items-center gap-1.5 cursor-pointer shadow-2xs shrink-0 text-stone-700 hover:text-stone-900"
-              title={hideNominals ? "Show Nominals" : "Hide Nominals"}
-              aria-label={hideNominals ? "Show Nominals" : "Hide Nominals"}
+              title={hideNominals ? "Show Nominals (Alt+E)" : "Hide Nominals (Alt+E)"}
+              aria-label={hideNominals ? "Show Nominals (Alt+E)" : "Hide Nominals (Alt+E)"}
             >
               {hideNominals ? (
                 <EyeOff className="w-3.5 h-3.5 text-stone-600" />
@@ -2101,6 +2112,9 @@ export default function FinancePage() {
                 <Eye className="w-3.5 h-3.5 text-stone-600" />
               )}
               <span className="hidden sm:inline font-bold">{hideNominals ? "Show" : "Hide"}</span>
+              <kbd className="hidden lg:inline-flex items-center justify-center text-[10px] font-mono px-1.5 py-0.5 rounded bg-stone-200/80 text-stone-600 font-bold ml-0.5 border border-stone-300/80 select-none shadow-2xs">
+                Alt+E
+              </kbd>
             </button>
 
             <button

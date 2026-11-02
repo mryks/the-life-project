@@ -52,8 +52,8 @@ export default function HeroVaultCard({
                 onToggleHideNominals();
               }}
               className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-100/80 hover:bg-amber-200/90 text-amber-950 border border-amber-300/80 transition cursor-pointer shadow-2xs active:scale-95"
-              title={hideNominals ? "Show Nominals" : "Hide Nominals"}
-              aria-label={hideNominals ? "Show Nominals" : "Hide Nominals"}
+              title={hideNominals ? "Show Nominals (Alt+E)" : "Hide Nominals (Alt+E)"}
+              aria-label={hideNominals ? "Show Nominals (Alt+E)" : "Hide Nominals (Alt+E)"}
             >
               {hideNominals ? (
                 <EyeOff className="w-3.5 h-3.5" />

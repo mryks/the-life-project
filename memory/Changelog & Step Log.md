@@ -1123,3 +1123,29 @@
      * Instant save via Enter commits to storage.
      * Transfer workflow: Date Tab confirmed -> Source Account -> Destination Account typed `"sea"` selects SeaBank -> instant save.
    - Verified on live Vercel production: `https://the-life-project-os.vercel.app/finance`.
+
+
+### 🚀 Langkah 59: Keyboard Shortcut Alt+E for Show/Hide Nominal Amounts Privacy Toggle
+**Date:** 2026-11-02
+**Context & User Request:**
+- User requested a dedicated keyboard shortcut `Alt + E` to toggle between showing and hiding nominal figures (Nominal Privacy / hideNominals) anywhere on the app.
+
+**Changes Implemented:**
+1. **Shortcut Detector (`lib/finance.ts`):**
+   - Exported pure function `isAltEShortcut(e)` matching `altKey === true` with key `'e'` / `'E'` or code `'KeyE'` (for macOS Option+E dead keys).
+   - Rejects `ctrlKey` / `metaKey` combinations to safeguard European international keyboard layouts where `AltGr + E` produces the Euro sign (`€`).
+2. **Global Keydown Wireup & UI Discoverability (`app/finance/page.tsx` & `components/finance/HeroVaultCard.tsx`):**
+   - Added `isAltEShortcut(e)` check at the top of `handleGlobalKeyDown` in `app/finance/page.tsx` to immediately toggle privacy masking via `handleToggleHideNominals()` and prevent default browser behaviour.
+   - Added a visible `<kbd className="hidden lg:inline-flex ...">Alt+E</kbd>` badge next to the Show / Hide label on the sticky header toggle button.
+   - Updated tooltips and ARIA labels on both the header button and `HeroVaultCard` to display `Show Nominals (Alt+E)` / `Hide Nominals (Alt+E)`.
+3. **Verification & Testing (`tests/finance/keyboard-navigation.test.ts` & `scripts/verify-alt-e-toggle.mjs`):**
+   - Added 6 new unit tests in `tests/finance/keyboard-navigation.test.ts` covering key detection, macOS Option+E dead keys, AltGr rejection, and metaKey rejection.
+   - All 27 test files passed: **480/480 tests passing (100%)**.
+   - TypeScript `npx tsc --noEmit`: 0 errors.
+   - ESLint `npm run lint`: 0 errors, 0 warnings.
+   - Production build `npm run build`: 100% green.
+   - Puppeteer E2E automated test in `scripts/verify-alt-e-toggle.mjs` verified:
+     * Initial masked state (`Rp ••••••`, button shows "Show Alt+E").
+     * Pressing `Alt + E` successfully toggles nominals to revealed (masked amounts disappear, button changes to "Hide Alt+E", `sessionStorage` updates to `'false'`).
+     * Pressing `Alt + E` again re-masks all numbers back to `Rp ••••••` (button changes back to "Show Alt+E", `sessionStorage` updates to `'true'`).
+     * Screenshots captured: `1-alt-e-initial-masked.png`, `2-alt-e-revealed.png`, `3-alt-e-remasked.png`.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { evaluateNominalString, stepDateString, matchTypeaheadCandidate } from '@/lib/finance';
+import { evaluateNominalString, stepDateString, matchTypeaheadCandidate, isAltEShortcut } from '@/lib/finance';
 
 describe('Keyboard Navigation & Scientific Shorthand Logic', () => {
   describe('evaluateNominalString', () => {
@@ -162,6 +162,38 @@ describe('Keyboard Navigation & Scientific Shorthand Logic', () => {
       expect(matchTypeaheadCandidate(accountCandidates, 'xyz')).toBeNull();
       expect(matchTypeaheadCandidate([], 'a')).toBeNull();
       expect(matchTypeaheadCandidate(accountCandidates, '')).toBeNull();
+    });
+  });
+  describe('isAltEShortcut (Show/Hide Nominals Keyboard Toggle)', () => {
+    it('matches Alt+e and Alt+E on standard keyboards', () => {
+      expect(isAltEShortcut({ altKey: true, key: 'e' })).toBe(true);
+      expect(isAltEShortcut({ altKey: true, key: 'E' })).toBe(true);
+    });
+
+    it('matches Option+E on macOS when code is KeyE (even if dead key accent acute)', () => {
+      expect(isAltEShortcut({ altKey: true, code: 'KeyE' })).toBe(true);
+      expect(isAltEShortcut({ altKey: true, key: '´', code: 'KeyE' })).toBe(true);
+    });
+
+    it('rejects plain "e" without altKey', () => {
+      expect(isAltEShortcut({ altKey: false, key: 'e' })).toBe(false);
+      expect(isAltEShortcut({ altKey: false, key: 'E' })).toBe(false);
+      expect(isAltEShortcut({ altKey: false, code: 'KeyE' })).toBe(false);
+    });
+
+    it('rejects AltGr (ctrlKey + altKey) to prevent breaking European international layouts', () => {
+      expect(isAltEShortcut({ altKey: true, ctrlKey: true, key: 'e', code: 'KeyE' })).toBe(false);
+      expect(isAltEShortcut({ altKey: true, ctrlKey: true, key: '€', code: 'KeyE' })).toBe(false);
+    });
+
+    it('rejects metaKey (Cmd+Option) combos', () => {
+      expect(isAltEShortcut({ altKey: true, metaKey: true, key: 'e', code: 'KeyE' })).toBe(false);
+    });
+
+    it('rejects other keys pressed with Alt (e.g. Alt+N, Alt+D)', () => {
+      expect(isAltEShortcut({ altKey: true, key: 'n', code: 'KeyN' })).toBe(false);
+      expect(isAltEShortcut({ altKey: true, key: 'd', code: 'KeyD' })).toBe(false);
+      expect(isAltEShortcut({ altKey: true, key: 'Enter', code: 'Enter' })).toBe(false);
     });
   });
 });
